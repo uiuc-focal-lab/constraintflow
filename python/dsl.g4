@@ -1,0 +1,209 @@
+
+
+grammar dsl;
+
+prog :
+    shape_decl statement EOF
+;
+
+shape_decl : 
+    SHAPE LPAREN arglist RPAREN LBRACE prop RBRACE SEMI 
+;
+
+statement : FLOW LPAREN direction COMMA expr COMMA expr COMMA VAR RPAREN SEMI #flowstmt
+    | FUNC func_decl EQ expr SEMI #funcstmt
+    | transformer #transstmt
+    | statement statement #seqstmt
+;
+
+func_decl :
+    VAR LPAREN arglist RPAREN 
+;
+
+transformer: trans_decl LBRACE op_list RBRACE ;
+
+op_list: op_stmt SEMI
+	|	op_stmt SEMI op_list
+	;
+
+op_stmt: operator ARROW trans_ret ;
+
+trans_decl : TRANSFORMER VAR LPAREN CURR COMMA PREV RPAREN;     
+
+operator :
+    AFFINE    
+    | RELU     
+    | MAXPOOL   
+    | SIGMOID  
+    | TANH     
+;
+
+trans_ret :
+    expr QUES trans_ret COLON trans_ret #condtrans
+    | LPAREN trans_ret RPAREN #parentrans
+    | expr_list #trans
+;
+
+types: INTT 
+	|	FLOATT 
+	|	BOOL 
+	|	POLYEXP 
+	|	ZONOEXP 
+	|	NEURON 
+    | types LIST
+    ;
+
+arglist : types VAR COMMA arglist 
+	|	types VAR ;
+
+expr_list : expr COMMA expr_list
+	|	expr ; 
+
+expr: FALSE					#true
+    | TRUE 					#false
+    | IntConst 					#int
+    | FloatConst 				#float
+    | VAR                     			#varExp
+    | EPSILON 					#epsilon
+    | CURR					#curr
+    | PREV					#prev
+    | LPAREN expr RPAREN      			#parenExp
+    | expr LSQR metadata RSQR           #getMetadata
+    | expr LSQR VAR RSQR                #getElement
+    | expr binop expr         			#binopExp
+    | NOT expr       				#not
+    | MINUS expr				#neg
+    | expr QUES expr COLON expr 		#cond
+    | expr DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE prop RBRACE		#traverse
+    | func_op LPAREN expr COMMA VAR RPAREN 	#nlistOp
+    | SUM LPAREN expr RPAREN 			#sum
+    | SUB LPAREN expr COMMA expr RPAREN 	#sub
+    | expr DOT MAP LPAREN VAR RPAREN 				#map
+    | expr DOT DOTT LPAREN expr RPAREN 			#dot
+    | VAR LPAREN expr_list RPAREN 		#funcCall
+;
+
+func_op: MAX
+	|	MIN
+	|	ARGMAX
+	|	ARGMIN ;
+
+binop: PLUS 
+	|	MINUS 
+	|	MULT 
+	|	DIV 
+	|	AND 
+	|	OR 
+	|	GEQ 
+	|	LEQ
+    |   LT
+    |   GT
+    |   EQQ 
+    ;
+
+metadata: WEIGHT 
+	|	BIAS 
+	|	LAYER ;
+
+direction: BACKWARD
+	|	FORWARD ;
+
+pt: IntConst #ptbasic 
+	|	FloatConst #ptbasic
+	|	CURR LSQR VAR RSQR #ptbasic
+	|	CURR LSQR metadata RSQR #ptbasic
+	|	IN #ptin
+	|	OUT #ptout
+	|	CURR #ptbasic
+	|	pt PLUS pt #ptop
+	|	pt MINUS pt #ptop
+	;
+
+prop: LPAREN prop RPAREN #propparen
+	|	pt GT pt #propsingle
+    |       pt GEQ pt #propsingle
+    |       pt LEQ pt #propsingle
+    |       pt LT pt #propsingle
+    |       pt EQQ pt #propsingle
+    |       prop AND prop #propdouble
+    |       prop OR prop #propdouble
+    ;
+
+FLOW: 'flow' ;
+ARROW: '->' ;
+TRANSFORMER: 'transformer' ;
+IN: 'in' ;
+OUT: 'out' ;
+BACKWARD: 'backward' ;
+FORWARD: 'forward' ;
+INTT: 'Int' ;
+FLOATT: 'Float' ;
+BOOL: 'Bool' ;
+POLYEXP: 'PolyExp' ;
+ZONOEXP: 'ZonoExp' ;
+NEURON: 'Neuron' ;
+LIST: 'List' ;
+DOT: '.' ;
+COMMA: ',' ;
+PLUS: '+' ;
+MINUS: '-' ;
+MULT: '*' ;
+DIV: '/' ;
+AND: 'and' ;
+OR: 'or' ;
+LT: '<' ;
+EQ: '=' ;
+EQQ: '==' ;
+NEQ: '!=' ;
+GT: '>' ;
+LEQ: '<=' ;
+GEQ: '>=' ;
+NOT: '!' ;
+LPAREN: '(' ;
+RPAREN: ')' ;
+LSQR: '[' ;
+RSQR: ']' ;
+LBRACE: '{' ;
+RBRACE: '}' ;
+SEMI: ';' ;
+QUES: '?' ;
+COLON: ':' ;
+IF: 'if' ;
+TRAV: 'traverse' ;
+SUM: 'sum' ;
+SUB: 'sub' ;
+MAP: 'map' ;
+DOTT: 'dot' ;
+ARGMIN: 'argmin' ;
+ARGMAX: 'argmax' ;
+MIN: 'min' ;
+MAX: 'max' ;
+WEIGHT: 'weight' ;
+BIAS: 'bias' ;
+LAYER: 'layer' ;
+AFFINE: 'Affine' ;
+RELU: 'Relu' ;
+MAXPOOL: 'Maxpool' ;
+SIGMOID: 'Sigmoid' ;
+TANH: 'Tanh' ;
+SHAPE: 'def Shape as' ;
+FUNC: 'func' ;
+EPSILON: 'eps' ;
+TRUE: 'true' ;
+FALSE: 'false' ;
+CURR: 'curr' ;
+PREV: 'prev' ;
+
+IntConst: Sign? Digit+ ;
+
+FloatConst: [0-9]+'.'[0-9]+([Ee] [+-]? [0-9]+)? ;
+
+fragment Digit : [0-9] ;
+
+fragment Sign : [+-] ; 
+
+VAR : Nondigit (Nondigit | Digit | '\'')* ;
+fragment Nondigit : [a-zA-Z_] ;
+
+WS : [ \t\r\n]+ -> skip ;	// skip spaces, tabs, newlines
+LineComment : '//' ~[\r\n]* -> channel(HIDDEN) ;
