@@ -422,15 +422,6 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#ptout.
-    def enterPtout(self, ctx:dslParser.PtoutContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#ptout.
-    def exitPtout(self, ctx:dslParser.PtoutContext):
-        pass
-
-
     # Enter a parse tree produced by dslParser#ptin.
     def enterPtin(self, ctx:dslParser.PtinContext):
         pass

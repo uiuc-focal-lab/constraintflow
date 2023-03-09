@@ -52,6 +52,7 @@ class ASTTC(astVisitor.ASTVisitor):
 	def __init__(self):
 		self.vars = {}
 		self.shape = []
+		self.currdefined = False #prev is also defined when curr is
 
 	def isType(self, t1, t2):
 		#May need to remove these two lines and figure out ['x'] to 'x' conversion elsewhere
@@ -220,6 +221,9 @@ class ASTTC(astVisitor.ASTVisitor):
 		else:
 			return self.vars[node.name]
 
+	def visitNeuron(self, node: AST.NeuronNode):
+		return "Neuron"
+
 	def visitInt(self, node: AST.ConstIntNode):
 		return "Int"
 
@@ -230,10 +234,16 @@ class ASTTC(astVisitor.ASTVisitor):
 		return "Bool"
 
 	def visitCurr(self, node: AST.CurrNode):
-		return "Neuron"
+		if(self.currdefined):
+			return "Neuron"
+		else:
+			raise UndefinedVarException("Curr is not defined")
 
 	def visitPrev(self, node: AST.PrevNode):
-		return ArrayType("Neuron")
+		if(self.currdefined):
+			return ArrayType("Neuron")
+		else:
+			raise UndefinedVarException("Prev is not defined")
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		return "Noise"
@@ -405,7 +415,9 @@ class ASTTC(astVisitor.ASTVisitor):
 
 			self.shape.append((t.name,e.name))
 
+		self.currdefined = True
 		self.visit(node.p)
+		self.currdefined = False
 
 	def visitTransRetBasic(self, node: AST.TransRetBasicNode):
 		rettype = self.visit(node.exprlist)
@@ -433,51 +445,47 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(tname in self.vars.keys()):
 			raise DuplicateVarException(tname + " is already defined")
 
+		self.currdefined = True
 		self.visit(node.oplist)
+		self.currdefined = False
 		self.vars[tname] = TransformerType()
 
 	def visitPropTermBasic(self, node: AST.PropTermBasicNode):
 		return self.visit(node.term)
 
 	def visitPropTermIn(self, node: AST.PropTermInNode):
-		pass #Not finished
-
-	def visitPropTermOut(self, node: AST.PropTermOutNode):
-		pass #Not finished
+		ntype = self.visit(node.n)
+		ztype = self.visit(node.z)
+		if(ntype == "Neuron" and ztype == "ZonoExp"):
+			return "Bool"
+		else:
+			raise TypeMismatchException("in operator not defined for " + str(ntype) + " " + str(ztype))
 
 	def visitPropTermOp(self, node: AST.PropTermOpNode):
-		pass #Not finished
-		'''
 		left = self.visit(node.leftpt)
 		right = self.visit(node.rightpt)
 		if(self.comparable(left, right)):
 			return self.comparable(left, right)
 		else:
 			raise TypeMismatchException(str(left) + " and " + str(right) + " are not comparable")
-		'''
+		
 
 	def visitSingleProp(self, node: AST.SinglePropNode):
-		pass #Not finished
-		'''
 		left = self.visit(node.leftpt)
 		right = self.visit(node.rightpt)
 		if(self.comparable(left, right)):
 			return "Bool"
 		else:
 			raise TypeMismatchException(str(left) + " and " + str(right) + " are not comparable")
-		'''
 
 	def visitDoubleProp(self, node: AST.DoublePropNode):
-		pass #Not finished
-		'''
 		l = self.visit(node.leftprop)
 		r = self.visit(node.rightprop)
-		#Shouldn't need the rest of this function
+		#Shouldn't need the rest of this function bc of parsing
 		if(r == "Bool" and l == "Bool"):
 			return "Bool"
 		else:
 			raise TypeMismatchException("Both properties should be boolean expressions")
-		'''
 
 	def visitFunc(self, node: AST.FuncNode):
 		argstype = self.visit(node.decl.arglist)

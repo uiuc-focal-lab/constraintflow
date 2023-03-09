@@ -236,22 +236,23 @@ class ASTBuilder(dslVisitor):
         elif(ctx.FloatConst()):
             floatNode = AST.ConstFloatNode(float(ctx.FloatConst().getText()))
             return AST.PropTermBasicNode(floatNode)
-        elif(ctx.VAR()):
-            expr = AST.CurrNode()
+        elif(ctx.pt() and ctx.VAR()):
+            expr = self.visit(ctx.pt())
             elem = AST.VarNode(ctx.VAR().getText())
             return AST.GetElementNode(expr, elem)
-        elif(ctx.metadata()):
-            expr = AST.CurrNode()
+        elif(ctx.pt() and ctx.metadata()):
+            expr = self.visit(ctx.pt())
             metadata =  AST.MetadataNode(ctx.metadata().getText())
             return AST.GetMetadataNode(expr, metadata)
         elif(ctx.CURR()):
             return AST.CurrNode()
-
-    def visitPtout(self, ctx:dslParser.PtoutContext):
-        return AST.PropTermOutNode()
+        elif(ctx.VAR()):
+            return AST.VarNode(ctx.VAR().getText())
 
     def visitPtin(self, ctx:dslParser.PtinContext):
-        return AST.PropTermInNode()
+        n = AST.VarNode(ctx.VAR(0).getText())
+        z = AST.VarNode(ctx.VAR(1).getText())
+        return AST.PropTermInNode(n, z)
 
     def visitPropsingle(self, ctx:dslParser.PropsingleContext):
         leftpt = self.visit(ctx.pt(0))

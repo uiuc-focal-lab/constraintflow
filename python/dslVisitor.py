@@ -239,11 +239,6 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#ptout.
-    def visitPtout(self, ctx:dslParser.PtoutContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by dslParser#ptin.
     def visitPtin(self, ctx:dslParser.PtinContext):
         return self.visitChildren(ctx)

@@ -15,5 +15,4 @@ def genAST(inputfile):
 
     astTC.ASTTC().visit(ast)
 
-genAST("test_input")
-genAST("test_input2")
+genAST("test_input.cf")

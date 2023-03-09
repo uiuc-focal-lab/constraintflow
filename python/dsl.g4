@@ -110,13 +110,13 @@ direction: BACKWARD
 
 pt: IntConst #ptbasic 
 	|	FloatConst #ptbasic
-	|	CURR LSQR VAR RSQR #ptbasic
-	|	CURR LSQR metadata RSQR #ptbasic
-	|	IN #ptin
-	|	OUT #ptout
+	|	pt LSQR VAR RSQR #ptbasic
+	|	pt LSQR metadata RSQR #ptbasic
+	|	VAR #ptbasic
 	|	CURR #ptbasic
 	|	pt PLUS pt #ptop
 	|	pt MINUS pt #ptop
+    |   VAR IN VAR #ptin
 	;
 
 prop: LPAREN prop RPAREN #propparen

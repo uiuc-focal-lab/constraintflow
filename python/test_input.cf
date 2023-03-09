@@ -9,12 +9,12 @@ func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coe
 func priority1(Neuron n) = -n[layer];
 func priority2(Neuron n) = n[layer];
 
-func backsubs_lower(PolyExp e) = (e.traverse(backward, priority1, true, replace_lower){in>=out}).map(simplify_lower);
-func backsubs_upper(PolyExp e) = (e.traverse(backward, priority1, true, replace_upper){in<=out}).map(simplify_upper);
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority1, true, replace_lower){e<=n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority1, true, replace_upper){e>=n}).map(simplify_upper);
 
 transformer deeppoly(curr, prev){
     Relu -> sum(prev[l])>=0 ? (sum(prev[l]), sum(prev[u]), sum(prev[L]), sum(prev[U])) : (sum(prev[u])<=0 ? (0,0,0,0) : (0, sum(prev[u]), 0, (sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev) - sum(prev[u])*sum(prev[l]) / (sum(prev[u]) - sum(prev[l]))));
-    Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias]), backsubs_upper(prev.dot(curr[weight]) + curr[bias]), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
+    Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
     Maxpool -> max(prev, l) >= max((sub(prev, argmax(prev, l))), u) ? (max(prev, l), max(prev, u), (argmax(prev, l))[L], (argmax(prev, l))[U]) : (max(prev, l), max(prev, u), (argmax(prev, l))[L], max(prev, u));
 }
 

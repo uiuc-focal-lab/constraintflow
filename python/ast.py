@@ -87,6 +87,14 @@ class VarNode(ExprNode):
         self.node_name = "Var"
         self.name = name
 
+class NeuronNode(ExprNode):
+
+    def __init__(self, w, b, l):
+        self.elements = {}
+        self.weight = w
+        self.bias = b
+        self.l = l
+
 class ConstIntNode(ExprNode):
 
     def __init__(self, value):
@@ -306,15 +314,11 @@ class PropTermBasicNode(PropTermNode):
 
 class PropTermInNode(PropTermNode):
 
-    def __init__(self):
+    def __init__(self, n, z):
         super().__init__()
         self.node_name = "In"
-
-class PropTermOutNode(PropTermNode):
-    
-    def __init__(self):
-        super().__init__()
-        self.node_name = "Out"
+        self.n = n
+        self.z = z
     
 
 class PropTermOpNode(PropTermNode):

@@ -19,6 +19,8 @@ class ASTVisitor:
 			return self.visitNlistOp(node)
 		elif isinstance(node, AST.VarNode):
 			return self.visitVar(node)
+		elif isinstance(node, AST.NeuronNode):
+			return self.visitNeuron(node)
 		elif isinstance(node, AST.ConstIntNode):
 			return self.visitInt(node)
 		elif isinstance(node, AST.ConstFloatNode):
@@ -65,8 +67,6 @@ class ASTVisitor:
 			return self.visitPropTermBasic(node)
 		elif isinstance(node, AST.PropTermInNode):
 			return self.visitPropTermIn(node)
-		elif isinstance(node, AST.PropTermOutNode):
-			return self.visitPropNodeOut(node)
 		elif isinstance(node, AST.PropTermOpNode):
 			return self.visitPropTermOp(node)
 		elif isinstance(node, AST.SinglePropNode):
