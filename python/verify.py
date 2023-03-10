@@ -388,7 +388,7 @@ class Evaluate(astVisitor.ASTVisitor):
 		cond = self.visit(node.cond)
 		left = self.visit(node.texpr)
 		right = self.visit(node.fexpr)
-		return self.M[IF(cond, left, right)]
+		return self.M[Ternary(cond, left, right)]
 
 	def visitNlistOp(self, node: AST.NlistOpNode):
 		if(node.op == "min"):
@@ -491,6 +491,38 @@ class Evaluate(astVisitor.ASTVisitor):
 		elif(isinstance(node, NEG)):
 			l = convertToZ3(node.left)
 			return -l
+		elif(isinstance(node, LT)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return l < r
+		elif(isinstance(node, GT)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return l > r
+		elif(isinstance(node, LEQ)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return l <= r
+		elif(isinstance(node, GEQ)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return l >= r
+		elif(isinstance(node, EQQ)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return l == r
+		elif(isinstance(node, NEQ)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return Not(l == r)
+		elif(isinstance(node, AND)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return And(l, r)
+		elif(isinstance(node, OR)):
+			l = convertToZ3(node.left)
+			r = convertToZ3(node.right)
+			return Or(l,r)
 
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
@@ -610,7 +642,7 @@ class Evaluate(astVisitor.ASTVisitor):
 			return Or(left, right)
 
 	def visitPropTermBasic(self, prop):
-		return self.visit(prop.term)
+		return self.convertToZ3(self.visit(prop.term))
 
 	def visitSingleProp(self, pt):
 		left = self.visit(pt.leftpt)
