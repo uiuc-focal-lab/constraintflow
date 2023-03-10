@@ -227,11 +227,12 @@ class SymbolicGraph(astVisitor):
 			pass
 
 
+
 class checkPoly(astVisitor):
 
 	def __init__(self, os):
 		self.os = os
-
+	'''
 	def visitBaseType(self, node: AST.BaseTypeNode):
 		return node.name
 
@@ -505,10 +506,10 @@ class checkPoly(astVisitor):
 			return "PolyExp"
 		else:
 			raise TypeMismatchException("Right of dot product has to be Int or Float List")
-
+	'''
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		name = node.name.name
-		
+		self.visit(F[name].expr)
 
 
 	def visitSeq(self, node: AST.SeqNode):
