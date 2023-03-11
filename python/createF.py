@@ -80,14 +80,15 @@ class CreateF(astVisitor.ASTVisitor):
 			V[currprime.name] = currprime
 
 			store["curr'"] = (currprime.name, "Neuron")
-			if(op.op == "Affine"):
+			if(op.op.op_name == "Affine"):
+				curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
+				curr.symmap["weight"] = [(Real('bias_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
-					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i][0]))
+					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
 
-				
 			else:
-				#(op.op == "Relu"):
+				#(op.op.op_name == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
 					exptemp = Add(exptemp, prev[i])
