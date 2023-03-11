@@ -106,9 +106,9 @@ class CreateF(astVisitor.ASTVisitor):
 
 			solver = Solver()
 			p = Not(Implies(leftC, z3constraint))
-			print(z3constraint)
 			solver.add(p)
-			# print(solver)
+			print("Constraint:")
+			print(solver)
 			if(not (solver.check() == unsat)):
 				raise Exception("Transformer"+ " " + " not true")
 		else:

@@ -25,11 +25,25 @@ class Add:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, Add)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("Add", self.left, self.right))
+
 class Sub:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, Sub)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("Sub", self.left, self.right))
 
 class Mult:
 
@@ -37,11 +51,25 @@ class Mult:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, Mult)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("Mult", self.left, self.right))
+
 class Div:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, Div)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("Div", self.left, self.right))
 
 class LEQ:
 
@@ -49,11 +77,25 @@ class LEQ:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, LEQ)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("LEQ", self.left, self.right))
+
 class LT:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, LT)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("LT", self.left, self.right))
 
 class GEQ:
 
@@ -61,11 +103,25 @@ class GEQ:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, GEQ)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("GEQ", self.left, self.right))
+
 class GT:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, GT)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("GT", self.left, self.right))
 
 class EQQ:
 
@@ -73,11 +129,25 @@ class EQQ:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, EQQ)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("EQQ", self.left, self.right))
+
 class NEQ:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, NEQ)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("NEQ", self.left, self.right))
 
 class AND:
 
@@ -85,21 +155,49 @@ class AND:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, AND)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("AND", self.left, self.right))
+
 class OR:
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, OR)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("OR", self.left, self.right))
+
 class NOT:
 
 	def __init__(self, right):
 		self.right = right
 
+	def __eq__(self, obj):
+		if(isinstance(obj, NOT)):
+			return self.right == obj.right
+
+	def __hash__(self):
+		return hash(("NOT", self.right))
+
 class NEG:
 
 	def __init__(self, right):
 		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, NEG)):
+			return self.right == obj.right
+
+	def __hash__(self):
+		return hash(("NEG", self.right))
 
 class Ternary:
 
@@ -109,7 +207,6 @@ class Ternary:
 		self.right = right
 
 	def __eq__(self, obj):
-		print("compare")
 		if(isinstance(obj, Ternary)):
 			return self.cond == obj.cond and self.left == obj.left and self.right == obj.right
 		else:
