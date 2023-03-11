@@ -189,7 +189,6 @@ class ASTBuilder(dslVisitor):
     def visitBinopExp(self, ctx:dslParser.BinopExpContext):
         left = self.visit(ctx.expr(0))
         op = ctx.binop().getText()
-        print(op)
         right = self.visit(ctx.expr(1)) 
         return AST.BinOpNode(left, op, right)
 
