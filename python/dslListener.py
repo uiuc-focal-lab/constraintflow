@@ -359,6 +359,15 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#nlistOp2.
+    def enterNlistOp2(self, ctx:dslParser.NlistOp2Context):
+        pass
+
+    # Exit a parse tree produced by dslParser#nlistOp2.
+    def exitNlistOp2(self, ctx:dslParser.NlistOp2Context):
+        pass
+
+
     # Enter a parse tree produced by dslParser#map.
     def enterMap(self, ctx:dslParser.MapContext):
         pass
@@ -374,6 +383,15 @@ class dslListener(ParseTreeListener):
 
     # Exit a parse tree produced by dslParser#func_op.
     def exitFunc_op(self, ctx:dslParser.Func_opContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#func_op2.
+    def enterFunc_op2(self, ctx:dslParser.Func_op2Context):
+        pass
+
+    # Exit a parse tree produced by dslParser#func_op2.
+    def exitFunc_op2(self, ctx:dslParser.Func_op2Context):
         pass
 
 

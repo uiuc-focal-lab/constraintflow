@@ -18,6 +18,7 @@ class Vertex:
 		self.symmap = {} #ex) "layer" -> Int('X1')
 		self.name = Real(name) #Should be unique name
 
+
 class Add:
 
 	def __init__(self, left, right):
@@ -144,7 +145,7 @@ class Traverse:
 		self.f2 = f2
 		self.f3 = f3
 
-
+'''
 class ApplyShapeProp(astVisitor.ASTVisitor):
 
 	def visitCurr(self, pt, v, M):
@@ -200,7 +201,7 @@ def apply(prop: AST.PropNode, v, M):
 
 def apply(prop: AST.PropNode, store, M, V):
 	ApplyTraverseProp().visit(prop, store, M, V)
-
+'''
 
 #Most of the visit functions return a value. 
 #The property visit functions return a symbolic constraint
@@ -212,7 +213,7 @@ class Evaluate(astVisitor.ASTVisitor):
 		self.M = M #{(op, value) -> value}
 		self.store = store #{var -> value}
 		self.C = C #symbolic constraints
-		self.shape = self.shape #{name -> type} of each variable in the shape
+		self.shape = shape #{name -> type} of each variable in the shape
 		self.vname = 0
 		self.limit = 3 #max 3 neurons are connected to each one
 		self.number = Number()
@@ -236,10 +237,12 @@ class Evaluate(astVisitor.ASTVisitor):
 		exps = []
 		for exp in node.exprlist:
 			exps.append(self.visit(exp))
-		return exps		
+		return exps
 		
 	
 	def visitInt(self, node: AST.ConstIntNode):
+		# print("here")
+		# print(node.value)
 		return (node.value, "Int")
 
 	def visitFloat(self, node: AST.ConstFloatNode):
@@ -252,7 +255,7 @@ class Evaluate(astVisitor.ASTVisitor):
 		return PolyExpValue({}, const)
 
 	def NeuronToPoly(self, n):
-		return PolyExpValue({n: (1, "+")}, 0)
+		return PolyExpValue({n: ((1, "Float"), "+")}, (0, "Float"))
 
 	def AddPoly(self, left, right):
 		c = left.const + right.const
@@ -286,7 +289,7 @@ class Evaluate(astVisitor.ASTVisitor):
 
 	def visitBinOp(self, node: AST.BinOpNode):
 		left = self.visit(node.left)
-		right = self.visit(node.left)
+		right = self.visit(node.right)
 
 		if(node.op == "+"):
 			return Add(left, right)
@@ -342,7 +345,7 @@ class Evaluate(astVisitor.ASTVisitor):
 
 	def visitSum(self, node: AST.SumNode):
 		elist = self.visit(node.expr)
-		sum = 0
+		sum = (0, "Float")
 		for e in elist:
 			sum = Add(sum, e)
 		return sum
@@ -407,56 +410,59 @@ class Evaluate(astVisitor.ASTVisitor):
 		if(isinstance(node, tuple)):
 			return node[0]
 		elif(isinstance(node, Add)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l + r
 		elif(isinstance(node, Sub)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l - r
 		elif(isinstance(node, Mult)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l * r
 		elif(isinstance(node, Div)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l / r
 		elif(isinstance(node, NEG)):
-			l = convertToZ3(node.left)
+			l = self.convertToZ3(node.left)
 			return -l
 		elif(isinstance(node, LT)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l < r
 		elif(isinstance(node, GT)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l > r
 		elif(isinstance(node, LEQ)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l <= r
 		elif(isinstance(node, GEQ)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l >= r
 		elif(isinstance(node, EQQ)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return l == r
 		elif(isinstance(node, NEQ)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return Not(l == r)
 		elif(isinstance(node, AND)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return And(l, r)
 		elif(isinstance(node, OR)):
-			l = convertToZ3(node.left)
-			r = convertToZ3(node.right)
+			l = self.convertToZ3(node.left)
+			r = self.convertToZ3(node.right)
 			return Or(l,r)
+		else:
+			print(node)
+			assert False
 
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
@@ -514,9 +520,9 @@ class Evaluate(astVisitor.ASTVisitor):
 	def visitGetElement(self, pt):
 		n = self.visit(pt.expr)
 		if(isinstance(n, list)):
-			return [self.V[i[0]].symmap[pt.elem] for i in n]
+			return [self.V[i[0]].symmap[pt.elem.name] for i in n]
 		else:
-			return self.V[n[0]].symmap[pt.elem]
+			return self.V[n[0]].symmap[pt.elem.name]
 
 	def visitGetMetadata(self, pt):
 		n = self.visit(pt.expr)
@@ -551,8 +557,8 @@ class Evaluate(astVisitor.ASTVisitor):
 			return self.convertToZ3(self.visit(prop.term))
 
 	def visitSingleProp(self, pt):
-		left = self.visit(pt.leftpt)
-		right = self.visit(pt.rightpt)
+		left = self.convertToZ3(self.visit(pt.leftpt))
+		right = self.convertToZ3(self.visit(pt.rightpt))
 		if(pt.op == "<"):
 			return left < right
 		elif(pt.op == "<="):

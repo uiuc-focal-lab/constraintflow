@@ -200,16 +200,24 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitNlistOp(self, node: AST.NlistOpNode):
 		exptype = self.visit(node.expr)
-		if(not isinstance(exptype, ArrayType)):
-			raise TypeMismatchException(node.op + " requires Neuron list as first argument")
-		elif(not exptype.base == "Neuron"):
-			raise TypeMismatchException(node.op + " requires Neuron list as first argument")
 
-		if(not node.elem.name in [x[1] for x in self.shape]):
-			raise TypeMismatchException(node.elem.name + " not found in shape declaration")
+		if(node.op == "argmax" or node.op == "argmin"):
+			if(not isinstance(exptype, ArrayType)):
+				raise TypeMismatchException(node.op + " requires Neuron list as first argument")
+			elif(not exptype.base == "Neuron"):
+				raise TypeMismatchException(node.op + " requires Neuron list as first argument")
+		else:
+			if(not isinstance(exptype, ArrayType)):
+				raise TypeMismatchException(node.op + " requires Float or Int list as first argument")
+			elif(not self.isType(exptype.base,"Float")):
+				raise TypeMismatchException(node.op + " requires Float or Int list as first argument")
+
+		if(node.elem):
+			if(not node.elem.name in [x[1] for x in self.shape]):
+				raise TypeMismatchException(node.elem.name + " not found in shape declaration")
 		
 		if(node.op == "min" or node.op == "max"):
-			return self.vars[node.elem.name]
+			return exptype.base
 		elif(node.op == "argmin" or node.op == "argmax"):
 			return "Neuron"
 		else:

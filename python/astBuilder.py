@@ -189,6 +189,7 @@ class ASTBuilder(dslVisitor):
     def visitBinopExp(self, ctx:dslParser.BinopExpContext):
         left = self.visit(ctx.expr(0))
         op = ctx.binop().getText()
+        print(op)
         right = self.visit(ctx.expr(1)) 
         return AST.BinOpNode(left, op, right)
 
@@ -208,6 +209,11 @@ class ASTBuilder(dslVisitor):
         expr = self.visit(ctx.expr())
         elem = AST.VarNode(ctx.VAR().getText())
         return AST.NlistOpNode(op, expr, elem)
+
+    def visitNlistOp2(self, ctx:dslParser.NlistOpContext):
+        op = ctx.func_op2().getText()
+        expr = self.visit(ctx.expr())
+        return AST.NlistOpNode(op, expr, None)
 
     def visitFuncCall(self, ctx:dslParser.FuncCallContext):
         name = AST.VarNode(ctx.VAR().getText())
@@ -245,7 +251,8 @@ class ASTBuilder(dslVisitor):
             metadata =  AST.MetadataNode(ctx.metadata().getText())
             return AST.GetMetadataNode(expr, metadata)
         elif(ctx.CURR()):
-            return AST.CurrNode()
+            return AST.VarNode("curr'")
+            #return AST.CurrNode()
         elif(ctx.VAR()):
             return AST.VarNode(ctx.VAR().getText())
 
@@ -268,7 +275,7 @@ class ASTBuilder(dslVisitor):
         rightprop = self.visit(ctx.prop(1))
         isand = ctx.AND()
         if(isand):
-            return AST.PropTermOpNode(leftprop, isand.getText(), rightprop)
+            return AST.DoublePropNode(leftprop, isand.getText(), rightprop)
         else:
-            return AST.PropTermOpNode(leftprop, ctx.OR().getText(), rightprop)
+            return AST.DoublePropNode(leftprop, ctx.OR().getText(), rightprop)
 

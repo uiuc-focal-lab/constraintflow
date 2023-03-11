@@ -76,6 +76,7 @@ expr: FALSE					#true
     | expr QUES expr COLON expr 		#cond
     | expr DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE prop RBRACE		#traverse
     | func_op LPAREN expr COMMA VAR RPAREN 	#nlistOp
+    | func_op2 LPAREN expr RPAREN #nlistOp2
     | SUM LPAREN expr RPAREN 			#sum
     | SUB LPAREN expr COMMA expr RPAREN 	#sub
     | expr DOT MAP LPAREN VAR RPAREN 				#map
@@ -83,10 +84,11 @@ expr: FALSE					#true
     | VAR LPAREN expr_list RPAREN 		#funcCall
 ;
 
-func_op: MAX
-	|	MIN
-	|	ARGMAX
+func_op: ARGMAX
 	|	ARGMIN ;
+
+func_op2: MAX
+    |   MIN ;
 
 binop: PLUS 
 	|	MINUS 

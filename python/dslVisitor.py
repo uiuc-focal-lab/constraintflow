@@ -204,6 +204,11 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#nlistOp2.
+    def visitNlistOp2(self, ctx:dslParser.NlistOp2Context):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#map.
     def visitMap(self, ctx:dslParser.MapContext):
         return self.visitChildren(ctx)
@@ -211,6 +216,11 @@ class dslVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by dslParser#func_op.
     def visitFunc_op(self, ctx:dslParser.Func_opContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#func_op2.
+    def visitFunc_op2(self, ctx:dslParser.Func_op2Context):
         return self.visitChildren(ctx)
 
 
