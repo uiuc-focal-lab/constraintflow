@@ -82,8 +82,10 @@ class CreateF(astVisitor.ASTVisitor):
 			store["curr'"] = (currprime.name, "Neuron")
 
 			if(op.op.op_name == "Affine"):
-				curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
-				curr.symmap["weight"] = [(Real('bias_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
+				if(not "bias" in curr.symmap.keys()):
+					curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
+				if(not "weight" in curr.symmap.keys()):
+					curr.symmap["weight"] = [(Real('weight_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
