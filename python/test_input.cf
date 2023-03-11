@@ -8,7 +8,6 @@ func priority2(Neuron n) = n[layer];
 
 transformer deeppoly(curr, prev){
     Relu -> sum(prev[l])>=0 ? (sum(prev[l]), sum(prev[u])) : (sum(prev[u])<=0 ? (0,0) : (0, sum(prev[u])));
-    Affine -> prev.dot(curr[weight]).map(replace_lower), 0;
 }
 
 flow(forward, priority2, true, deeppoly);

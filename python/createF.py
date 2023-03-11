@@ -80,12 +80,14 @@ class CreateF(astVisitor.ASTVisitor):
 			V[currprime.name] = currprime
 
 			store["curr'"] = (currprime.name, "Neuron")
+
 			if(op.op.op_name == "Affine"):
 				curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
 				curr.symmap["weight"] = [(Real('bias_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
+				exptemp = s.os.convertToZ3(exptemp)
 
 			else:
 				#(op.op.op_name == "Relu"):
@@ -93,8 +95,10 @@ class CreateF(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = Add(exptemp, prev[i])
 
-			computation = s.os.convertToZ3(store["curr"]) == If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0) 
-			leftC = And(And(And(And(s.os.C), And(Cnew)), computation), curr.name == currprime.name)
+				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
+
+			computation = s.os.convertToZ3(store["curr'"]) == exptemp
+			leftC = And(And(And(s.os.C), And(Cnew)), computation)
 
 			self.applyTrans(leftC, vallist, s, currprime)
 
