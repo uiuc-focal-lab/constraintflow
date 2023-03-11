@@ -108,15 +108,43 @@ class Ternary:
 		self.left = left
 		self.right = right
 
+	def __eq__(self, obj):
+		print("compare")
+		if(isinstance(obj, Ternary)):
+			return self.cond == obj.cond and self.left == obj.left and self.right == obj.right
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("Ternary", self.cond, self.left, self.right))
+
 class MAX:
 
 	def __init__(self, e):
 		self.e = e
 
+	def __eq__(self, obj):
+		if(isinstance(obj, MAX)):
+			return self.e == obj.e
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("MAX", self.e))
+
 class MIN:
 
 	def __init__(self, e):
 		self.e = e
+
+	def __eq__(self, obj):
+		if(isinstance(obj, MIN)):
+			return self.e == obj.e
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("MIN", self.e))
 
 class ARGMAX:
 
@@ -124,17 +152,41 @@ class ARGMAX:
 		self.e = e
 		self.s = s
 
+	def __eq__(self, obj):
+		if(isinstance(obj, ARGMAX)):
+			return self.e == obj.e and self.s == obj.s
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("ARGMAX", self.e, self.s))
+
 class ARGMIN:
 
 	def __init__(self, e, s):
 		self.e = e
 		self.s = s
 
+	def __eq__(self, obj):
+		if(isinstance(obj, ARGMIN)):
+			return self.e == obj.e and self.s == obj.s
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("ARGMIN", self.e, self.s))
+
 class LISTSUB:
 
 	def __init__(self, l, e):
 		self.l = l
 		self.s = s
+
+	def __eq__(self, obj):
+		if(isinstance(obj, LISTSUB)):
+			return self.l == obj.l and self.s == obj.s
+		else:
+			return False
 
 class Traverse:
 
@@ -144,6 +196,15 @@ class Traverse:
 		self.f1 = f1
 		self.f2 = f2
 		self.f3 = f3
+
+	def __eq__(self, obj):
+		if(isinstance(obj, Traverse)):
+			return self.e == obj.e and self.d == obj.d and self.f1 == obj.f1 and self.f2 == obj.f2 and self.f3 == obj.f3
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("Traverse", self.e, self.d, self.f1, self.f2, self.f3))
 
 '''
 class ApplyShapeProp(astVisitor.ASTVisitor):
@@ -255,37 +316,61 @@ class Evaluate(astVisitor.ASTVisitor):
 		return PolyExpValue({}, const)
 
 	def NeuronToPoly(self, n):
-		return PolyExpValue({n: ((1, "Float"), "+")}, (0, "Float"))
+		return PolyExpValue({n: (1, "Float")}, (0, "Float"))
 
 	def AddPoly(self, left, right):
-		c = left.const + right.const
+		if(isinstance(left, tuple)):
+			if(left[1] == "Neuron"):
+				left = self.NeuronToPoly(left)
+			else:
+				left = self.ConstToPoly(left)
+
+		if(isinstance(right, tuple)):
+			if(right[1] == "Neuron"):
+				right = self.NeuronToPoly(right)
+			else:
+				right = self.ConstToPoly(right)
+
+		c = (left.const[0] + right.const[0], "Float")
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = left.coeffs[leftn][0] + right.coeffs[leftn][0]
+				n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
 			else:
-				n[leftn] = left.coeffs[leftn][0]
+				n[leftn] = (left.coeffs[leftn][0], "Float")
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = right.coeffs[rightn][0]
+				n[rightn] = (right.coeffs[rightn][0], "Float")
 
-		p = PolyExpValue(n, c)
+		return PolyExpValue(n, c)
 
 	def SubPoly(self, left, right):
+		if(isinstance(left, tuple)):
+			if(left[1] == "Neuron"):
+				left = self.NeuronToPoly(left)
+			else:
+				left = self.ConstToPoly(left)
+
+		if(isinstance(right, tuple)):
+			if(right[1] == "Neuron"):
+				right = self.NeuronToPoly(right)
+			else:
+				right = self.ConstToPoly(right)
+
 		c = left.const + right.const
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = left.coeffs[leftn][0] - right.coeffs[leftn][0]
+				n[leftn] = (left.coeffs[leftn][0] - right.coeffs[leftn][0], "Float")
 			else:
-				n[leftn] = left.coeffs[leftn][0]
+				n[leftn] = (left.coeffs[leftn][0], "Float")
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = - right.coeffs[rightn][0]
+				n[rightn] = (- right.coeffs[rightn][0], "Float")
 
-		p = PolyExpValue(n, c)
+		return PolyExpValue(n, c)
 
 	def visitBinOp(self, node: AST.BinOpNode):
 		left = self.visit(node.left)
@@ -353,26 +438,27 @@ class Evaluate(astVisitor.ASTVisitor):
 	def visitDot(self, node: AST.DotNode):
 		left = self.visit(node.left)
 		right = self.visit(node.right)
-		sum = 0
+
+		sum = (0, "Float")
 		for i in range(min(len(left), len(right))):
 			sum = Add(sum, Mult(left[i],right[i]))
 
 		return sum
 
 	def visitFuncCall(self, node: AST.FuncCallNode):
-		func = self.FMap(node.name)
+		func = self.FMap[node.name.name]
 
 		newvars = []
 		oldvalues = {}
-		for (exp,(t, arg)) in zip(self.visit(node.arglist), func.decl.arglist.arglist):
-			if arg in self.store.keys():
-				oldvalues[arg] = self.store[arg]
+		for (exp,(t, arg)) in zip(node.arglist.exprlist, func.decl.arglist.arglist):
+			if arg.name in self.store.keys():
+				oldvalues[arg.name] = self.store[arg.name]
 			else:
-				newvars.append(arg)
+				newvars.append(arg.name)
 
-			store[arg] = exp
+			self.store[arg.name] = exp
 
-		val = self.visit(node.expr)
+		val = self.visit(func.expr)
 		
 		for v in newvars:
 			del self.store[v]
@@ -386,24 +472,27 @@ class Evaluate(astVisitor.ASTVisitor):
 		
 		if(isinstance(node, tuple)):
 			if(node[1] == "Float" or node[1] == "Int"):
-				PolyExpValue({}, node[0])
+				return PolyExpValue({}, node)
 			elif(node[1] == "Neuron"):
-				PolyExpValue({node[0]: 1}, 0)
+				return PolyExpValue({node: (1, "Float")}, (0, "Float"))
 		elif(isinstance(node, Add)):
-			left = convertToPoly(node.left)
-			right = convertToPoly(node.right)
-			return AddPoly(left, right)
+			left = self.convertToPoly(node.left)
+			right = self.convertToPoly(node.right)
+			return self.AddPoly(left, right)
 		elif(isinstance(node, Sub)):
-			left = convertToPoly(node.left)
-			right = convertToPoly(node.right)
-			return SubPoly(left, right)
+			left = self.convertToPoly(node.left)
+			right = self.convertToPoly(node.right)
+			return self.SubPoly(left, right)
 		elif(isinstance(node, Mult)):
 			if(node.left[1] == "Neuron"):
-				PolyExpValue({node.left[0]: node.right[0]}, 0)
+				return PolyExpValue({node.left: node.right}, (0, "Float"))
 			else:
-				PolyExpValue({node.right[0]: node.left[0]}, 0)
+				return PolyExpValue({node.right: node.left}, (0, "Float"))
 		elif(isinstance(node, Div)):
-			PolyExpValue({node.left[0]: 1 / node.right[0]}, 0)
+			return PolyExpValue({node.left: (1 / node.right[0], "Float")}, (0, "Float"))
+		else:
+			print(node)
+			assert False
 
 	def convertToZ3(self, node):
 
@@ -470,7 +559,7 @@ class Evaluate(astVisitor.ASTVisitor):
 
 		exp = epoly.const
 		for n in epoly.coeffs.keys():
-			elist = ExprList([n, epoly.coeffs[n]])
+			elist = AST.ExprListNode([n, epoly.coeffs[n]])
 			fcall = AST.FuncCallNode(node.func, elist)
 			exp = Add(exp, self.visit(fcall))
 
@@ -478,7 +567,7 @@ class Evaluate(astVisitor.ASTVisitor):
 
 	def visitTraverse(self, node: AST.TraverseNode):
 		e = self.visit(node.expr)
-		return self.M[Traverse(e, node.direction, node.priority, node.stop, node.func)]
+		return self.M[Traverse(e, node.direction, node.priority.name, node.stop.name, node.func.name)]
 
 	def visitSub(self, node: AST.SubNode):
 		le = self.visit(node.listexpr)
@@ -527,9 +616,9 @@ class Evaluate(astVisitor.ASTVisitor):
 	def visitGetMetadata(self, pt):
 		n = self.visit(pt.expr)
 		if(isinstance(n, list)):
-			return [self.V[i[0]].symmap[pt.metadata] for i in n]
+			return [self.V[i[0]].symmap[pt.metadata.name] for i in n]
 		else:
-			return self.V[n[0]].symmap[pt.metadata]
+			return self.V[n[0]].symmap[pt.metadata.name]
 
 	def visitVar(self, pt):
 		return self.store[pt.name]			

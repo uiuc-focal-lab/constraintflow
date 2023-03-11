@@ -43,8 +43,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.expr)
 
 	def visitDot(self, node):
-		self.visit(left)
-		self.visit(right)
+		self.visit(node.left)
+		self.visit(node.right)
 
 	def visitPrev(self, node):
 		pass
@@ -56,26 +56,26 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.expr)
 		n = self.os.visit(node.expr)
 		if(not isinstance(n, list)):
-			if not node.metadata in self.V[n[0]].symmap.keys():
+			if not node.metadata.name in self.V[n[0]].symmap.keys():
 				newvar = None
-				if(node.metadata == "bias"):
+				if(node.metadata.name == "bias"):
 					newvar = (Real('X' + str(self.number.nextn())), "Bool")
-				elif(node.metadate == "weight"):
-					newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in self.N]
-				elif(node.metadata == "layer"):
+				elif(node.metadata.name == "weight"):
+					newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
+				elif(node.metadata.name == "layer"):
 					newvar = (Int('X' + str(self.number.nextn())), "Int")
-				self.V[n[0]].symmap[node.metadata] = newvar
+				self.V[n[0]].symmap[node.metadata.name] = newvar
 		else:
 			for ni in n:
-				if not node.metadata in self.V[ni[0]].symmap.keys():
+				if not node.metadata.name in self.V[ni[0]].symmap.keys():
 					newvar = None
-					if(node.metadata == "bias"):
+					if(node.metadata.name == "bias"):
 						newvar = (Real('X' + str(self.number.nextn())), "Bool")
-					elif(node.metadate == "weight"):
+					elif(node.metadata.name == "weight"):
 						newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in self.N]
-					elif(node.metadata == "layer"):
+					elif(node.metadata.name == "layer"):
 						newvar = (Int('X' + str(self.number.nextn())), "Int")
-					self.V[ni[0]].symmap[node.metadata] = newvar
+					self.V[ni[0]].symmap[node.metadata.name] = newvar
 
 	def visitGetElement(self, node):
 		self.visit(node.expr)
@@ -84,11 +84,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			if not node.elem.name in self.V[n[0]].symmap.keys():
 				newvar = None
 				if(self.shape[node.elem.name] == "Bool"):
-					newvar = (Bool('X' + str(self.number.nextn())), "Bool")
+					newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), "Bool")
 				elif(self.shape[node.elem.name] == "Int"):
-					newvar = (Int('X' + str(self.number.nextn())), "Int")
+					newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), "Int")
 				else:
-					newvar = (Real('X' + str(self.number.nextn())), "Float")
+					newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
 				self.V[n[0]].symmap[node.elem.name] = newvar
 		else:
 			for ni in n:
@@ -96,11 +96,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					newvar = None
 					
 					if(self.shape[node.elem.name] == "Bool"):
-						newvar = (Bool('X' + str(self.number.nextn())), "Bool")
+						newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), "Bool")
 					elif(self.shape[node.elem.name] == "Int"):
-						newvar = (Int('X' + str(self.number.nextn())), "Int")
+						newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), "Int")
 					else:
-						newvar = (Real('X' + str(self.number.nextn())), "Float")
+						newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
 					self.V[ni[0]].symmap[node.elem.name] = newvar
 
 	def visitExprList(self, node):
@@ -112,10 +112,32 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		checkPoly(self.os).visit(node.expr)
 		p = self.os.visit(node.expr)
 		p_poly = self.os.convertToPoly(p)
-		for n in epoly.coeffs.keys():
-			elist = ExprList([n, epoly.coeffs[n]])
+		for n in p_poly.coeffs.keys():
+			elist = AST.ExprListNode([n, p_poly.coeffs[n]])
 			fcall = AST.FuncCallNode(node.func, elist)
 			self.visit(fcall)
+
+	def visitFuncCall(self, node):
+		func = self.F[node.name.name]
+
+		newvars = []
+		oldvalues = {}
+		for (exp,(t, arg)) in zip(node.arglist.exprlist, func.decl.arglist.arglist):
+			if arg.name in self.store.keys():
+				oldvalues[arg.name] = self.store[arg.name]
+			else:
+				newvars.append(arg.name)
+
+			self.store[arg.name] = exp
+
+		self.visit(func.expr)
+		
+		for v in newvars:
+			del self.store[v]
+
+		for ov in oldvalues.keys():
+			self.store[ov] = oldvalues[ov]
+
 
 	def initV(self, v1):
 		if(not "bias" in v1.symmap.keys()):
@@ -205,12 +227,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.os.C.append(If(self.os.convertToZ3(c), self.compareV(V[left[0]], newvar), self.compareV(V[right[0]], newvar)))
 		else:
 			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[Ternary(c, left, right)] = (newvar.name, "Float")
+			self.os.M[Ternary(c, left, right)] = (newvar, "Float")
 			self.os.C.append(If(self.os.convertToZ3(c), self.os.convertToZ3(left) == newvar, self.os.convertToZ3(right) == newvar))
 
 	def visitTraverse(self, node):
 		self.visit(node.expr)
-		pz3 = self.os.visit(node.p)
 		Cnew = []
 		vars = getVars().visit(self.constraint, self.shape)
 		for v in self.V.keys():
@@ -226,6 +247,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.store["curr'"] = (v, "Neuron")
 			Cnew.append(self.os.visit(self.constraint))
 
+		del self.store["curr'"]
+
+		e = self.os.visit(node.expr)
+		self.store["curr'"] = e
+		pz3 = self.os.visit(node.p)
 		del self.store["curr'"]
 		
 		p = Not(Implies(And(And(self.os.C), And(Cnew)), pz3))
@@ -292,6 +318,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.os.store = oldStore
 		self.C = oldC 
 		self.C.append(p2)
+		self.M[Traverse(e, node.direction, node.priority.name, node.stop.name, node.func.name)] = e
 
 	def visitSub(self, node):
 		pass
@@ -399,7 +426,7 @@ class checkPoly(astVisitor.ASTVisitor):
 		if(isinstance(self.os.V[n[0]].symmap[n.elem.name], tuple)):
 			if(self.os.V[n[0]].symmap[n.elem.name][1] == "Float"):
 				oldvar = self.os.V[n[0]].symmap[n.elem.name][0]
-				newvar = (Real(n.elem.name + '_X' + str(self.number.nextn())), "Float")
+				newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 				for i in range(self.N):
 					neuron = Vertex('X' + str(self.number.nextn()))

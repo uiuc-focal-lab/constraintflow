@@ -52,8 +52,8 @@ class PolyExpValue(Value):
 
 	#Coeffs have type float if they could be concretely evaluated, but they can be values such as argmax(prev, l)[bias]
 	def __init__(self, coeffs, const):
-		self.const = const
-		self.coeffs = coeffs #{neuron name -> (coeff, op) }
+		self.const = const #const : tuple
+		self.coeffs = coeffs #{neuron name -> coeff: tuple}
 
 	def __eq__(self, obj):
 		if(isinstance(obj, PolyExpValue)):
