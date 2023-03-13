@@ -59,8 +59,8 @@ arglist : types VAR COMMA arglist
 expr_list : expr COMMA expr_list
 	|	expr ; 
 
-expr: FALSE					#true
-    | TRUE 					#false
+expr: FALSE					#false
+    | TRUE 					#true
     | IntConst 					#int
     | FloatConst 				#float
     | VAR                     			#varExp

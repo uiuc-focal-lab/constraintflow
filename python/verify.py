@@ -399,8 +399,6 @@ class Evaluate(astVisitor.ASTVisitor):
 		
 	
 	def visitInt(self, node: AST.ConstIntNode):
-		# print("here")
-		# print(node.value)
 		return (node.value, "Int")
 
 	def visitFloat(self, node: AST.ConstFloatNode):
@@ -472,7 +470,6 @@ class Evaluate(astVisitor.ASTVisitor):
 	def visitBinOp(self, node: AST.BinOpNode):
 		left = self.visit(node.left)
 		right = self.visit(node.right)
-
 		if(node.op == "+"):
 			return Add(left, right)
 		elif(node.op == "-"):
@@ -542,12 +539,18 @@ class Evaluate(astVisitor.ASTVisitor):
 
 		return sum
 
-	def visitFuncCall(self, node: AST.FuncCallNode):
+	def visitFuncCall(self, node: AST.FuncCallNode, preeval = False):
 		func = self.FMap[node.name.name]
 
 		newvars = []
 		oldvalues = {}
-		for (exp,(t, arg)) in zip(node.arglist.exprlist, func.decl.arglist.arglist):
+
+		if(not preeval):
+			elist = self.visit(node.arglist)
+		else:
+			elist = node.arglist.exprlist
+
+		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 			if arg.name in self.store.keys():
 				oldvalues[arg.name] = self.store[arg.name]
 			else:
@@ -647,8 +650,7 @@ class Evaluate(astVisitor.ASTVisitor):
 			r = self.convertToZ3(node.right)
 			return Or(l,r)
 		else:
-			print(node)
-			assert False
+			return node
 
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
@@ -658,13 +660,24 @@ class Evaluate(astVisitor.ASTVisitor):
 		for n in epoly.coeffs.keys():
 			elist = AST.ExprListNode([n, epoly.coeffs[n]])
 			fcall = AST.FuncCallNode(node.func, elist)
-			exp = Add(exp, self.visit(fcall))
+			exp = Add(exp, self.visitFuncCall(fcall, True))
 
 		return exp
 
 	def visitTraverse(self, node: AST.TraverseNode):
 		e = self.visit(node.expr)
-		return self.M[Traverse(e, node.direction, node.priority.name, node.stop.name, node.func.name)]
+
+		if(isinstance(node.priority, AST.VarNode)):
+			p_name = node.priority.name
+		else:
+			p_name = self.visit(node.priority)
+
+		if(isinstance(node.stop, AST.VarNode)):
+			s_name = node.stop.name
+		else:
+			s_name = self.visit(node.stop)
+
+		return self.M[Traverse(e, node.direction, p_name, s_name, node.func.name)]
 
 	def visitSub(self, node: AST.SubNode):
 		le = self.visit(node.listexpr)

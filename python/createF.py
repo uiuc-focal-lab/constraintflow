@@ -47,9 +47,33 @@ class CreateF(astVisitor.ASTVisitor):
 		s = SymbolicGraph(store, self.F, self.constraint, self.shape)
 		s.V = V
 		s.os.V = V
+		s.os.store = store
 
 		for i in range(len(node.oplist.olist)):
 			op = node.oplist.olist[i]
+
+			#Define relationship between curr and prev
+			if(op.op.op_name == "Affine"):
+				if(not "bias" in curr.symmap.keys()):
+					curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
+				if(not "weight" in curr.symmap.keys()):
+					curr.symmap["weight"] = [(Real('weight_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
+				exptemp = curr.symmap["bias"]
+				for i in range(len(prev)):
+					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
+					
+				exptemp = s.os.convertToZ3(exptemp)
+
+			else:
+				#(op.op.op_name == "Relu"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = Add(exptemp, prev[i])
+
+				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
+
+			s.currop = (curr.name == exptemp) #Would it be safe to just add this to s.C?
+
 			s.visit(op.ret)
 			vallist = None
 			if(isinstance(op.ret, AST.TransRetIfNode)):
@@ -72,35 +96,19 @@ class CreateF(astVisitor.ASTVisitor):
 						else:
 							s.V[v].symmap[var] = (Real(var + '_Y' + str(self.number.nextn())), "Float")
 
-				store["curr'"] = (v, "Neuron")
+				s.os.store["curr'"] = (v, "Neuron")
 				Cnew.append(s.os.visit(self.constraint))
-			del store["curr'"]
+
+			del s.os.store["curr'"]
 
 			currprime = Vertex('Currprime' + str(i))
-			V[currprime.name] = currprime
+			s.V[currprime.name] = currprime
 
-			store["curr'"] = (currprime.name, "Neuron")
+			s.os.store["curr'"] = (currprime.name, "Neuron")
 
-			if(op.op.op_name == "Affine"):
-				if(not "bias" in curr.symmap.keys()):
-					curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
-				if(not "weight" in curr.symmap.keys()):
-					curr.symmap["weight"] = [(Real('weight_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
-				exptemp = curr.symmap["bias"]
-				for i in range(len(prev)):
-					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
-				exptemp = s.os.convertToZ3(exptemp)
 
-			else:
-				#(op.op.op_name == "Relu"):
-				exptemp = (0, "Float") 
-				for i in range(len(prev)):
-					exptemp = Add(exptemp, prev[i])
-
-				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
-
-			computation = s.os.convertToZ3(store["curr'"]) == exptemp
-			leftC = And(And(And(s.os.C), And(Cnew)), computation)
+			computation = s.os.convertToZ3(s.os.store["curr'"]) == exptemp
+			leftC = And(And(And(And(s.os.C), And(Cnew)), computation), currprime.name == curr.name)
 
 			self.applyTrans(leftC, vallist, s, currprime)
 
@@ -110,12 +118,9 @@ class CreateF(astVisitor.ASTVisitor):
 				currprime.symmap[elem] = val
 
 			z3constraint = s.os.visit(self.constraint)
-
 			solver = Solver()
 			p = Not(Implies(leftC, z3constraint))
 			solver.add(p)
-			print("Constraint:")
-			print(solver)
 			if(not (solver.check() == unsat)):
 				raise Exception("Transformer"+ " " + " not true")
 		else:

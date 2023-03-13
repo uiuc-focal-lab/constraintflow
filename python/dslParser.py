@@ -1612,8 +1612,8 @@ class dslParser ( Parser ):
             super().__init__(parser)
             self.copyFrom(ctx)
 
-        def TRUE(self):
-            return self.getToken(dslParser.TRUE, 0)
+        def FALSE(self):
+            return self.getToken(dslParser.FALSE, 0)
 
         def enterRule(self, listener:ParseTreeListener):
             if hasattr( listener, "enterFalse" ):
@@ -1998,8 +1998,8 @@ class dslParser ( Parser ):
             super().__init__(parser)
             self.copyFrom(ctx)
 
-        def FALSE(self):
-            return self.getToken(dslParser.FALSE, 0)
+        def TRUE(self):
+            return self.getToken(dslParser.TRUE, 0)
 
         def enterRule(self, listener:ParseTreeListener):
             if hasattr( listener, "enterTrue" ):
@@ -2217,7 +2217,7 @@ class dslParser ( Parser ):
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,8,self._ctx)
             if la_ == 1:
-                localctx = dslParser.TrueContext(self, localctx)
+                localctx = dslParser.FalseContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
 
@@ -2226,7 +2226,7 @@ class dslParser ( Parser ):
                 pass
 
             elif la_ == 2:
-                localctx = dslParser.FalseContext(self, localctx)
+                localctx = dslParser.TrueContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
                 self.state = 165

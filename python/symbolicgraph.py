@@ -19,6 +19,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.os = Evaluate(self.store, self.F, self.M, self.V, self.C, self.shape)
 		self.number = Number()
 		self.N = 3
+		self.currop = None #Stores the relationship between curr and prev for traverse proof
 
 	def visitInt(self, node):
 		pass
@@ -115,14 +116,21 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		for n in p_poly.coeffs.keys():
 			elist = AST.ExprListNode([n, p_poly.coeffs[n]])
 			fcall = AST.FuncCallNode(node.func, elist)
-			self.visit(fcall)
+			self.visitFuncCall(fcall, True)
 
-	def visitFuncCall(self, node):
+	def visitFuncCall(self, node, preeval = False):
 		func = self.F[node.name.name]
 
 		newvars = []
 		oldvalues = {}
-		for (exp,(t, arg)) in zip(node.arglist.exprlist, func.decl.arglist.arglist):
+
+		if(not preeval):
+			self.visit(node.arglist)
+			elist = self.os.visit(node.arglist)
+		else:
+			elist = node.arglist.exprlist
+
+		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 			if arg.name in self.store.keys():
 				oldvalues[arg.name] = self.store[arg.name]
 			else:
@@ -233,7 +241,10 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitTraverse(self, node):
 		self.visit(node.expr)
 		Cnew = []
-		vars = getVars().visit(self.constraint, self.shape)
+		gv = getVars(self.constraint, self.shape)
+		gv.visit(self.constraint)
+		vars = gv.vars
+
 		for v in self.V.keys():
 			for var in vars.keys():
 				if not var in self.V[v].symmap.keys():
@@ -248,6 +259,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			Cnew.append(self.os.visit(self.constraint))
 
 		del self.store["curr'"]
+
+		Cnew.append(self.currop) #Add definition of current related to prev.
 
 		e = self.os.visit(node.expr)
 		self.store["curr'"] = e
@@ -270,13 +283,24 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		newvar = (newvar, "Float")
 		for i in range(self.N):
 			neuron = Vertex('X' + str(self.number.nextn()))
-			V[neuron.name] = neuron 
+			self.V[neuron.name] = neuron 
 			const = (Real('X' + str(self.number.nextn())), "Float")
-			self.visit(AST.FuncCallNode(node.stop, [(neuron.name, "Neuron"), const]))
-			self.visit(AST.FuncCallNode(node.func, [(neuron.name, "Neuron"), const]))
-			valf2 = self.os.visit(AST.FuncCallNode(node.stop, [(neuron.name, "Neuron"), const]))
-			valf3 = self.os.visit(AST.FuncCallNode(node.func, [(neuron.name, "Neuron"), const]))
-			newvar = Add(newvar, Mult(const, (neuron, "Neuron")))
+			if(isinstance(node.stop, AST.VarNode)):
+				self.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode([(neuron.name, "Neuron"), const])), True)
+			if(isinstance(node.func, AST.VarNode)):
+				self.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode([(neuron.name, "Neuron"), const])), True)
+
+			if(isinstance(node.stop, AST.VarNode)):
+				valf2 = self.os.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode([(neuron.name, "Neuron"), const])), True)
+			else: #expression like True
+				valf2 = self.os.visit(node.stop)
+
+			if(isinstance(node.func, AST.VarNode)):
+				valf3 = self.os.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode([(neuron.name, "Neuron"), const])), True)
+			else: #expression like True
+				valf3 = self.os.visit(node.func)
+
+			newvar = Add(newvar, Mult(const, (neuron.name, "Neuron")))
 			newval = newval + If(self.os.convertToZ3(valf2), self.os.convertToZ3(valf3), self.os.convertToZ3(Mult(const, (neuron.name, "Neuron"))))
 
 		s = Solver()
@@ -295,13 +319,13 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		for v in self.V.keys():
 			for var in vars.keys():
-				if not var in V[v].symmap.keys():
+				if not var in self.V[v].symmap.keys():
 					if(vars[var] == "Bool"):
-						V[v].symmap[var] = (Bool('X' + str(self.number.nextn())), "Bool")
+						self.V[v].symmap[var] = (Bool('X' + str(self.number.nextn())), "Bool")
 					elif(vars[var] == "Int"):
-						V[v].symmap[var] = (Int('X' + str(self.number.nextn())), "Int")
+						self.V[v].symmap[var] = (Int('X' + str(self.number.nextn())), "Int")
 					else:
-						V[v].symmap[var] = (Real('X' + str(self.number.nextn())), "Float")
+						self.V[v].symmap[var] = (Real('X' + str(self.number.nextn())), "Float")
 
 			self.store["curr'"] = (v, "Neuron")
 			Cnew.append(self.os.visit(self.constraint))
@@ -312,13 +336,27 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		s.add(p)
 		if(not (s.check() == unsat)):
 			raise Exception("Induction step is not true")
+		self.os.M = oldM
 		self.M = oldM
+		self.os.V = oldV
 		self.V = oldV
 		self.store = oldStore
 		self.os.store = oldStore
-		self.C = oldC 
-		self.C.append(p2)
-		self.M[Traverse(e, node.direction, node.priority.name, node.stop.name, node.func.name)] = e
+		self.C = oldC
+		self.os.C = oldC
+		self.os.C.append(p2)
+
+		if(isinstance(node.priority, AST.VarNode)):
+			p_name = node.priority.name
+		else:
+			p_name = self.os.visit(node.priority)
+
+		if(isinstance(node.stop, AST.VarNode)):
+			s_name = node.stop.name
+		else:
+			s_name = self.os.visit(node.stop)
+
+		self.os.M[Traverse(e, node.direction, p_name, s_name, node.func.name)] = (temp_var, "Float") 
 
 	def visitSub(self, node):
 		pass
@@ -405,6 +443,7 @@ class checkPoly(astVisitor.ASTVisitor):
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		name = node.name.name
 		self.visit(F[name].expr)
+		self.visit(node.arglist)
 
 
 	def visitSeq(self, node: AST.SeqNode):

@@ -3,11 +3,12 @@ def Shape as (Float l, Float u){(curr[l]<=curr) and (curr[u]>=curr)};
 func replace_lower(Neuron n, Float c) = c>=0 ? c*n[l] : c*n[u];
 func replace_upper(Neuron n, Float c) = c>=0 ? c*n[u] : c*n[l];
 
-func priority(Neuron n) = -n[layer];
+func priority1(Neuron n) = -n[layer];
+func priority2(Neuron n) = n[layer];
 
-transformer ibp(curr, prev){
-    Relu -> sum(prev[l])>=0 ? (sum(prev[l]), sum(prev[u])) : (sum(prev[u])<=0 ? (0,0) : (0, sum(prev[u])));
+transformer deeppoly(curr, prev){
+    Relu -> sum(prev[l])>=0 ? (sum(prev[l]) , sum(prev[u])) : (sum(prev[u])<=0 ? (0, 0) : (0, sum(prev[u])));
     Affine -> prev.dot(curr[weight]).map(replace_lower) + curr[bias], prev.dot(curr[weight]).map(replace_upper) + curr[bias];
 }
 
-flow(forward, priority, true, ibp);
+flow(forward, priority2, true, deeppoly);
