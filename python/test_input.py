@@ -6,6 +6,8 @@ func replace_lower(Neuron n, Float c) = (c>=0) ? (c*n[L]) : (c*n[U])
 func replace_upper(Neuron n, Float c) = (c>=0) ? (c*n[U]) : (c*n[L])
 func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority1, true, replace_lower){e<=n}).map(simplify_lower)
 func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority1, true, replace_upper){e>=n}).map(simplify_upper)
+func priority1(Neuron n) = -n[layer]
+func priority2(Neuron n) = n[layer]
 
 transformer deeppoly(curr, prev){
     Relu -> sum(prev[l])>=0 ? (sum(prev[l]), sum(prev[u]), sum(prev[L]), sum(prev[U])) : 
