@@ -1,5 +1,3 @@
-
-
 grammar dsl;
 
 prog :
@@ -75,20 +73,24 @@ expr: FALSE					#false
     | MINUS expr				#neg
     | expr QUES expr COLON expr 		#cond
     | expr DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE prop RBRACE		#traverse
-    | func_op LPAREN expr COMMA VAR RPAREN 	#nlistOp
-    | func_op2 LPAREN expr RPAREN #nlistOp2
-    | SUM LPAREN expr RPAREN 			#sum
-    | SUB LPAREN expr COMMA expr RPAREN 	#sub
+    | argmax_op LPAREN expr COMMA VAR RPAREN 	#argmaxOp
+    | max_op LPAREN expr RPAREN #maxOpList
+    | max_op LPAREN expr COMMA expr RPAREN #maxOp
+    | list_op LPAREN expr RPAREN 			#listOp
     | expr DOT MAP LPAREN VAR RPAREN 				#map
     | expr DOT DOTT LPAREN expr RPAREN 			#dot
     | VAR LPAREN expr_list RPAREN 		#funcCall
 ;
 
-func_op: ARGMAX
+argmax_op: ARGMAX
 	|	ARGMIN ;
 
-func_op2: MAX
+max_op: MAX
     |   MIN ;
+
+list_op: SUM
+    |   LEN 
+    |   AVG ;
 
 binop: PLUS 
 	|	MINUS 
@@ -173,6 +175,8 @@ COLON: ':' ;
 IF: 'if' ;
 TRAV: 'traverse' ;
 SUM: 'sum' ;
+LEN: 'len' ;
+AVG: 'avg' ;
 SUB: 'sub' ;
 MAP: 'map' ;
 DOTT: 'dot' ;

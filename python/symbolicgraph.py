@@ -2,7 +2,7 @@ import astVisitor
 import ast as AST
 from z3 import *
 from value import *
-from verify import *
+from os import *
 import copy
 
 
@@ -16,7 +16,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.store = store
 		self.F = F
 		self.shape = shape
-		self.os = Evaluate(self.store, self.F, self.M, self.V, self.C, self.shape)
+		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.shape)
 		self.number = Number()
 		self.N = 3
 		self.currop = None #Stores the relationship between curr and prev for traverse proof

@@ -5,7 +5,7 @@ import dslLexer
 import dslParser
 import astBuilder
 import astTC
-import createF
+import verify
 
 def genAST(inputfile):
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
@@ -16,7 +16,7 @@ def genAST(inputfile):
 
     #x = astTC.ASTTC().visit(ast)
 
-    createF.CreateF().visit(ast)
+    verify.Verify().visit(ast)
 
 
 genAST("test_input.cf")

@@ -1,4 +1,3 @@
-
 import ast as AST
 
 if __name__ is not None and "." in __name__:
@@ -115,11 +114,6 @@ class ASTBuilder(dslVisitor):
         else:
             return AST.ExprListNode([expr])
 
-    def visitSub(self, ctx:dslParser.SubContext):
-        expr1 = self.visit(ctx.expr(0))
-        expr2 = self.visit(ctx.expr(1))
-        return AST.SubNode(expr1, expr2)
-
     def visitPrev(self, ctx:dslParser.PrevContext):
         return AST.PrevNode()
 
@@ -203,14 +197,14 @@ class ASTBuilder(dslVisitor):
     def visitParenExp(self, ctx:dslParser.ParenExpContext):
         return self.visit(ctx.expr())
 
-    def visitNlistOp(self, ctx:dslParser.NlistOpContext):
-        op = ctx.func_op().getText()
+    def visitArgmaxOp(self, ctx:dslParser.NlistOpContext):
+        op = ctx.argmax_op().getText()
         expr = self.visit(ctx.expr())
         elem = AST.VarNode(ctx.VAR().getText())
         return AST.NlistOpNode(op, expr, elem)
 
-    def visitNlistOp2(self, ctx:dslParser.NlistOpContext):
-        op = ctx.func_op2().getText()
+    def visitMaxOpList(self, ctx:dslParser.NlistOpContext):
+        op = ctx.max_op().getText()
         expr = self.visit(ctx.expr())
         return AST.NlistOpNode(op, expr, None)
 
@@ -250,7 +244,7 @@ class ASTBuilder(dslVisitor):
             metadata =  AST.MetadataNode(ctx.metadata().getText())
             return AST.GetMetadataNode(expr, metadata)
         elif(ctx.CURR()):
-            return AST.VarNode("curr'")
+            return AST.VarNode("curr_new")
             #return AST.CurrNode()
         elif(ctx.VAR()):
             return AST.VarNode(ctx.VAR().getText())
