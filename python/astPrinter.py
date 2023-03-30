@@ -73,10 +73,10 @@ class ASTPrinter(astVisitor.ASTVisitor):
 		print("Sum:")
 		self.visit(node.expr)
 
-	def visitSub(self, node: AST.SubNode):
-		print("Sub:")
-		self.visit(node.listexpr)
-		self.visit(node.expr)
+	# def visitSub(self, node: AST.SubNode):
+	# 	print("Sub:")
+	# 	self.visit(node.listexpr)
+	# 	self.visit(node.expr)
 	
 	def visitMap(self, node: AST.MapNode):
 		print("Map")

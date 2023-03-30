@@ -2,7 +2,7 @@ import astVisitor
 import ast as AST
 from z3 import *
 from value import *
-from os import *
+from symbolicos import *
 from symbolicgraph import *
 
 class IfListVal:
@@ -103,18 +103,18 @@ class Verify(astVisitor.ASTVisitor):
 						else:
 							s.V[v].symmap[var] = (Real(var + '_Y' + str(self.number.nextn())), "Float")
 
-				s.os.store["curr'"] = (v, "Neuron")
+				s.os.store["curr_new"] = (v, "Neuron")
 				Cnew.append(s.os.visit(self.constraint))
 
-			del s.os.store["curr'"]
+			del s.os.store["curr_new"]
 
 			currprime = Vertex('Currprime' + str(i))
 			s.V[currprime.name] = currprime
 
-			s.os.store["curr'"] = (currprime.name, "Neuron")
+			s.os.store["curr_new"] = (currprime.name, "Neuron")
 
 
-			computation = s.os.convertToZ3(s.os.store["curr'"]) == exptemp
+			computation = s.os.convertToZ3(s.os.store["curr_new"]) == exptemp
 			leftC = And(And(And(And(s.os.C), And(Cnew)), computation), currprime.name == curr.name)
 
 			self.applyTrans(leftC, vallist, s, currprime)

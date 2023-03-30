@@ -78,6 +78,17 @@ class NlistOpNode(ExprNode):
         self.expr = expr
         self.elem = elem
 
+class MinMaxNode(ExprNode):
+
+    #op: min/max
+    def __init__(self, op, expr1, expr2):
+        super().__init__()
+        self.node_name = "Min/Max of 2 elements"
+        self.op = op
+        self.expr1 = expr1
+        self.expr2 = expr2
+
+
 class VarNode(ExprNode):
 
     def __init__(self, name):
@@ -184,13 +195,27 @@ class SumNode(ExprNode):
         self.node_name = "Sum"
         self.expr = expr
 
-class SubNode(ExprNode):
+class LenNode(ExprNode):
 
-    def __init__(self, listexpr, expr):
+    def __init__(self, expr):
         super().__init__()
-        self.node_name = "Sub"
-        self.listexpr = listexpr
+        self.node_name = "Len"
         self.expr = expr
+
+class AvgNode(ExprNode):
+
+    def __init__(self, expr):
+        super().__init__()
+        self.node_name = "Avg"
+        self.expr = expr
+
+# class SubNode(ExprNode):
+
+#     def __init__(self, listexpr, expr):
+#         super().__init__()
+#         self.node_name = "Sub"
+#         self.listexpr = listexpr
+#         self.expr = expr
 
 class MapNode(ExprNode):
 

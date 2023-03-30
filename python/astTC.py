@@ -354,16 +354,16 @@ class ASTTC(astVisitor.ASTVisitor):
 		else:
 			raise TypeMismatchException(base + " list cannot be passed to sum")
 
-	def visitSub(self, node: AST.SubNode):
-		listtype = self.visit(node.listexpr)
-		if(isinstance(listtype, ArrayType)):
-			etype = self.visit(node.expr)
-			if(self.isType(etype, listtype.base)):
-				return listtype
-			else:
-				raise TypeMismatchException("Second argument of Sub should be of the same type as values in the list")
-		else:
-			raise TypeMismatchException("First argument of Sub should be a list")
+	# def visitSub(self, node: AST.SubNode):
+	# 	listtype = self.visit(node.listexpr)
+	# 	if(isinstance(listtype, ArrayType)):
+	# 		etype = self.visit(node.expr)
+	# 		if(self.isType(etype, listtype.base)):
+	# 			return listtype
+	# 		else:
+	# 			raise TypeMismatchException("Second argument of Sub should be of the same type as values in the list")
+	# 	else:
+	# 		raise TypeMismatchException("First argument of Sub should be a list")
 
 	def visitMap(self, node: AST.MapNode):
 		exptype = self.visit(node.expr)

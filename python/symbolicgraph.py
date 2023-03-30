@@ -2,7 +2,7 @@ import astVisitor
 import ast as AST
 from z3 import *
 from value import *
-from os import *
+from symbolicos import *
 import copy
 
 
@@ -255,17 +255,17 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					else:
 						self.V[v].symmap[var] = (Real('X' + str(self.number.nextn())), "Float")
 
-			self.store["curr'"] = (v, "Neuron")
+			self.store["curr_new"] = (v, "Neuron")
 			Cnew.append(self.os.visit(self.constraint))
 
-		del self.store["curr'"]
+		del self.store["curr_new"]
 
 		Cnew.append(self.currop) #Add definition of current related to prev.
 
 		e = self.os.visit(node.expr)
-		self.store["curr'"] = e
+		self.store["curr_new"] = e
 		pz3 = self.os.visit(node.p)
-		del self.store["curr'"]
+		del self.store["curr_new"]
 		
 		p = Not(Implies(And(And(self.os.C), And(Cnew)), pz3))
 		s = Solver()
@@ -327,10 +327,10 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					else:
 						self.V[v].symmap[var] = (Real('X' + str(self.number.nextn())), "Float")
 
-			self.store["curr'"] = (v, "Neuron")
+			self.store["curr_new"] = (v, "Neuron")
 			Cnew.append(self.os.visit(self.constraint))
 
-		del self.store["curr'"]
+		del self.store["curr_new"]
 
 		p = Not(Implies(And(And(And(self.C), And(Cnew)), p1), p2))
 		s.add(p)
@@ -429,8 +429,8 @@ class checkPoly(astVisitor.ASTVisitor):
 	def visitSum(self, node: AST.SumNode):
 		self.visit(node.expr)
 
-	def visitSub(self, node: AST.SubNode):
-		self.visit(node.listexpr)
+	# def visitSub(self, node: AST.SubNode):
+	# 	self.visit(node.listexpr)
 
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
@@ -538,8 +538,8 @@ class getVars(astVisitor.ASTVisitor):
 	def visitSum(self, node: AST.SumNode):
 		self.visit(node.expr)
 
-	def visitSub(self, node: AST.SubNode):
-		self.visit(node.listexpr)
+	# def visitSub(self, node: AST.SubNode):
+	# 	self.visit(node.listexpr)
 
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
