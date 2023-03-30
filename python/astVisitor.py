@@ -15,8 +15,14 @@ class ASTVisitor:
 			return self.visitBinOp(node)
 		elif isinstance(node, AST.UnOpNode):
 			return self.visitUnOp(node)
-		elif isinstance(node, AST.NlistOpNode):
-			return self.visitNlistOp(node)
+		elif isinstance(node, AST.ArgmaxOpNode):
+			return self.visitArgmaxOp(node)
+		elif isinstance(node, AST.MaxOpListNode):
+			return self.visitMaxOpList(node)
+		elif isinstance(node, AST.MaxOpNode):
+			return self.visitMaxOp(node)
+		elif isinstance(node, AST.ListOpNode):
+			return self.visitListOp(node)
 		elif isinstance(node, AST.VarNode):
 			return self.visitVar(node)
 		elif isinstance(node, AST.NeuronNode):
@@ -27,10 +33,10 @@ class ASTVisitor:
 			return self.visitFloat(node)
 		elif isinstance(node, AST.ConstBoolNode):
 			return self.visitBool(node)
-		elif isinstance(node, AST.CurrNode):
-			return self.visitCurr(node)
-		elif isinstance(node, AST.PrevNode):
-			return self.visitPrev(node)
+		# elif isinstance(node, AST.CurrNode):
+		# 	return self.visitCurr(node)
+		# elif isinstance(node, AST.PrevNode):
+		# 	return self.visitPrev(node)
 		elif isinstance(node, AST.EpsilonNode):
 			return self.visitEpsilon(node)
 		elif isinstance(node, AST.TernaryNode):
@@ -41,10 +47,6 @@ class ASTVisitor:
 			return self.visitGetElement(node)
 		elif isinstance(node, AST.TraverseNode):
 			return self.visitTraverse(node)
-		elif isinstance(node, AST.SumNode):
-			return self.visitSum(node)
-		# elif isinstance(node, AST.SubNode):
-		# 	return self.visitSub(node)
 		elif isinstance(node, AST.MapNode):
 			return self.visitMap(node)
 		elif isinstance(node, AST.DotNode):
