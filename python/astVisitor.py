@@ -43,8 +43,8 @@ class ASTVisitor:
 			return self.visitTraverse(node)
 		elif isinstance(node, AST.SumNode):
 			return self.visitSum(node)
-		elif isinstance(node, AST.SubNode):
-			return self.visitSub(node)
+		# elif isinstance(node, AST.SubNode):
+		# 	return self.visitSub(node)
 		elif isinstance(node, AST.MapNode):
 			return self.visitMap(node)
 		elif isinstance(node, AST.DotNode):

@@ -362,10 +362,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		return self.M[Traverse(e, node.direction, p_name, s_name, node.func.name)]
 
-	def visitSub(self, node: AST.SubNode):
-		le = self.visit(node.listexpr)
-		e = self.visit(node.expr)
-		return self.M[LISTSUB(le, e)]
+	# def visitSub(self, node: AST.SubNode):
+	# 	le = self.visit(node.listexpr)
+	# 	e = self.visit(node.expr)
+	# 	return self.M[LISTSUB(le, e)]
 
 	
 
@@ -434,7 +434,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitPropTermBasic(self, prop):
 		if(isinstance(prop.term, AST.CurrNode)):
-			return self.store["curr'"]
+			return self.store["curr_new"]
 		else:
 			return self.convertToZ3(self.visit(prop.term))
 

@@ -122,9 +122,19 @@ class ASTBuilder(dslVisitor):
         right = self.visit(ctx.expr(1))
         return AST.DotNode(left, right)
 
-    def visitSum(self, ctx:dslParser.SumContext):
+    def visitGetElement(self, ctx:dslParser.GetElementContext):
+        op = ctx.list_op().getText()
         expr = self.visit(ctx.expr())
-        return AST.SumNode(expr)
+        if(op == "sum"):
+            return AST.SumNode(expr)
+        elif(op == "avg"):
+            return AST.AvgNode(expr)
+        elif(op == "len"):
+            return AST.LenNode(expr)
+
+    #def visitSum(self, ctx:dslParser.SumContext):
+    #    expr = self.visit(ctx.expr())
+    #    return AST.SumNode(expr)
 
     def visitFloat(self, ctx:dslParser.FloatContext):
         value = float(ctx.FloatConst().getText())
@@ -197,16 +207,32 @@ class ASTBuilder(dslVisitor):
     def visitParenExp(self, ctx:dslParser.ParenExpContext):
         return self.visit(ctx.expr())
 
-    def visitArgmaxOp(self, ctx:dslParser.NlistOpContext):
+    def visitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
         op = ctx.argmax_op().getText()
         expr = self.visit(ctx.expr())
         elem = AST.VarNode(ctx.VAR().getText())
         return AST.NlistOpNode(op, expr, elem)
 
-    def visitMaxOpList(self, ctx:dslParser.NlistOpContext):
+    def visitMaxOpList(self, ctx:dslParser.MaxOpListContext):
         op = ctx.max_op().getText()
         expr = self.visit(ctx.expr())
         return AST.NlistOpNode(op, expr, None)
+
+    def visitMaxOp(self, ctx:dslParser.MaxOpContext):
+        op = ctx.max_op().getText()
+        expr1 = self.visit(ctx.expr(0))
+        expr2 = self.visit(ctx.expr(1))
+        return AST.MinMaxNode(op, expr1, expr2)
+
+    def visitListOp(self, ctx:dslParser.ListOpContext):
+        op = ctx.list_op().getText()
+        expr = self.visit(ctx.expr())
+        if(op == "sum"):
+            return AST.SumNode(expr)
+        elif(op == "avg"):
+            return AST.AvgNode(expr)
+        elif(op == "len"):
+            return AST.LenNode(expr)
 
     def visitFuncCall(self, ctx:dslParser.FuncCallContext):
         name = AST.VarNode(ctx.VAR().getText())
