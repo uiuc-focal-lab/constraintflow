@@ -224,6 +224,8 @@ class ASTTC(astVisitor.ASTVisitor):
 			assert False
 
 	def visitVar(self, node: AST.VarNode):
+		if(node.name == "curr'"):
+			return "Neuron"
 		if not node.name in self.vars.keys():
 			raise UndefinedVarException(node.name + " is undefined")
 		else:

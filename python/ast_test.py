@@ -13,7 +13,7 @@ def genAST(inputfile):
     parser = dslParser.dslParser(tokens)
     tree = parser.prog()
     ast = astBuilder.ASTBuilder().visit(tree)
-    #print(ast.)
+
     #x = astTC.ASTTC().visit(ast)
 
     createF.CreateF().visit(ast)

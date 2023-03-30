@@ -51,6 +51,7 @@ class CreateF(astVisitor.ASTVisitor):
 
 		for i in range(len(node.oplist.olist)):
 			op = node.oplist.olist[i]
+			Cnew = []
 
 			#Define relationship between curr and prev
 			if(op.op.op_name == "Affine"):
@@ -64,13 +65,19 @@ class CreateF(astVisitor.ASTVisitor):
 					
 				exptemp = s.os.convertToZ3(exptemp)
 
-			else:
-				#(op.op.op_name == "Relu"):
+			elif(op.op.op_name == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
 					exptemp = Add(exptemp, prev[i])
 
 				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
+
+			else: #Maxpool
+				mpool = Vertex("Maxpool")
+				#Don't add to V bc you shouldn't need it and you don't want to assume the shape constraint holds for it
+				for prevnode in prev:
+					Cnew.append(prevnode[0] == mpool.name)
+				exptemp = mpool.name
 
 			s.currop = (curr.name == exptemp) #Would it be safe to just add this to s.C?
 
@@ -81,7 +88,7 @@ class CreateF(astVisitor.ASTVisitor):
 			else:
 				vallist = self.visitTransRetBasic(op.ret, s)
 
-			Cnew = []
+			
 			gv = getVars(self.constraint, self.shape)
 			gv.visit(self.constraint)
 			vars = gv.vars

@@ -2,6 +2,7 @@ import astVisitor
 import ast as AST
 from z3 import *
 from value import *
+import astPrinter
 
 class Number:
 
@@ -227,7 +228,7 @@ class MAX:
 			return False
 
 	def __hash__(self):
-		return hash(("MAX", self.e))
+		return hash(("MAX", str(self.e)))
 
 class MIN:
 
@@ -241,7 +242,7 @@ class MIN:
 			return False
 
 	def __hash__(self):
-		return hash(("MIN", self.e))
+		return hash(("MIN", str(self.e)))
 
 class ARGMAX:
 
@@ -256,7 +257,7 @@ class ARGMAX:
 			return False
 
 	def __hash__(self):
-		return hash(("ARGMAX", self.e, self.s))
+		return hash(("ARGMAX", str(self.e), self.s))
 
 class ARGMIN:
 
@@ -271,7 +272,7 @@ class ARGMIN:
 			return False
 
 	def __hash__(self):
-		return hash(("ARGMIN", self.e, self.s))
+		return hash(("ARGMIN", str(self.e), self.s))
 
 class LISTSUB:
 
@@ -515,12 +516,10 @@ class Evaluate(astVisitor.ASTVisitor):
 			return self.M[MAX(e)]
 		elif(node.op == "argmin"):
 			e = self.visit(node.expr)
-			element = self.visit(node.elem)
-			return self.M[ARGMIN(e, element)]
+			return self.M[ARGMIN(e, node.elem.name)]
 		elif(node.op == "argmax"):
 			e = self.visit(node.expr)
-			element = self.visit(node.elem)
-			return self.M[ARGMAX(e, element)]
+			return self.M[ARGMAX(e, node.elem.name)]
 
 	def visitSum(self, node: AST.SumNode):
 		elist = self.visit(node.expr)

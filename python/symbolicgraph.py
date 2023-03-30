@@ -154,11 +154,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				v1.symmap["layer"] = (Int('X' + str(self.number.nextn())), "Int")
 		if(not "weight" in v1.symmap.keys()):
 				v1.symmap["weight"] = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
-		for s in shape.keys():
+		for s in self.shape.keys():
 			if(not s in v1.symmap.keys()):
-				if(shape[s] == "Bool"):
+				if(self.shape[s] == "Bool"):
 					newvar = (Bool('X' + str(self.number.nextn())), "Bool")
-				elif(shape[s] == "Int"):
+				elif(self.shape[s] == "Int"):
 					newvar = (Int('X' + str(self.number.nextn())), "Int")
 				else:
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
@@ -197,22 +197,22 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 			newvertex = Vertex('X' + str(self.number.nextn()))
 			self.os.V[newvertex.name] = newvertex
-			self.os.M[ARGMAX(e, node.elem)] = (newvertex.name, "Neuron")
+			self.os.M[ARGMAX(e, node.elem.name)] = (newvertex.name, "Neuron")
 			t = False
 			for i in range(len(e)):
-				t = Or(t, compareV(self.os.V[e[i][0]], newvertex))
-				self.os.C.append(self.convertToZ3(self.os.V[e[i][0]].symmap[node.elem]) <= self.convertToZ3(newvertex.symmap[node.elem]))
+				t = Or(t, self.compareV(self.os.V[e[i][0]], newvertex))
+				self.os.C.append(self.os.convertToZ3(self.os.V[e[i][0]].symmap[node.elem.name]) <= self.os.convertToZ3(newvertex.symmap[node.elem.name]))
 
 			self.os.C.append(t)
 		elif(node.op == "argmin"):
 
 			newvertex = Vertex('X' + str(self.number.nextn()))
 			self.os.V[newvertex.name] = newvertex
-			self.os.M[ARGMIN(e, node.elem)] = (newvertex.name, "Neuron")
+			self.os.M[ARGMIN(e, node.elem.name)] = (newvertex.name, "Neuron")
 			t = False
 			for i in range(len(e)):
-				t = Or(t, compareV(self.os.V[e[i][0]], newvertex))
-				self.os.C.append(self.convertToZ3(self.os.V[e[i][0]].symmap[node.elem]) >= self.convertToZ3(newvertex.symmap[node.elem]))
+				t = Or(t, self.compareV(self.os.V[e[i][0]], newvertex))
+				self.os.C.append(self.os.convertToZ3(self.os.V[e[i][0]].symmap[node.elem.name]) >= self.os.convertToZ3(newvertex.symmap[node.elem.name]))
 
 			self.os.C.append(t)
 
@@ -232,7 +232,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			newvar = Vertex('X' + str(self.number.nextn()))
 			V[neuron.name] = neuron
 			self.os.M[Ternary(c, left, right)] = (newvar.name, "Neuron")
-			self.os.C.append(If(self.os.convertToZ3(c), self.compareV(V[left[0]], newvar), self.compareV(V[right[0]], newvar)))
+			self.os.C.append(If(self.os.convertToZ3(c), self.compareV(self.os.V[left[0]], newvar), self.compareV(self.os.V[right[0]], newvar)))
 		else:
 			newvar = Real('X' + str(self.number.nextn()))
 			self.os.M[Ternary(c, left, right)] = (newvar, "Float")
