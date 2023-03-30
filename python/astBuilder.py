@@ -114,9 +114,6 @@ class ASTBuilder(dslVisitor):
         else:
             return AST.ExprListNode([expr])
 
-    def visitPrev(self, ctx:dslParser.PrevContext):
-        return AST.PrevNode()
-
     def visitDot(self, ctx:dslParser.DotContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
@@ -158,11 +155,14 @@ class ASTBuilder(dslVisitor):
         return AST.UnOpNode("~", expr)
 
     def visitCurr(self, ctx:dslParser.CurrContext):
-        return AST.CurrNode()
+        return AST.VarNode("curr")
+
+    def visitPrev(self, ctx:dslParser.PrevContext):
+        return AST.VarNode("prev")
 
     def visitMap(self, ctx:dslParser.MapContext):
-        expr = self.visit(ctx.expr())
-        func = AST.VarNode(ctx.VAR().getText())
+        expr = self.visit(ctx.expr(0))
+        func = AST.VarNode(ctx.expr(1).getText())
         return AST.MapNode(expr, func)
 
     def visitGetMetadata(self, ctx:dslParser.GetMetadataContext):
@@ -209,30 +209,25 @@ class ASTBuilder(dslVisitor):
 
     def visitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
         op = ctx.argmax_op().getText()
-        expr = self.visit(ctx.expr())
-        elem = AST.VarNode(ctx.VAR().getText())
-        return AST.NlistOpNode(op, expr, elem)
+        expr = self.visit(ctx.expr(0))
+        func = self.visit(ctx.expr(1))
+        return AST.ArgmaxOpNode(op, expr, func)
 
     def visitMaxOpList(self, ctx:dslParser.MaxOpListContext):
         op = ctx.max_op().getText()
         expr = self.visit(ctx.expr())
-        return AST.NlistOpNode(op, expr, None)
+        return AST.MaxOpListNode(op, expr)
 
     def visitMaxOp(self, ctx:dslParser.MaxOpContext):
         op = ctx.max_op().getText()
         expr1 = self.visit(ctx.expr(0))
         expr2 = self.visit(ctx.expr(1))
-        return AST.MinMaxNode(op, expr1, expr2)
+        return AST.MaxOpNode(op, expr1, expr2)
 
     def visitListOp(self, ctx:dslParser.ListOpContext):
         op = ctx.list_op().getText()
         expr = self.visit(ctx.expr())
-        if(op == "sum"):
-            return AST.SumNode(expr)
-        elif(op == "avg"):
-            return AST.AvgNode(expr)
-        elif(op == "len"):
-            return AST.LenNode(expr)
+        return AST.ListOpNode(op, expr)
 
     def visitFuncCall(self, ctx:dslParser.FuncCallContext):
         name = AST.VarNode(ctx.VAR().getText())

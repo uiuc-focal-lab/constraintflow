@@ -57,29 +57,29 @@ arglist : types VAR COMMA arglist
 expr_list : expr COMMA expr_list
 	|	expr ; 
 
-expr: FALSE					#false
-    | TRUE 					#true
-    | IntConst 					#int
-    | FloatConst 				#float
-    | VAR                     			#varExp
-    | EPSILON 					#epsilon
-    | CURR					#curr
-    | PREV					#prev
-    | LPAREN expr RPAREN      			#parenExp
-    | expr LSQR metadata RSQR           #getMetadata
-    | expr LSQR VAR RSQR                #getElement
-    | expr binop expr         			#binopExp
-    | NOT expr       				#not
-    | MINUS expr				#neg
-    | expr QUES expr COLON expr 		#cond
+expr: FALSE					                        #false
+    | TRUE 					                        #true
+    | IntConst 					                    #int
+    | FloatConst 				                    #float
+    | VAR                     			            #varExp
+    | EPSILON 					                    #epsilon
+    | CURR					                        #curr
+    | PREV					                        #prev
+    | LPAREN expr RPAREN      			            #parenExp
+    | expr LSQR metadata RSQR                       #getMetadata
+    | expr LSQR VAR RSQR                            #getElement
+    | expr binop expr         			            #binopExp
+    | NOT expr       				                #not
+    | MINUS expr				                    #neg
+    | expr QUES expr COLON expr 		            #cond
     | expr DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE prop RBRACE		#traverse
-    | argmax_op LPAREN expr COMMA VAR RPAREN 	#argmaxOp
-    | max_op LPAREN expr RPAREN #maxOpList
-    | max_op LPAREN expr COMMA expr RPAREN #maxOp
-    | list_op LPAREN expr RPAREN 			#listOp
-    | expr DOT MAP LPAREN VAR RPAREN 				#map
-    | expr DOT DOTT LPAREN expr RPAREN 			#dot
-    | VAR LPAREN expr_list RPAREN 		#funcCall
+    | argmax_op LPAREN expr COMMA expr RPAREN 	    #argmaxOp
+    | max_op LPAREN expr RPAREN                     #maxOpList
+    | max_op LPAREN expr COMMA expr RPAREN          #maxOp
+    | list_op LPAREN expr RPAREN 			        #listOp
+    | expr DOT MAP LPAREN expr RPAREN 		        #map
+    | expr DOT DOTT LPAREN expr RPAREN 		        #dot
+    | VAR LPAREN expr_list RPAREN 		            #funcCall
 ;
 
 argmax_op: ARGMAX

@@ -68,22 +68,31 @@ class MetadataNode(ASTNode):
         self.node_name = "Metadata"
         self.name = name
 
-class NlistOpNode(ExprNode):
+class ArgmaxOpNode(ExprNode):
 
     #op: min, max, argmin, argmax
-    def __init__(self, op, expr, elem):
+    def __init__(self, op, expr, func):
         super().__init__()
-        self.node_name = "NListOp"
+        self.node_name = "ArgmaxOp"
         self.op = op
         self.expr = expr
-        self.elem = elem
+        self.func = func
 
-class MinMaxNode(ExprNode):
+class MaxOpListNode(ExprNode):
+
+    #op: min, max, argmin, argmax
+    def __init__(self, op, expr):
+        super().__init__()
+        self.node_name = "MaxOpList"
+        self.op = op
+        self.expr = expr
+
+class MaxOpNode(ExprNode):
 
     #op: min/max
     def __init__(self, op, expr1, expr2):
         super().__init__()
-        self.node_name = "Min/Max of 2 elements"
+        self.node_name = "Max of 2 elements"
         self.op = op
         self.expr1 = expr1
         self.expr2 = expr2
@@ -125,17 +134,17 @@ class ConstBoolNode(ExprNode):
         self.node_name = "Bool"
         self.value = value
 
-class CurrNode(ExprNode):
+# class CurrNode(ExprNode):
 
-    def __init__(self):
-        super().__init__()
-        self.node_name = "Curr"
+#     def __init__(self):
+#         super().__init__()
+#         self.node_name = "Curr"
 
-class PrevNode(ExprNode):
+# class PrevNode(ExprNode):
 
-    def __init__(self):
-        super().__init__()
-        self.node_name = "Prev"
+#     def __init__(self):
+#         super().__init__()
+#         self.node_name = "Prev"
 
 class EpsilonNode(ExprNode):
 
@@ -188,34 +197,12 @@ class DirectionNode(ASTNode):
         self.node_name = "Direction"
         self.value = value
 
-class SumNode(ExprNode):
+class ListOpNode(ExprNode):
 
-    def __init__(self, expr):
+    def __init__(self, op, expr):
         super().__init__()
-        self.node_name = "Sum"
+        self.op = op
         self.expr = expr
-
-class LenNode(ExprNode):
-
-    def __init__(self, expr):
-        super().__init__()
-        self.node_name = "Len"
-        self.expr = expr
-
-class AvgNode(ExprNode):
-
-    def __init__(self, expr):
-        super().__init__()
-        self.node_name = "Avg"
-        self.expr = expr
-
-# class SubNode(ExprNode):
-
-#     def __init__(self, listexpr, expr):
-#         super().__init__()
-#         self.node_name = "Sub"
-#         self.listexpr = listexpr
-#         self.expr = expr
 
 class MapNode(ExprNode):
 
