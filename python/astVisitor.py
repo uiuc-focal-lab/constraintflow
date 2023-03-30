@@ -82,5 +82,6 @@ class ASTVisitor:
 		elif isinstance(node, AST.ProgramNode):
 			return self.visitProg(node)
 		else:
+			print("This is an error. This shouldn't happen")
 			print(node)
 			assert False

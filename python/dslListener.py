@@ -1,4 +1,4 @@
-# Generated from dsl.g4 by ANTLR 4.12.0
+# Generated from dsl.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .dslParser import dslParser
@@ -170,21 +170,21 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#sub.
-    def enterSub(self, ctx:dslParser.SubContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#sub.
-    def exitSub(self, ctx:dslParser.SubContext):
-        pass
-
-
     # Enter a parse tree produced by dslParser#getMetadata.
     def enterGetMetadata(self, ctx:dslParser.GetMetadataContext):
         pass
 
     # Exit a parse tree produced by dslParser#getMetadata.
     def exitGetMetadata(self, ctx:dslParser.GetMetadataContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#argmaxOp.
+    def enterArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#argmaxOp.
+    def exitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
         pass
 
 
@@ -206,21 +206,21 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#maxOp.
+    def enterMaxOp(self, ctx:dslParser.MaxOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#maxOp.
+    def exitMaxOp(self, ctx:dslParser.MaxOpContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#dot.
     def enterDot(self, ctx:dslParser.DotContext):
         pass
 
     # Exit a parse tree produced by dslParser#dot.
     def exitDot(self, ctx:dslParser.DotContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#sum.
-    def enterSum(self, ctx:dslParser.SumContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#sum.
-    def exitSum(self, ctx:dslParser.SumContext):
         pass
 
 
@@ -305,6 +305,15 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#listOp.
+    def enterListOp(self, ctx:dslParser.ListOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#listOp.
+    def exitListOp(self, ctx:dslParser.ListOpContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#getElement.
     def enterGetElement(self, ctx:dslParser.GetElementContext):
         pass
@@ -332,15 +341,6 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#nlistOp.
-    def enterNlistOp(self, ctx:dslParser.NlistOpContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#nlistOp.
-    def exitNlistOp(self, ctx:dslParser.NlistOpContext):
-        pass
-
-
     # Enter a parse tree produced by dslParser#funcCall.
     def enterFuncCall(self, ctx:dslParser.FuncCallContext):
         pass
@@ -359,12 +359,12 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#nlistOp2.
-    def enterNlistOp2(self, ctx:dslParser.NlistOp2Context):
+    # Enter a parse tree produced by dslParser#maxOpList.
+    def enterMaxOpList(self, ctx:dslParser.MaxOpListContext):
         pass
 
-    # Exit a parse tree produced by dslParser#nlistOp2.
-    def exitNlistOp2(self, ctx:dslParser.NlistOp2Context):
+    # Exit a parse tree produced by dslParser#maxOpList.
+    def exitMaxOpList(self, ctx:dslParser.MaxOpListContext):
         pass
 
 
@@ -377,21 +377,30 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#func_op.
-    def enterFunc_op(self, ctx:dslParser.Func_opContext):
+    # Enter a parse tree produced by dslParser#argmax_op.
+    def enterArgmax_op(self, ctx:dslParser.Argmax_opContext):
         pass
 
-    # Exit a parse tree produced by dslParser#func_op.
-    def exitFunc_op(self, ctx:dslParser.Func_opContext):
+    # Exit a parse tree produced by dslParser#argmax_op.
+    def exitArgmax_op(self, ctx:dslParser.Argmax_opContext):
         pass
 
 
-    # Enter a parse tree produced by dslParser#func_op2.
-    def enterFunc_op2(self, ctx:dslParser.Func_op2Context):
+    # Enter a parse tree produced by dslParser#max_op.
+    def enterMax_op(self, ctx:dslParser.Max_opContext):
         pass
 
-    # Exit a parse tree produced by dslParser#func_op2.
-    def exitFunc_op2(self, ctx:dslParser.Func_op2Context):
+    # Exit a parse tree produced by dslParser#max_op.
+    def exitMax_op(self, ctx:dslParser.Max_opContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#list_op.
+    def enterList_op(self, ctx:dslParser.List_opContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#list_op.
+    def exitList_op(self, ctx:dslParser.List_opContext):
         pass
 
 
@@ -476,5 +485,3 @@ class dslListener(ParseTreeListener):
         pass
 
 
-
-del dslParser

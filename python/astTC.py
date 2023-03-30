@@ -50,7 +50,7 @@ class TransformerType():
 class ASTTC(astVisitor.ASTVisitor):
 
 	def __init__(self):
-		self.vars = {}
+		self.Gamma = {}
 		self.shape = []
 		self.currdefined = False #prev is also defined when curr is
 
@@ -226,10 +226,10 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitVar(self, node: AST.VarNode):
 		if(node.name == "curr'"):
 			return "Neuron"
-		if not node.name in self.vars.keys():
+		if not node.name in self.Gamma.keys():
 			raise UndefinedVarException(node.name + " is undefined")
 		else:
-			return self.vars[node.name]
+			return self.Gamma[node.name]
 
 	def visitNeuron(self, node: AST.NeuronNode):
 		return "Neuron"
@@ -295,10 +295,10 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitGetElement(self, node: AST.GetElementNode):
 		etype = self.visit(node.expr)
-		if(not node.elem.name in self.vars.keys()):
+		if(not node.elem.name in self.Gamma.keys()):
 			raise UndefinedVarException(node.elem.name + " is undefined")
 
-		elemtype = self.vars[node.elem.name]
+		elemtype = self.Gamma[node.elem.name]
 		if(not (elemtype, node.elem.name) in self.shape):
 			raise TypeMismatchException(node.elem.name + " is not part of the shape")
 
@@ -403,10 +403,10 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		name = node.name.name
-		if(not name in self.vars.keys()):
+		if(not name in self.Gamma.keys()):
 			raise UndefinedVarException(name + " is not defined")
 
-		ftype = self.vars[name]
+		ftype = self.Gamma[name]
 		if(not isinstance(ftype, ArrowType)):
 			raise TypeMismatchException(name + " is not a function")
 		argstype = ftype.tleft
@@ -418,10 +418,10 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitShapeDecl(self, node: AST.ShapeDeclNode):
 		for (t, e) in node.elements.arglist:
-			if(e.name in self.vars.keys()):
+			if(e.name in self.Gamma.keys()):
 				raise DuplicateVarException(str(e.name()) + " is already defined")
 			else:
-				self.vars[e.name] = t.name
+				self.Gamma[e.name] = t.name
 
 			self.shape.append((t.name,e.name))
 
@@ -452,13 +452,13 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitTransformer(self, node: AST.TransformerNode):
 		tname = node.name.name 
-		if(tname in self.vars.keys()):
+		if(tname in self.Gamma.keys()):
 			raise DuplicateVarException(tname + " is already defined")
 
 		self.currdefined = True
 		self.visit(node.oplist)
 		self.currdefined = False
-		self.vars[tname] = TransformerType()
+		self.Gamma[tname] = TransformerType()
 
 	def visitPropTermBasic(self, node: AST.PropTermBasicNode):
 		return self.visit(node.term)
@@ -500,26 +500,26 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitFunc(self, node: AST.FuncNode):
 		argstype = self.visit(node.decl.arglist)
 		fname = node.decl.name.name
-		if(fname in self.vars.keys()):
+		if(fname in self.Gamma.keys()):
 			raise DuplicateVarException(fname + " is already defined")
-		newvars = []
+		newGamma = []
 		oldvalues = {}
 		for (t,e) in node.decl.arglist.arglist:
-			if e.name in self.vars.keys():
-				oldvalues[e.name] = self.vars[e.name]
+			if e.name in self.Gamma.keys():
+				oldvalues[e.name] = self.Gamma[e.name]
 			else:
-				newvars.append(e.name)
+				newGamma.append(e.name)
 
-			self.vars[e.name] = t.name
+			self.Gamma[e.name] = t.name
 
 		exprtype = self.visit(node.expr)
-		for v in newvars:
-			del self.vars[v]
+		for v in newGamma:
+			del self.Gamma[v]
 
 		for ov in oldvalues.keys():
-			self.vars[ov] = oldvalues[ov]
+			self.Gamma[ov] = oldvalues[ov]
 
-		self.vars[fname] = ArrowType(argstype, exprtype)
+		self.Gamma[fname] = ArrowType(argstype, exprtype)
 
 	def visitSeq(self, node: AST.SeqNode):
 		self.visit(node.stmt1)
@@ -534,9 +534,9 @@ class ASTTC(astVisitor.ASTVisitor):
 			raise TypeMismatchException("Flow stopping function is wrong type")
 
 		#Can, instead, call self.visit(node.trans) and check if the return value is a TransformerType()
-		if not node.trans.name in self.vars.keys():
+		if not node.trans.name in self.Gamma.keys():
 			raise UndefinedVarException(node.trans.name + " is undefined")
-		elif (not self.isType(self.vars[node.trans.name], TransformerType())):
+		elif (not self.isType(self.Gamma[node.trans.name], TransformerType())):
 			raise TypeMismatchException(node.trans.name + " is not a Transformer")
 
 	def visitProg(self, node: AST.ProgramNode):

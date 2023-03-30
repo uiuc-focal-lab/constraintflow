@@ -1,4 +1,4 @@
-# Generated from dsl.g4 by ANTLR 4.12.0
+# Generated from dsl.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .dslParser import dslParser
@@ -99,13 +99,13 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#sub.
-    def visitSub(self, ctx:dslParser.SubContext):
+    # Visit a parse tree produced by dslParser#getMetadata.
+    def visitGetMetadata(self, ctx:dslParser.GetMetadataContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#getMetadata.
-    def visitGetMetadata(self, ctx:dslParser.GetMetadataContext):
+    # Visit a parse tree produced by dslParser#argmaxOp.
+    def visitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
         return self.visitChildren(ctx)
 
 
@@ -119,13 +119,13 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#dot.
-    def visitDot(self, ctx:dslParser.DotContext):
+    # Visit a parse tree produced by dslParser#maxOp.
+    def visitMaxOp(self, ctx:dslParser.MaxOpContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#sum.
-    def visitSum(self, ctx:dslParser.SumContext):
+    # Visit a parse tree produced by dslParser#dot.
+    def visitDot(self, ctx:dslParser.DotContext):
         return self.visitChildren(ctx)
 
 
@@ -174,6 +174,11 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#listOp.
+    def visitListOp(self, ctx:dslParser.ListOpContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#getElement.
     def visitGetElement(self, ctx:dslParser.GetElementContext):
         return self.visitChildren(ctx)
@@ -189,11 +194,6 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#nlistOp.
-    def visitNlistOp(self, ctx:dslParser.NlistOpContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by dslParser#funcCall.
     def visitFuncCall(self, ctx:dslParser.FuncCallContext):
         return self.visitChildren(ctx)
@@ -204,8 +204,8 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#nlistOp2.
-    def visitNlistOp2(self, ctx:dslParser.NlistOp2Context):
+    # Visit a parse tree produced by dslParser#maxOpList.
+    def visitMaxOpList(self, ctx:dslParser.MaxOpListContext):
         return self.visitChildren(ctx)
 
 
@@ -214,13 +214,18 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#func_op.
-    def visitFunc_op(self, ctx:dslParser.Func_opContext):
+    # Visit a parse tree produced by dslParser#argmax_op.
+    def visitArgmax_op(self, ctx:dslParser.Argmax_opContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#func_op2.
-    def visitFunc_op2(self, ctx:dslParser.Func_op2Context):
+    # Visit a parse tree produced by dslParser#max_op.
+    def visitMax_op(self, ctx:dslParser.Max_opContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#list_op.
+    def visitList_op(self, ctx:dslParser.List_opContext):
         return self.visitChildren(ctx)
 
 
