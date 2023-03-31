@@ -16,7 +16,7 @@ class Number:
 class Vertex:
 	#Store the expression for the vertex polyhedral element when it is defined(say if we are using a map function)
 	def __init__(self, name):
-		self.symmap = {} #ex) "layer" -> Int('X1')
+		self.symmap = {} #ex) "layer" -> (Int('X1'), "Int")
 		self.name = Real(name) #Should be unique name
 
 
@@ -37,7 +37,7 @@ class ZonoExpValue():
 
 	def __init__(self, coeffs, const):
 		self.const = const #const : tuple
-		self.coeffs = coeffs #List of (coeff, op)
+		self.coeffs = coeffs #{noise variable -> coeff: tuple}
 
 	# def __eq__(self, obj):
 	# 	if(isinstance(obj, ZonoExpValue)):
@@ -51,11 +51,11 @@ class ZonoExpValue():
 class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def __init__(self, store, F, M, V, C, shape):
-		self.FMap = F #{function name -> function info}
-		self.V = V #{symbolic var -> vertex}
+		self.F = F #{function name -> function info}
 		self.M = M #{(op, value) -> value}
-		self.store = store #{var -> value}
+		self.V = V #{symbolic var -> vertex}
 		self.C = C #symbolic constraints
+		self.store = store #{var -> value}
 		self.shape = shape #{name -> type} of each variable in the shape
 		self.vname = 0
 		self.limit = 3 #max 3 neurons are connected to each one
@@ -76,29 +76,15 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def visitArgList(self, node: AST.ArgListNode):
 	'''
 
-	def visitExprList(self, node: AST.ExprListNode):
-		exps = []
-		for exp in node.exprlist:
-			exps.append(self.visit(exp))
-		return exps
+	
 		
-	
-	def visitInt(self, node: AST.ConstIntNode):
-		return (node.value, "Int")
-
-	def visitFloat(self, node: AST.ConstFloatNode):
-		return (node.value, "Float")
-	
-	def visitBool(self, node: AST.ConstBoolNode):
-		return (node.value, "Bool")
-
 	def ConstToPoly(self, const):
 		return PolyExpValue({}, const)
 
 	def NeuronToPoly(self, n):
 		return PolyExpValue({n: (1, "Float")}, (0, "Float"))
 
-	def AddPoly(self, left, right):
+	def ADDPoly(self, left, right):
 		if(isinstance(left, tuple)):
 			if(left[1] == "Neuron"):
 				left = self.NeuronToPoly(left)
@@ -125,7 +111,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		return PolyExpValue(n, c)
 
-	def SubPoly(self, left, right):
+	def SUBPoly(self, left, right):
 		if(isinstance(left, tuple)):
 			if(left[1] == "Neuron"):
 				left = self.NeuronToPoly(left)
@@ -138,7 +124,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToPoly(right)
 
-		c = left.const + right.const
+		c = left.const - right.const
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
@@ -152,105 +138,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		return PolyExpValue(n, c)
 
-	def visitBinOp(self, node: AST.BinOpNode):
-		left = self.visit(node.left)
-		right = self.visit(node.right)
-		if(node.op == "+"):
-			return Add(left, right)
-		elif(node.op == "-"):
-			return Sub(left, right)
-		elif(node.op == "*"):
-			return Mult(left, right)
-		elif(node.op == "/"):
-			return Div(left, right)
-		elif(node.op == "<="):
-			return LEQ(left, right)
-		elif(node.op == "<"):
-			return LT(left, right)
-		elif(node.op == ">="):
-			return GEQ(left, right)
-		elif(node.op == ">"):
-			return GT(left, right)
-		elif(node.op == "and"):
-			return AND(left, right)
-		elif(node.op == "or"):
-			return OR(left, right)
-		elif(node.op == "=="):
-			return EQQ(left, right)
-
-	def visitUnOp(self, node: AST.UnOpNode):
-		expr = self.visit(node.expr)
-		if(node.op == "-"):
-			return NEG(expr)
-		elif(node.op == "~"):
-			return NOT(expr)
-
-	def visitTernary(self, node: AST.TernaryNode):
-		cond = self.visit(node.cond)
-		left = self.visit(node.texpr)
-		right = self.visit(node.fexpr)
-		return self.M[Ternary(cond, left, right)]
-
-	def visitNlistOp(self, node: AST.NlistOpNode):
-		if(node.op == "min"):
-			e = self.visit(node.expr)
-			return self.M[MIN(e)]
-		elif(node.op == "max"):
-			e = self.visit(node.expr)
-			return self.M[MAX(e)]
-		elif(node.op == "argmin"):
-			e = self.visit(node.expr)
-			return self.M[ARGMIN(e, node.elem.name)]
-		elif(node.op == "argmax"):
-			e = self.visit(node.expr)
-			return self.M[ARGMAX(e, node.elem.name)]
-
-	def visitSum(self, node: AST.SumNode):
-		elist = self.visit(node.expr)
-		sum = (0, "Float")
-		for e in elist:
-			sum = Add(sum, e)
-		return sum
-
-	def visitDot(self, node: AST.DotNode):
-		left = self.visit(node.left)
-		right = self.visit(node.right)
-
-		sum = (0, "Float")
-		for i in range(min(len(left), len(right))):
-			sum = Add(sum, Mult(left[i],right[i]))
-
-		return sum
-
-	def visitFuncCall(self, node: AST.FuncCallNode, preeval = False):
-		func = self.FMap[node.name.name]
-
-		newvars = []
-		oldvalues = {}
-
-		if(not preeval):
-			elist = self.visit(node.arglist)
-		else:
-			elist = node.arglist.exprlist
-
-		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
-			if arg.name in self.store.keys():
-				oldvalues[arg.name] = self.store[arg.name]
-			else:
-				newvars.append(arg.name)
-
-			self.store[arg.name] = exp
-
-		val = self.visit(func.expr)
-		
-		for v in newvars:
-			del self.store[v]
-
-		for ov in oldvalues.keys():
-			self.store[ov] = oldvalues[ov]
-
-		return val
-
 	def convertToPoly(self, node):
 		
 		if(isinstance(node, tuple)):
@@ -258,20 +145,20 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				return PolyExpValue({}, node)
 			elif(node[1] == "Neuron"):
 				return PolyExpValue({node: (1, "Float")}, (0, "Float"))
-		elif(isinstance(node, Add)):
+		elif(isinstance(node, ADD)):
 			left = self.convertToPoly(node.left)
 			right = self.convertToPoly(node.right)
-			return self.AddPoly(left, right)
-		elif(isinstance(node, Sub)):
+			return self.ADDPoly(left, right)
+		elif(isinstance(node, SUB)):
 			left = self.convertToPoly(node.left)
 			right = self.convertToPoly(node.right)
-			return self.SubPoly(left, right)
-		elif(isinstance(node, Mult)):
+			return self.SUBPoly(left, right)
+		elif(isinstance(node, MULT)):
 			if(node.left[1] == "Neuron"):
 				return PolyExpValue({node.left: node.right}, (0, "Float"))
 			else:
 				return PolyExpValue({node.right: node.left}, (0, "Float"))
-		elif(isinstance(node, Div)):
+		elif(isinstance(node, DIV)):
 			return PolyExpValue({node.left: (1 / node.right[0], "Float")}, (0, "Float"))
 		else:
 			print(node)
@@ -281,19 +168,19 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		if(isinstance(node, tuple)):
 			return node[0]
-		elif(isinstance(node, Add)):
+		elif(isinstance(node, ADD)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
 			return l + r
-		elif(isinstance(node, Sub)):
+		elif(isinstance(node, SUB)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
 			return l - r
-		elif(isinstance(node, Mult)):
+		elif(isinstance(node, MULT)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
 			return l * r
-		elif(isinstance(node, Div)):
+		elif(isinstance(node, DIV)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
 			return l / r
@@ -335,15 +222,184 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else:
 			return node
 
+	def visitInt(self, node: AST.ConstIntNode):
+		return (node.value, "Int")
+
+	def visitFloat(self, node: AST.ConstFloatNode):
+		return (node.value, "Float")
+	
+	def visitBool(self, node: AST.ConstBoolNode):
+		return (node.value, "Bool")
+
+	def visitVar(self, pt):
+		return self.store[pt.name]
+
+	def visitEpsilon(self, node: AST.EpsilonNode):
+		return self.M[Epsilon(node.identifier)]
+	
+	def visitExprList(self, node: AST.ExprListNode):
+		exps = []
+		for exp in node.exprlist:
+			exps.append(self.visit(exp))
+		return exps
+
+	def visitBinOp(self, node: AST.BinOpNode):
+		left = self.visit(node.left)
+		right = self.visit(node.right)
+		if(node.op == "+"):
+			return ADD(left, right)
+		elif(node.op == "-"):
+			return SUB(left, right)
+		elif(node.op == "*"):
+			return MULT(left, right)
+		elif(node.op == "/"):
+			return DIV(left, right)
+		elif(node.op == "<="):
+			return LEQ(left, right)
+		elif(node.op == "<"):
+			return LT(left, right)
+		elif(node.op == ">="):
+			return GEQ(left, right)
+		elif(node.op == ">"):
+			return GT(left, right)
+		elif(node.op == "and"):
+			return AND(left, right)
+		elif(node.op == "or"):
+			return OR(left, right)
+		elif(node.op == "=="):
+			return EQQ(left, right)
+
+	def visitUnOp(self, node: AST.UnOpNode):
+		expr = self.visit(node.expr)
+		if(node.op == "-"):
+			return NEG(expr)
+		elif(node.op == "!"):
+			return NOT(expr)
+
+	def visitTernary(self, node: AST.TernaryNode):
+		cond = self.visit(node.cond)
+		left = self.visit(node.texpr)
+		right = self.visit(node.fexpr)
+		return self.M[TERNARY(cond, left, right)]
+
+	def visitArgmaxOp(self, node: AST.ArgmaxOpNode):
+		if(node.op == "argmin"):
+			e = self.visit(node.expr)
+			if isinstance(node.func, AST.VarNode):
+				return self.M[ARGMIN(e, node.func.name)]	
+			elist = self.visit(node.func) 
+			return self.M[ARGMIN(e, node.func.name.name), elist]
+		elif(node.op == "argmax"):
+			e = self.visit(node.expr)
+			if isinstance(node.func, AST.VarNode):
+				return self.M[ARGMAX(e, node.func.name)]	
+			elist = self.visit(node.func) 
+			return self.M[ARGMAX(e, node.func.name.name), elist]
+
+	def visitMaxOpList(self, node: AST.MaxOpListNode):
+		elist = self.visit(node.expr)
+		if(node.op == "min"):
+			return self.M[MIN(elist)]
+		elif(node.op == "max"):
+			return self.M[MAX(elist)]
+
+	def visitMaxOp(self, node: AST.MaxOpNode):
+		e1 = self.visit(node.expr1)
+		e2 = self.visit(node.expr2)
+		if(node.op == "min"):
+			return self.M[MIN([e1, e2])]
+		elif(node.op == "max"):
+			return self.M[MAX([e1, e2])]
+
+	def visitListOp(self, node: AST.ListOpNode):
+		elist_value = self.visit(node.expr)
+		elist_func = elist_value.elist_func
+		elist = elist_value.elist 
+		sum = (0, "Float")
+		length = (0, "Float")
+		for i, e in enumerate(elist):
+			sum = ADD(sum, MULT(e, If(elist_func(i, e), 1, 0)))
+			length = ADD(sum, If(elist_func(i, e), 1, 0))
+		if node.op == 'sum':
+			return sum
+		elif node.op == 'len':
+			return length 
+		elif node.op == 'avg':
+			return DIV(sum, length)
+		else:
+			assert False
+
+	def visitDot(self, node: AST.DotNode):
+		left = self.visit(node.left.elist)
+		right = self.visit(node.right.elist)
+
+		return M[DOT(left, right)]
+
+	def visitGetElement(self, pt):
+		n = self.visit(pt.expr)
+		if(isinstance(n, LIST)):
+			return self.M[GETELEMENT(n, pt.elem.name)]
+			# return LIST([self.V[i[0]].symmap[pt.elem.name] for i in n.elist])
+		else:
+			return self.V[n[0]].symmap[pt.elem.name]
+
+	def visitGetMetadata(self, pt):
+		n = self.visit(pt.expr)
+		if(isinstance(n, list)):
+			return self.M[GETMETADATA(n, pt.metadata.name)]
+			# return [self.V[i[0]].symmap[pt.metadata.name] for i in n]
+		else:
+			return self.V[n[0]].symmap[pt.metadata.name]
+
+	def visitFuncCall(self, node: AST.FuncCallNode, preeval = False):
+		func = self.F[node.name.name]
+
+		newvars = []
+		oldvalues = {}
+
+		if(not preeval):
+			elist = self.visit(node.arglist)
+		else:
+			elist = node.arglist.exprlist
+
+		if len(elist)==len(func.decl.arglist.arglist):
+			for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
+				if arg.name in self.store.keys():
+					oldvalues[arg.name] = self.store[arg.name]
+				else:
+					newvars.append(arg.name)
+
+				self.store[arg.name] = exp
+
+			val = self.visit(func.expr)
+			
+			for v in newvars:
+				del self.store[v]
+
+			for ov in oldvalues.keys():
+				self.store[ov] = oldvalues[ov]
+
+			return val
+
+		elif len(elist)<=len(func.decl.arglist.arglist):
+			return elist 
+		else:
+			assert False 
+
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
 		epoly = self.convertToPoly(e)
 
 		exp = epoly.const
 		for n in epoly.coeffs.keys():
-			elist = AST.ExprListNode([n, epoly.coeffs[n]])
-			fcall = AST.FuncCallNode(node.func, elist)
-			exp = Add(exp, self.visitFuncCall(fcall, True))
+
+			if isinstance(node.func, AST.VarNode):
+				elist = []
+			else:	
+				elist = self.visit(node.func)
+			elist = AST.ExprListNode(elist + [n, epoly.coeffs[n]])
+			fcall = AST.FuncCallNode(node.func.name, elist)
+			exp = ADD(exp, self.visitFuncCall(fcall, True))
 
 		return exp
 
@@ -362,21 +418,14 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		return self.M[Traverse(e, node.direction, p_name, s_name, node.func.name)]
 
-	# def visitSub(self, node: AST.SubNode):
-	# 	le = self.visit(node.listexpr)
-	# 	e = self.visit(node.expr)
-	# 	return self.M[LISTSUB(le, e)]
-
+	# def visitCurr(self, node: AST.CurrNode):
+	# 	return self.store["curr"]
 	
-
-	def visitCurr(self, node: AST.CurrNode):
-		return self.store["curr"]
-	
-	def visitPrev(self, node: AST.PrevNode):
-		return self.store["prev"]
+	# def visitPrev(self, node: AST.PrevNode):
+	# 	return self.store["prev"]
 
 	'''
-	def visitEpsilon(self, node: AST.EpsilonNode):
+	
 
 
 
@@ -399,22 +448,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	'''
 
-	def visitGetElement(self, pt):
-		n = self.visit(pt.expr)
-		if(isinstance(n, list)):
-			return [self.V[i[0]].symmap[pt.elem.name] for i in n]
-		else:
-			return self.V[n[0]].symmap[pt.elem.name]
+	
 
-	def visitGetMetadata(self, pt):
-		n = self.visit(pt.expr)
-		if(isinstance(n, list)):
-			return [self.V[i[0]].symmap[pt.metadata.name] for i in n]
-		else:
-			return self.V[n[0]].symmap[pt.metadata.name]
-
-	def visitVar(self, pt):
-		return self.store[pt.name]			
+				
 
 	def visitPropTermOp(self, prop):
 		left = self.visit(prop.leftpt)
@@ -460,7 +496,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitFunc(self, node: AST.FuncNode):
 		name = node.decl.name.name
-		self.FMap[name] = node
+		self.F[name] = node
 
 	def visitSeq(self, node: AST.SeqNode):
 		self.visit(node.stmt1)

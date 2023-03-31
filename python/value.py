@@ -15,57 +15,57 @@ class NonTerminalValue:
 	def __init__(self):
 		pass
 
-class Add(TerminalValue):
+class ADD(TerminalValue):
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Add)):
+		if(isinstance(obj, ADD)):
 			return self.left == obj.left and self.right == obj.right
 
 	def __hash__(self):
-		return hash(("Add", self.left, self.right))
+		return hash(("ADD", self.left, self.right))
 
-class Sub(TerminalValue):
+class SUB(TerminalValue):
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Sub)):
+		if(isinstance(obj, SUB)):
 			return self.left == obj.left and self.right == obj.right
 
 	def __hash__(self):
-		return hash(("Sub", self.left, self.right))
+		return hash(("SUB", self.left, self.right))
 
-class Mult(TerminalValue):
+class MULT(TerminalValue):
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Mult)):
+		if(isinstance(obj, MULT)):
 			return self.left == obj.left and self.right == obj.right
 
 	def __hash__(self):
-		return hash(("Mult", self.left, self.right))
+		return hash(("MULT", self.left, self.right))
 
-class Div(TerminalValue):
+class DIV(TerminalValue):
 
 	def __init__(self, left, right):
 		self.left = left
 		self.right = right
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Div)):
+		if(isinstance(obj, DIV)):
 			return self.left == obj.left and self.right == obj.right
 
 	def __hash__(self):
-		return hash(("Div", self.left, self.right))
+		return hash(("DIV", self.left, self.right))
 
 class LEQ(TerminalValue):
 
@@ -195,8 +195,34 @@ class NEG(TerminalValue):
 	def __hash__(self):
 		return hash(("NEG", self.right))
 
+class LIST(TerminalValue):
+	def __init__(self, l, f):
+		self.elist = l 
+		self.list_func = f 
 
-class Ternary(NonTerminalValue):
+	def __eq__(self, obj):
+		if(isinstance(obj, LIST)):
+			return self.list_func.name() == obj.list_func.name() and self.elist == obj.elist 
+	
+	def __hash__(self):
+		return (('LIST', str(self.elist), self.list_func.name()))
+
+
+class EPSILON(NonTerminalValue):
+
+	def __init__(self, identifier):
+		self.identifier = identifier
+
+	def __eq__(self, obj):
+		if(isinstance(obj, EPSILON)):
+			return self.identifier == obj.identifier
+		else:
+			return False
+
+	def __hash__(self):
+		return hash(("EPSILON", self.identifier))
+
+class TERNARY(NonTerminalValue):
 
 	def __init__(self, cond, left, right):
 		self.cond = cond
@@ -204,13 +230,13 @@ class Ternary(NonTerminalValue):
 		self.right = right
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Ternary)):
+		if(isinstance(obj, TERNARY)):
 			return self.cond == obj.cond and self.left == obj.left and self.right == obj.right
 		else:
 			return False
 
 	def __hash__(self):
-		return hash(("Ternary", self.cond, self.left, self.right))
+		return hash(("TERNARY", self.cond, self.left, self.right))
 
 class MAX(NonTerminalValue):
 
@@ -242,18 +268,19 @@ class MIN(NonTerminalValue):
 
 class ARGMAX(NonTerminalValue):
 
-	def __init__(self, e, s):
+	def __init__(self, e, f, arglist = []):
 		self.e = e
-		self.s = s
+		self.f = f
+		self.arglist = arglist
 
 	def __eq__(self, obj):
 		if(isinstance(obj, ARGMAX)):
-			return self.e == obj.e and self.s == obj.s
+			return self.e == obj.e and self.f == obj.f and self.arglist == obj.arglist 
 		else:
 			return False
 
 	def __hash__(self):
-		return hash(("ARGMAX", str(self.e), self.s))
+		return hash(("ARGMAX", str(self.e), self.f))
 
 class ARGMIN(NonTerminalValue):
 
@@ -282,7 +309,7 @@ class LISTSUB(NonTerminalValue):
 		else:
 			return False
 
-class Traverse(NonTerminalValue):
+class TRAVERSE(NonTerminalValue):
 
 	def __init__(self, e, d, f1, f2, f3):
 		self.e = e
@@ -292,10 +319,47 @@ class Traverse(NonTerminalValue):
 		self.f3 = f3
 
 	def __eq__(self, obj):
-		if(isinstance(obj, Traverse)):
+		if(isinstance(obj, TRAVERSE)):
 			return self.e == obj.e and self.d == obj.d and self.f1 == obj.f1 and self.f2 == obj.f2 and self.f3 == obj.f3
 		else:
 			return False
 
 	def __hash__(self):
-		return hash(("Traverse", self.e, self.d, self.f1, self.f2, self.f3))
+		return hash(("TRAVERSE", self.e, self.d, self.f1, self.f2, self.f3))
+
+class DOT(NonTerminalValue):
+
+	def __init__(self, l1, l2):
+		self.list1 = l1 #LIST TerminalValue
+		self.list2 = l2
+
+	def __eq__(self, obj):
+		if(isinstance(obj, LIST)):
+			return self.list1 == obj.list1 and self.list2 == obj.list2
+	
+	def __hash__(self):
+		return hash(("DOT", l1, l2))
+
+class GETELEMENT(NonTerminalValue):
+	def __init__(self, elist, elem):
+		self.elist = elist
+		self.elem = elem 
+
+	def __eq__(self, obj):
+		if(isinstance(obj, GETELEMENT)):
+			return self.elist==obj.elist and self.elem==obj.elem 
+
+	def __hash__(self):
+		return hash(('GETELEMENT', elist, elem))
+
+class GETMETADATA(NonTerminalValue):
+	def __init__(self, elist, metadata):
+		self.elist = elist
+		self.metadata = metadata 
+
+	def __eq__(self, obj):
+		if(isinstance(obj, GETMETADATA)):
+			return self.elist==obj.elist and self.metadata==obj.metadata 
+
+	def __hash__(self):
+		return hash(('GETMETADATA', elist, metadata))

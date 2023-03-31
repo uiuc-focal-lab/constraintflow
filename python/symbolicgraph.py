@@ -40,48 +40,112 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitUnOp(self, node):
 		self.visit(node.expr)
 
-	def visitSum(self, node):
+	def visitListOp(self, node):
 		self.visit(node.expr)
+
+	def getMember(self, l, i):
+		member = Real('m' + str(self.number.nextn()))
+		conds = []
+		for j in len(l):
+			conds.append(Implies(i==j, member==l[j]))
+		return member, conds
+
+	def getLength(self, l, f):
+		length = 0
+		for i in range(len(l)):
+			length += If(f(i, l[i]), 1, 0)
+		return length 
 
 	def visitDot(self, node):
 		self.visit(node.left)
 		self.visit(node.right)
-
-	def visitPrev(self, node):
-		pass
-
-	def visitCurr(self, node):
-		pass
+		left = self.os.visit(node.left)
+		right = self.os.visit(node.right)
+		conds = []
+		length = min(len(left.elist), len(right.elist))
+		e1 = [None]*length
+		e2 = [None]*length
+		prev1 = -1
+		prev2 = -1
+		for i in range(length):
+			e1[i] = Int('Index'+str(self.number.nextn()))
+			e2[i] = Int('Index'+str(self.number.nextn()))
+			cond1 = -1
+			j = len(left.elist)
+			while(j > 0):
+				member, c = self.getMember(left.elist, prev1+j)
+				cond1 = If(left.elist_func(prev1+j, member), prev1+j, cond1)
+				conds += c
+				j -= 1
+			cond2 = -1
+			j = len(right.elist)
+			while(j > 0):
+				member, c = self.getMember(right.elist, prev1+j)
+				cond2 = If(right.elist_func(prev1+j, member), prev1+j, cond2)
+				conds += c
+				j -= 1
+			conds += [cond1 == e1[i], cond2 == e2[i]]
+			prev1 = e1[i]
+			prev2 = e2[i]
+		length1 = getLength(left.elist, left.elist_func)
+		length2 = getLength(right.elist, right.elist_func)
+		self.C.append(length1==length2)
+		out = Real('out'+str(self.number.nextn()))
+		sum = 0
+		for i in range(length):
+			conds.append(Implies(length1==i, out==sum))
+			mem1, c1 = getMember(left.elist, e1[i])
+			mem2, c2 = getMember(right.elist, e2[i])
+			sum += mem1 * mem2
+			conds += c1
+			conds += c2 
+		self.C += conds 
+		self.M[DOT(left, right)] = out
 
 	def visitGetMetadata(self, node):
 		self.visit(node.expr)
 		n = self.os.visit(node.expr)
-		if(not isinstance(n, list)):
+		if(not isinstance(n, LIST)):
 			if not node.metadata.name in self.V[n[0]].symmap.keys():
 				newvar = None
 				if(node.metadata.name == "bias"):
 					newvar = (Real('X' + str(self.number.nextn())), "Bool")
 				elif(node.metadata.name == "weight"):
-					newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
+					f = Function('f'+str(self.number.nextn()))
+					newvar_list = [None]*(self.N)
+					for i in range(self.N):
+						newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
+						self.C.append(f(i, newvar[i]) == True)
+					newvar = LIST(newvar_list, f)
 				elif(node.metadata.name == "layer"):
+					newvar = (Int('X' + str(self.number.nextn())), "Int")
+				elif(node.metadata.name == "serial"):
+					newvar = (Int('X' + str(self.number.nextn())), "Int")
+				elif(node.metadata.name == "local_serial"):
 					newvar = (Int('X' + str(self.number.nextn())), "Int")
 				self.V[n[0]].symmap[node.metadata.name] = newvar
 		else:
-			for ni in n:
+			f = Function('f'+ str(self.number.nextn()))
+			final_list = []
+			for i, ni in enumerate(n.elist):
 				if not node.metadata.name in self.V[ni[0]].symmap.keys():
 					newvar = None
 					if(node.metadata.name == "bias"):
 						newvar = (Real('X' + str(self.number.nextn())), "Bool")
-					elif(node.metadata.name == "weight"):
-						newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in self.N]
+					# elif(node.metadata.name == "weight"):
+					# 	newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in self.N]
 					elif(node.metadata.name == "layer"):
 						newvar = (Int('X' + str(self.number.nextn())), "Int")
 					self.V[ni[0]].symmap[node.metadata.name] = newvar
+				final_list.append(self.V[ni[0]].symmap[node.metadata.name])
+				self.C.append(f(i, self.V[ni[0]].symmap[node.metadata.name]) == n.elist_func(i, ni))
+
+			self.M[GETMETADAT(n, node.metadat.name)] = LIST(final_list, f)
 
 	def visitGetElement(self, node):
 		self.visit(node.expr)
 		n = self.os.visit(node.expr)
-		if(not isinstance(n, list)):
+		if(not isinstance(n, LIST)):
 			if not node.elem.name in self.V[n[0]].symmap.keys():
 				newvar = None
 				if(self.shape[node.elem.name] == "Bool"):
@@ -92,7 +156,9 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
 				self.V[n[0]].symmap[node.elem.name] = newvar
 		else:
-			for ni in n:
+			f = Function('f'+ str(self.number.nextn()))
+			final_list = []
+			for i, ni in enumerate(n.elist):
 				if not node.elem.name in self.V[ni[0]].symmap.keys():
 					newvar = None
 					
@@ -103,6 +169,9 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					else:
 						newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
 					self.V[ni[0]].symmap[node.elem.name] = newvar
+				final_list.append(self.V[ni[0]].symmap[node.elem.name])
+				self.C.append(f(i, self.V[ni[0]].symmap[node.elem.name]) == n.elist_func(i, ni))
+			self.M[GETELEMENT(n, node.elem.name)] = LIST(final_list, f)
 
 	def visitExprList(self, node):
 		for e in node.exprlist:
@@ -114,7 +183,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		p = self.os.visit(node.expr)
 		p_poly = self.os.convertToPoly(p)
 		for n in p_poly.coeffs.keys():
-			elist = AST.ExprListNode([n, p_poly.coeffs[n]])
+			if isinstance(node.func, AST.VarNode):
+				elist = []
+			else:	
+				elist = self.os.visit(node.func)
+			elist = AST.ExprListNode(elist + [n, p_poly.coeffs[n]])
 			fcall = AST.FuncCallNode(node.func, elist)
 			self.visitFuncCall(fcall, True)
 
@@ -149,11 +222,16 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def initV(self, v1):
 		if(not "bias" in v1.symmap.keys()):
-				v1.symmap["bias"] = (Real('X' + str(self.number.nextn())), "Float")
+			v1.symmap["bias"] = (Real('X' + str(self.number.nextn())), "Float")
 		if(not "layer" in v1.symmap.keys()):
-				v1.symmap["layer"] = (Int('X' + str(self.number.nextn())), "Int")
+			v1.symmap["layer"] = (Int('X' + str(self.number.nextn())), "Int")
 		if(not "weight" in v1.symmap.keys()):
-				v1.symmap["weight"] = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
+			v1.symmap["weight"] = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
+		if(not "local_serial" in v1.symmap.keys()):
+			v1.symmap["local_serial"] = (Int('X' + str(self.number.nextn())), "Int")
+		if(not "serial" in v1.symmap.keys()):
+			v1.symmap["serial"] = (Int('X' + str(self.number.nextn())), "Int")
+
 		for s in self.shape.keys():
 			if(not s in v1.symmap.keys()):
 				if(self.shape[s] == "Bool"):
@@ -173,48 +251,52 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		return newC
 
-	def visitNlistOp(self, node):
+	def visitArgmaxOp(self, node):
 		self.visit(node.expr)
 		e = self.os.visit(node.expr)
 
-		if(node.op == "max"):
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[MAX(e)] = (newvar, "Float")
-			t = False
-			for i in range(len(e)):
-				self.os.C.append(newvar >= self.os.convertToZ3(e[i]))
-				t = Or(t, newvar == self.os.convertToZ3(e[i]))
-			self.os.C.append(t)
-		elif(node.op == "min"):
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[MIN(e)] = (newvar, "Float")
-			t = False
-			for i in range(len(e)):
-				self.os.C.append(newvar <= self.os.convertToZ3(e[i]))
-				t = Or(t, newvar == self.os.convertToZ3(e[i]))
-			self.os.C.append(t)
-		elif(node.op == "argmax"):
-
-			newvertex = Vertex('X' + str(self.number.nextn()))
-			self.os.V[newvertex.name] = newvertex
-			self.os.M[ARGMAX(e, node.elem.name)] = (newvertex.name, "Neuron")
-			t = False
-			for i in range(len(e)):
-				t = Or(t, self.compareV(self.os.V[e[i][0]], newvertex))
-				self.os.C.append(self.os.convertToZ3(self.os.V[e[i][0]].symmap[node.elem.name]) <= self.os.convertToZ3(newvertex.symmap[node.elem.name]))
-
-			self.os.C.append(t)
-		elif(node.op == "argmin"):
-
-			newvertex = Vertex('X' + str(self.number.nextn()))
-			self.os.V[newvertex.name] = newvertex
-			self.os.M[ARGMIN(e, node.elem.name)] = (newvertex.name, "Neuron")
-			t = False
-			for i in range(len(e)):
-				t = Or(t, self.compareV(self.os.V[e[i][0]], newvertex))
-				self.os.C.append(self.os.convertToZ3(self.os.V[e[i][0]].symmap[node.elem.name]) >= self.os.convertToZ3(newvertex.symmap[node.elem.name]))
-
-			self.os.C.append(t)
+		# if(node.op == "max"):
+		# 	newvar = Real('X' + str(self.number.nextn()))
+		# 	self.os.M[MAX(e)] = (newvar, "Float")
+		# 	t = False
+		# 	for i in range(len(e)):
+		# 		self.os.C.append(newvar >= self.os.convertToZ3(e[i]))
+		# 		t = Or(t, newvar == self.os.convertToZ3(e[i]))
+		# 	self.os.C.append(t)
+		# elif(node.op == "min"):
+		# 	newvar = Real('X' + str(self.number.nextn()))
+		# 	self.os.M[MIN(e)] = (newvar, "Float")
+		# 	t = False
+		# 	for i in range(len(e)):
+		# 		self.os.C.append(newvar <= self.os.convertToZ3(e[i]))
+		# 		t = Or(t, newvar == self.os.convertToZ3(e[i]))
+		# 	self.os.C.append(t)
+		if isinstance(node.func, AST.VarNode):
+			pre_elist = []
+		else:	
+			pre_elist = self.os.visit(node.func)
+		for n in e.elist:
+			elist = AST.ExprListNode(pre_elist + [n, n])
+			fcall = AST.FuncCallNode(node.func, elist)
+			self.visitFuncCall(fcall, True)
+		new_list = copy(e.elist)
+		f = Function('f'+str(self.number.nextn()), IntSort(), RealSort(), BoolSort())
+		for i in range(e.elist):
+			cond = True 
+			for j in range(e.elist):
+				if i!=j:
+					if(node.op == "argmax"):
+						elist = AST.ExprListNode(pre_elist + [e.elist[i], e.elist[j]])
+					else:
+						elist = AST.ExprListNode(pre_elist + [e.elist[j], e.elist[i]])
+					fcall = AST.FuncCallNode(node.func, elist)
+					r = self.os.visit(fcall)
+					cond = AND(cond, r)
+			self.C.append(f(i, e.elist[i]) == convertToZ3(cond) )
+		if(node.op == "argmax"):
+			self.os.M[ARGMAX(e, node.func.name)] = LIST(new_list, f)
+		else:
+			self.os.M[ARGMIN(e, node.func.name)] = LIST(new_list, f)
 
 	def visitTernary(self, node):
 		self.visit(node.cond)
@@ -260,7 +342,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		del self.store["curr_new"]
 
-		Cnew.append(self.currop) #Add definition of current related to prev.
+		Cnew.append(self.currop) #ADD definition of current related to prev.
 
 		e = self.os.visit(node.expr)
 		self.store["curr_new"] = e
@@ -300,7 +382,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			else: #expression like True
 				valf3 = self.os.visit(node.func)
 
-			newvar = Add(newvar, Mult(const, (neuron.name, "Neuron")))
+			newvar = ADD(newvar, Mult(const, (neuron.name, "Neuron")))
 			newval = newval + If(self.os.convertToZ3(valf2), self.os.convertToZ3(valf3), self.os.convertToZ3(Mult(const, (neuron.name, "Neuron"))))
 
 		s = Solver()
@@ -357,9 +439,6 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			s_name = self.os.visit(node.stop)
 
 		self.os.M[Traverse(e, node.direction, p_name, s_name, node.func.name)] = (temp_var, "Float") 
-
-	def visitSub(self, node):
-		pass
 
 	def visitTransRetBasic(self, node):
 		self.visit(node.exprlist)
@@ -429,9 +508,6 @@ class checkPoly(astVisitor.ASTVisitor):
 	def visitSum(self, node: AST.SumNode):
 		self.visit(node.expr)
 
-	# def visitSub(self, node: AST.SubNode):
-	# 	self.visit(node.listexpr)
-
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
 
@@ -471,7 +547,7 @@ class checkPoly(astVisitor.ASTVisitor):
 					neuron = Vertex('X' + str(self.number.nextn()))
 					V[neuron.name] = neuron 
 					const = (Real('X' + str(self.number.nextn())), "Float")
-					newvar = Add(newvar, Mult(const, (neuron, "Neuron")))
+					newvar = ADD(newvar, Mult(const, (neuron, "Neuron")))
 
 				self.os.V[n[0]].symmap[n.elem.name] = newvar
 				self.os.C.append(oldvar == self.os.convertToZ3(newvar))
@@ -537,9 +613,6 @@ class getVars(astVisitor.ASTVisitor):
 
 	def visitSum(self, node: AST.SumNode):
 		self.visit(node.expr)
-
-	# def visitSub(self, node: AST.SubNode):
-	# 	self.visit(node.listexpr)
 
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
