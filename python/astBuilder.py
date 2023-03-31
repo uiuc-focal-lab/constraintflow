@@ -10,6 +10,9 @@ else:
 
 class ASTBuilder(dslVisitor):
 
+    def __init__(self):
+        self.epsilon_count = 0
+
     def visitProg(self, ctx: dslParser.ProgContext):
         shape = self.visit(ctx.shape_decl())
         stmt = self.visit(ctx.statement())
@@ -144,7 +147,8 @@ class ASTBuilder(dslVisitor):
         return AST.TernaryNode(cond, texpr, fexpr)
 
     def visitEpsilon(self, ctx:dslParser.EpsilonContext):
-        return AST.EpsilonNode()
+        self.epsilon_count += 1
+        return AST.EpsilonNode(self.epsilon_count)
 
     def visitNeg(self, ctx:dslParser.NegContext):
         expr = self.visit(ctx.expr())

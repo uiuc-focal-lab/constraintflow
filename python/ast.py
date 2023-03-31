@@ -148,9 +148,10 @@ class ConstBoolNode(ExprNode):
 
 class EpsilonNode(ExprNode):
 
-    def __init__(self):
+    def __init__(self, identifier):
         super().__init__()
         self.node_name = "Epsilon"
+        self.identifier = identifier
 
 class TernaryNode(ExprNode):
 
