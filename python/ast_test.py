@@ -14,7 +14,7 @@ def genAST(inputfile):
     tree = parser.prog()
     ast = astBuilder.ASTBuilder().visit(tree)
 
-    #x = astTC.ASTTC().visit(ast)
+    x = astTC.ASTTC().visit(ast)
 
     verify.Verify().visit(ast)
 
