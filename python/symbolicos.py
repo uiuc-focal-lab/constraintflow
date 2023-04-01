@@ -453,8 +453,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				
 
 	def visitPropTermOp(self, prop):
-		left = self.visit(prop.leftpt)
-		right = self.visit(prop.rightpt)
+		left = self.convertToZ3(self.visit(prop.leftpt))
+		right = self.convertToZ3(self.visit(prop.rightpt))
 		if(prop.op == "+"):
 			return left + right
 		elif(prop.op == "-"):
@@ -469,10 +469,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return Or(left, right)
 
 	def visitPropTermBasic(self, prop):
-		if(isinstance(prop.term, AST.CurrNode)):
-			return self.store["curr_new"]
-		else:
-			return self.convertToZ3(self.visit(prop.term))
+		return self.convertToZ3(self.visit(prop.term))
 
 	def visitSingleProp(self, pt):
 		left = self.convertToZ3(self.visit(pt.leftpt))
