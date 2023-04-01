@@ -298,6 +298,42 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		else:
 			self.os.M[ARGMIN(e, node.func.name)] = LIST(new_list, f)
 
+	def visitMaxOp(self, node):
+		self.visit(node.expr1)
+		self.visit(node.expr2)
+		left = self.os.visit(node.expr1)
+		right = self.os.visit(node.expr2)
+
+		if(node.op == "max"):
+			newvar = Real('X' + str(self.number.nextn()))
+			self.os.M[MAX([left, right])] = (newvar, "Float")
+
+			self.os.C.append(newvar >= self.os.convertToZ3(left))
+			self.os.C.append(newvar >= self.os.convertToZ3(right))
+			t = Or(newvar == self.os.convertToZ3(right), newvar == self.os.convertToZ3(left))
+			self.os.C.append(t)
+		elif(node.op == "min"):
+			newvar = Real('X' + str(self.number.nextn()))
+			self.os.M[MIN([left, right])] = (newvar, "Float")
+
+			self.os.C.append(newvar <= self.os.convertToZ3(left))
+			self.os.C.append(newvar <= self.os.convertToZ3(right))
+			t = Or(newvar == self.os.convertToZ3(right), newvar == self.os.convertToZ3(left))
+			self.os.C.append(t)
+
+	def visitMaxOpList(self, node):
+		self.visit(node.expr)
+		e = self.os.visit(node.expr)
+
+		if(node.op == "max"):
+			newvar = Real('X' + str(self.number.nextn()))
+			self.os.M[MAX(e.elist)] = (newvar, "Float")
+			t = False
+			for i in range(len(e.elist)):
+				self.os.C.append(Implies(e.elist_func(i, e.elist[i]), newvar >= self.os.convertToZ3(e.elist[i])))
+				t = Or(t, And(e.elist_func(i, e.elist[i]), newvar == self.os.convertToZ3(e.elist[i])))
+			self.os.C.append(t)
+
 	def visitTernary(self, node):
 		self.visit(node.cond)
 		self.visit(node.texpr)
