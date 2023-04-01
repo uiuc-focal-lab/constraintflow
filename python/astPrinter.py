@@ -18,11 +18,11 @@ class ASTPrinter(astVisitor.ASTVisitor):
 		print("Op: " + node.op)
 		self.visit(node.expr)
 
-	def visitNlistOp(self, node: AST.NlistOpNode):
-		print("Op: " + node.op)
-		self.visit(node.expr)
-		if(node.elem):
-			self.visit(node.elem)
+	# def visitNlistOp(self, node: AST.NlistOpNode):
+	# 	print("Op: " + node.op)
+	# 	self.visit(node.expr)
+	# 	if(node.elem):
+	# 		self.visit(node.elem)
 
 	def visitVar(self, node: AST.VarNode):
 		print(node.name)
@@ -38,12 +38,6 @@ class ASTPrinter(astVisitor.ASTVisitor):
 
 	def visitBool(self, node: AST.ConstBoolNode):
 		print(node.value)
-
-	def visitCurr(self, node: AST.CurrNode):
-		print("Curr")
-
-	def visitPrev(self, node: AST.PrevNode):
-		print("Prev")
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		print("Epsilon")
@@ -68,15 +62,6 @@ class ASTPrinter(astVisitor.ASTVisitor):
 		print("Function:")
 		self.visit(node.func)
 
-
-	def visitSum(self, node: AST.SumNode):
-		print("Sum:")
-		self.visit(node.expr)
-
-	# def visitSub(self, node: AST.SubNode):
-	# 	print("Sub:")
-	# 	self.visit(node.listexpr)
-	# 	self.visit(node.expr)
 	
 	def visitMap(self, node: AST.MapNode):
 		print("Map")

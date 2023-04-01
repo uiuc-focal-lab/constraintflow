@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,71,347,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,71,348,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,
         7,20,2,21,7,21,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -29,21 +29,21 @@ def serializedATN():
         13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,
         13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,
         13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,13,1,
-        13,1,13,1,13,1,13,1,13,5,13,262,8,13,10,13,12,13,265,9,13,1,14,1,
-        14,1,15,1,15,1,16,1,16,1,17,1,17,1,18,1,18,1,19,1,19,1,20,1,20,1,
-        20,1,20,1,20,1,20,1,20,1,20,3,20,287,8,20,1,20,1,20,1,20,1,20,1,
-        20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,5,20,304,8,
-        20,10,20,12,20,307,9,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,
+        13,1,13,1,13,1,13,1,13,1,13,5,13,263,8,13,10,13,12,13,266,9,13,1,
+        14,1,14,1,15,1,15,1,16,1,16,1,17,1,17,1,18,1,18,1,19,1,19,1,20,1,
+        20,1,20,1,20,1,20,1,20,1,20,1,20,3,20,288,8,20,1,20,1,20,1,20,1,
+        20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,5,20,305,
+        8,20,10,20,12,20,308,9,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,
         1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,
-        1,21,1,21,1,21,1,21,3,21,334,8,21,1,21,1,21,1,21,1,21,1,21,1,21,
-        5,21,342,8,21,10,21,12,21,345,9,21,1,21,0,5,4,20,26,40,42,22,0,2,
+        1,21,1,21,1,21,1,21,3,21,335,8,21,1,21,1,21,1,21,1,21,1,21,1,21,
+        5,21,343,8,21,10,21,12,21,346,9,21,1,21,0,5,4,20,26,40,42,22,0,2,
         4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,0,7,1,0,
         55,59,1,0,48,49,1,0,50,51,1,0,42,44,3,0,17,23,25,25,27,29,1,0,52,
-        54,1,0,6,7,375,0,44,1,0,0,0,2,48,1,0,0,0,4,77,1,0,0,0,6,86,1,0,0,
+        54,1,0,6,7,376,0,44,1,0,0,0,2,48,1,0,0,0,4,77,1,0,0,0,6,86,1,0,0,
         0,8,91,1,0,0,0,10,103,1,0,0,0,12,105,1,0,0,0,14,109,1,0,0,0,16,117,
         1,0,0,0,18,130,1,0,0,0,20,139,1,0,0,0,22,156,1,0,0,0,24,163,1,0,
-        0,0,26,211,1,0,0,0,28,266,1,0,0,0,30,268,1,0,0,0,32,270,1,0,0,0,
-        34,272,1,0,0,0,36,274,1,0,0,0,38,276,1,0,0,0,40,286,1,0,0,0,42,333,
+        0,0,26,211,1,0,0,0,28,267,1,0,0,0,30,269,1,0,0,0,32,271,1,0,0,0,
+        34,273,1,0,0,0,36,275,1,0,0,0,38,277,1,0,0,0,40,287,1,0,0,0,42,334,
         1,0,0,0,44,45,3,2,1,0,45,46,3,4,2,0,46,47,5,0,0,1,47,1,1,0,0,0,48,
         49,5,60,0,0,49,50,5,31,0,0,50,51,3,22,11,0,51,52,5,32,0,0,52,53,
         5,35,0,0,53,54,3,42,21,0,54,55,5,36,0,0,55,56,5,37,0,0,56,3,1,0,
@@ -82,59 +82,59 @@ def serializedATN():
         174,175,5,31,0,0,175,176,3,26,13,0,176,177,5,32,0,0,177,212,1,0,
         0,0,178,179,5,30,0,0,179,212,3,26,13,11,180,181,5,18,0,0,181,212,
         3,26,13,10,182,183,3,28,14,0,183,184,5,31,0,0,184,185,3,26,13,0,
-        185,186,5,16,0,0,186,187,5,69,0,0,187,188,5,32,0,0,188,212,1,0,0,
-        0,189,190,3,30,15,0,190,191,5,31,0,0,191,192,3,26,13,0,192,193,5,
-        32,0,0,193,212,1,0,0,0,194,195,3,30,15,0,195,196,5,31,0,0,196,197,
-        3,26,13,0,197,198,5,16,0,0,198,199,3,26,13,0,199,200,5,32,0,0,200,
-        212,1,0,0,0,201,202,3,32,16,0,202,203,5,31,0,0,203,204,3,26,13,0,
-        204,205,5,32,0,0,205,212,1,0,0,0,206,207,5,69,0,0,207,208,5,31,0,
-        0,208,209,3,24,12,0,209,210,5,32,0,0,210,212,1,0,0,0,211,165,1,0,
-        0,0,211,167,1,0,0,0,211,168,1,0,0,0,211,169,1,0,0,0,211,170,1,0,
-        0,0,211,171,1,0,0,0,211,172,1,0,0,0,211,173,1,0,0,0,211,174,1,0,
-        0,0,211,178,1,0,0,0,211,180,1,0,0,0,211,182,1,0,0,0,211,189,1,0,
-        0,0,211,194,1,0,0,0,211,201,1,0,0,0,211,206,1,0,0,0,212,263,1,0,
-        0,0,213,214,10,12,0,0,214,215,3,34,17,0,215,216,3,26,13,13,216,262,
-        1,0,0,0,217,218,10,9,0,0,218,219,5,38,0,0,219,220,3,26,13,0,220,
-        221,5,39,0,0,221,222,3,26,13,10,222,262,1,0,0,0,223,224,10,14,0,
-        0,224,225,5,33,0,0,225,226,3,36,18,0,226,227,5,34,0,0,227,262,1,
-        0,0,0,228,229,10,13,0,0,229,230,5,33,0,0,230,231,5,69,0,0,231,262,
-        5,34,0,0,232,233,10,8,0,0,233,234,5,15,0,0,234,235,5,41,0,0,235,
-        236,5,31,0,0,236,237,3,38,19,0,237,238,5,16,0,0,238,239,3,26,13,
-        0,239,240,5,16,0,0,240,241,3,26,13,0,241,242,5,16,0,0,242,243,3,
-        26,13,0,243,244,5,32,0,0,244,245,5,35,0,0,245,246,3,42,21,0,246,
-        247,5,36,0,0,247,262,1,0,0,0,248,249,10,3,0,0,249,250,5,15,0,0,250,
-        251,5,46,0,0,251,252,5,31,0,0,252,253,5,69,0,0,253,262,5,32,0,0,
-        254,255,10,2,0,0,255,256,5,15,0,0,256,257,5,47,0,0,257,258,5,31,
-        0,0,258,259,3,26,13,0,259,260,5,32,0,0,260,262,1,0,0,0,261,213,1,
-        0,0,0,261,217,1,0,0,0,261,223,1,0,0,0,261,228,1,0,0,0,261,232,1,
-        0,0,0,261,248,1,0,0,0,261,254,1,0,0,0,262,265,1,0,0,0,263,261,1,
-        0,0,0,263,264,1,0,0,0,264,27,1,0,0,0,265,263,1,0,0,0,266,267,7,1,
-        0,0,267,29,1,0,0,0,268,269,7,2,0,0,269,31,1,0,0,0,270,271,7,3,0,
-        0,271,33,1,0,0,0,272,273,7,4,0,0,273,35,1,0,0,0,274,275,7,5,0,0,
-        275,37,1,0,0,0,276,277,7,6,0,0,277,39,1,0,0,0,278,279,6,20,-1,0,
-        279,287,5,67,0,0,280,287,5,68,0,0,281,287,5,69,0,0,282,287,5,65,
-        0,0,283,284,5,69,0,0,284,285,5,4,0,0,285,287,5,69,0,0,286,278,1,
-        0,0,0,286,280,1,0,0,0,286,281,1,0,0,0,286,282,1,0,0,0,286,283,1,
-        0,0,0,287,305,1,0,0,0,288,289,10,3,0,0,289,290,5,17,0,0,290,304,
-        3,40,20,4,291,292,10,2,0,0,292,293,5,18,0,0,293,304,3,40,20,3,294,
-        295,10,7,0,0,295,296,5,33,0,0,296,297,5,69,0,0,297,304,5,34,0,0,
-        298,299,10,6,0,0,299,300,5,33,0,0,300,301,3,36,18,0,301,302,5,34,
-        0,0,302,304,1,0,0,0,303,288,1,0,0,0,303,291,1,0,0,0,303,294,1,0,
-        0,0,303,298,1,0,0,0,304,307,1,0,0,0,305,303,1,0,0,0,305,306,1,0,
-        0,0,306,41,1,0,0,0,307,305,1,0,0,0,308,309,6,21,-1,0,309,310,5,31,
-        0,0,310,311,3,42,21,0,311,312,5,32,0,0,312,334,1,0,0,0,313,314,3,
-        40,20,0,314,315,5,27,0,0,315,316,3,40,20,0,316,334,1,0,0,0,317,318,
-        3,40,20,0,318,319,5,29,0,0,319,320,3,40,20,0,320,334,1,0,0,0,321,
-        322,3,40,20,0,322,323,5,28,0,0,323,324,3,40,20,0,324,334,1,0,0,0,
-        325,326,3,40,20,0,326,327,5,23,0,0,327,328,3,40,20,0,328,334,1,0,
-        0,0,329,330,3,40,20,0,330,331,5,25,0,0,331,332,3,40,20,0,332,334,
-        1,0,0,0,333,308,1,0,0,0,333,313,1,0,0,0,333,317,1,0,0,0,333,321,
-        1,0,0,0,333,325,1,0,0,0,333,329,1,0,0,0,334,343,1,0,0,0,335,336,
-        10,2,0,0,336,337,5,21,0,0,337,342,3,42,21,3,338,339,10,1,0,0,339,
-        340,5,22,0,0,340,342,3,42,21,2,341,335,1,0,0,0,341,338,1,0,0,0,342,
-        345,1,0,0,0,343,341,1,0,0,0,343,344,1,0,0,0,344,43,1,0,0,0,345,343,
-        1,0,0,0,17,77,83,103,130,139,145,156,163,211,261,263,286,303,305,
-        333,341,343
+        185,186,5,16,0,0,186,187,3,26,13,0,187,188,5,32,0,0,188,212,1,0,
+        0,0,189,190,3,30,15,0,190,191,5,31,0,0,191,192,3,26,13,0,192,193,
+        5,32,0,0,193,212,1,0,0,0,194,195,3,30,15,0,195,196,5,31,0,0,196,
+        197,3,26,13,0,197,198,5,16,0,0,198,199,3,26,13,0,199,200,5,32,0,
+        0,200,212,1,0,0,0,201,202,3,32,16,0,202,203,5,31,0,0,203,204,3,26,
+        13,0,204,205,5,32,0,0,205,212,1,0,0,0,206,207,5,69,0,0,207,208,5,
+        31,0,0,208,209,3,24,12,0,209,210,5,32,0,0,210,212,1,0,0,0,211,165,
+        1,0,0,0,211,167,1,0,0,0,211,168,1,0,0,0,211,169,1,0,0,0,211,170,
+        1,0,0,0,211,171,1,0,0,0,211,172,1,0,0,0,211,173,1,0,0,0,211,174,
+        1,0,0,0,211,178,1,0,0,0,211,180,1,0,0,0,211,182,1,0,0,0,211,189,
+        1,0,0,0,211,194,1,0,0,0,211,201,1,0,0,0,211,206,1,0,0,0,212,264,
+        1,0,0,0,213,214,10,12,0,0,214,215,3,34,17,0,215,216,3,26,13,13,216,
+        263,1,0,0,0,217,218,10,9,0,0,218,219,5,38,0,0,219,220,3,26,13,0,
+        220,221,5,39,0,0,221,222,3,26,13,10,222,263,1,0,0,0,223,224,10,14,
+        0,0,224,225,5,33,0,0,225,226,3,36,18,0,226,227,5,34,0,0,227,263,
+        1,0,0,0,228,229,10,13,0,0,229,230,5,33,0,0,230,231,5,69,0,0,231,
+        263,5,34,0,0,232,233,10,8,0,0,233,234,5,15,0,0,234,235,5,41,0,0,
+        235,236,5,31,0,0,236,237,3,38,19,0,237,238,5,16,0,0,238,239,3,26,
+        13,0,239,240,5,16,0,0,240,241,3,26,13,0,241,242,5,16,0,0,242,243,
+        3,26,13,0,243,244,5,32,0,0,244,245,5,35,0,0,245,246,3,42,21,0,246,
+        247,5,36,0,0,247,263,1,0,0,0,248,249,10,3,0,0,249,250,5,15,0,0,250,
+        251,5,46,0,0,251,252,5,31,0,0,252,253,3,26,13,0,253,254,5,32,0,0,
+        254,263,1,0,0,0,255,256,10,2,0,0,256,257,5,15,0,0,257,258,5,47,0,
+        0,258,259,5,31,0,0,259,260,3,26,13,0,260,261,5,32,0,0,261,263,1,
+        0,0,0,262,213,1,0,0,0,262,217,1,0,0,0,262,223,1,0,0,0,262,228,1,
+        0,0,0,262,232,1,0,0,0,262,248,1,0,0,0,262,255,1,0,0,0,263,266,1,
+        0,0,0,264,262,1,0,0,0,264,265,1,0,0,0,265,27,1,0,0,0,266,264,1,0,
+        0,0,267,268,7,1,0,0,268,29,1,0,0,0,269,270,7,2,0,0,270,31,1,0,0,
+        0,271,272,7,3,0,0,272,33,1,0,0,0,273,274,7,4,0,0,274,35,1,0,0,0,
+        275,276,7,5,0,0,276,37,1,0,0,0,277,278,7,6,0,0,278,39,1,0,0,0,279,
+        280,6,20,-1,0,280,288,5,67,0,0,281,288,5,68,0,0,282,288,5,69,0,0,
+        283,288,5,65,0,0,284,285,5,69,0,0,285,286,5,4,0,0,286,288,5,69,0,
+        0,287,279,1,0,0,0,287,281,1,0,0,0,287,282,1,0,0,0,287,283,1,0,0,
+        0,287,284,1,0,0,0,288,306,1,0,0,0,289,290,10,3,0,0,290,291,5,17,
+        0,0,291,305,3,40,20,4,292,293,10,2,0,0,293,294,5,18,0,0,294,305,
+        3,40,20,3,295,296,10,7,0,0,296,297,5,33,0,0,297,298,5,69,0,0,298,
+        305,5,34,0,0,299,300,10,6,0,0,300,301,5,33,0,0,301,302,3,36,18,0,
+        302,303,5,34,0,0,303,305,1,0,0,0,304,289,1,0,0,0,304,292,1,0,0,0,
+        304,295,1,0,0,0,304,299,1,0,0,0,305,308,1,0,0,0,306,304,1,0,0,0,
+        306,307,1,0,0,0,307,41,1,0,0,0,308,306,1,0,0,0,309,310,6,21,-1,0,
+        310,311,5,31,0,0,311,312,3,42,21,0,312,313,5,32,0,0,313,335,1,0,
+        0,0,314,315,3,40,20,0,315,316,5,27,0,0,316,317,3,40,20,0,317,335,
+        1,0,0,0,318,319,3,40,20,0,319,320,5,29,0,0,320,321,3,40,20,0,321,
+        335,1,0,0,0,322,323,3,40,20,0,323,324,5,28,0,0,324,325,3,40,20,0,
+        325,335,1,0,0,0,326,327,3,40,20,0,327,328,5,23,0,0,328,329,3,40,
+        20,0,329,335,1,0,0,0,330,331,3,40,20,0,331,332,5,25,0,0,332,333,
+        3,40,20,0,333,335,1,0,0,0,334,309,1,0,0,0,334,314,1,0,0,0,334,318,
+        1,0,0,0,334,322,1,0,0,0,334,326,1,0,0,0,334,330,1,0,0,0,335,344,
+        1,0,0,0,336,337,10,2,0,0,337,338,5,21,0,0,338,343,3,42,21,3,339,
+        340,10,1,0,0,340,341,5,22,0,0,341,343,3,42,21,2,342,336,1,0,0,0,
+        342,339,1,0,0,0,343,346,1,0,0,0,344,342,1,0,0,0,344,345,1,0,0,0,
+        345,43,1,0,0,0,346,344,1,0,0,0,17,77,83,103,130,139,145,156,163,
+        211,262,264,287,304,306,334,342,344
     ]
 
 class dslParser ( Parser ):
@@ -1562,13 +1562,14 @@ class dslParser ( Parser ):
 
         def LPAREN(self):
             return self.getToken(dslParser.LPAREN, 0)
-        def expr(self):
-            return self.getTypedRuleContext(dslParser.ExprContext,0)
+        def expr(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(dslParser.ExprContext)
+            else:
+                return self.getTypedRuleContext(dslParser.ExprContext,i)
 
         def COMMA(self):
             return self.getToken(dslParser.COMMA, 0)
-        def VAR(self):
-            return self.getToken(dslParser.VAR, 0)
         def RPAREN(self):
             return self.getToken(dslParser.RPAREN, 0)
 
@@ -2181,8 +2182,11 @@ class dslParser ( Parser ):
             super().__init__(parser)
             self.copyFrom(ctx)
 
-        def expr(self):
-            return self.getTypedRuleContext(dslParser.ExprContext,0)
+        def expr(self, i:int=None):
+            if i is None:
+                return self.getTypedRuleContexts(dslParser.ExprContext)
+            else:
+                return self.getTypedRuleContext(dslParser.ExprContext,i)
 
         def DOT(self):
             return self.getToken(dslParser.DOT, 0)
@@ -2190,8 +2194,6 @@ class dslParser ( Parser ):
             return self.getToken(dslParser.MAP, 0)
         def LPAREN(self):
             return self.getToken(dslParser.LPAREN, 0)
-        def VAR(self):
-            return self.getToken(dslParser.VAR, 0)
         def RPAREN(self):
             return self.getToken(dslParser.RPAREN, 0)
 
@@ -2333,7 +2335,7 @@ class dslParser ( Parser ):
                 self.state = 185
                 self.match(dslParser.COMMA)
                 self.state = 186
-                self.match(dslParser.VAR)
+                self.expr(0)
                 self.state = 187
                 self.match(dslParser.RPAREN)
                 pass
@@ -2400,7 +2402,7 @@ class dslParser ( Parser ):
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 263
+            self.state = 264
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,10,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -2408,7 +2410,7 @@ class dslParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 261
+                    self.state = 262
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,9,self._ctx)
                     if la_ == 1:
@@ -2522,7 +2524,7 @@ class dslParser ( Parser ):
                         self.state = 251
                         self.match(dslParser.LPAREN)
                         self.state = 252
-                        self.match(dslParser.VAR)
+                        self.expr(0)
                         self.state = 253
                         self.match(dslParser.RPAREN)
                         pass
@@ -2530,24 +2532,24 @@ class dslParser ( Parser ):
                     elif la_ == 7:
                         localctx = dslParser.DotContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 254
+                        self.state = 255
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 255
-                        self.match(dslParser.DOT)
                         self.state = 256
-                        self.match(dslParser.DOTT)
+                        self.match(dslParser.DOT)
                         self.state = 257
-                        self.match(dslParser.LPAREN)
+                        self.match(dslParser.DOTT)
                         self.state = 258
-                        self.expr(0)
+                        self.match(dslParser.LPAREN)
                         self.state = 259
+                        self.expr(0)
+                        self.state = 260
                         self.match(dslParser.RPAREN)
                         pass
 
              
-                self.state = 265
+                self.state = 266
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,10,self._ctx)
 
@@ -2600,7 +2602,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 266
+            self.state = 267
             _la = self._input.LA(1)
             if not(_la==48 or _la==49):
                 self._errHandler.recoverInline(self)
@@ -2656,7 +2658,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 268
+            self.state = 269
             _la = self._input.LA(1)
             if not(_la==50 or _la==51):
                 self._errHandler.recoverInline(self)
@@ -2715,7 +2717,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 270
+            self.state = 271
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 30786325577728) != 0)):
                 self._errHandler.recoverInline(self)
@@ -2798,7 +2800,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 272
+            self.state = 273
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 989724672) != 0)):
                 self._errHandler.recoverInline(self)
@@ -2857,7 +2859,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 274
+            self.state = 275
             _la = self._input.LA(1)
             if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 31525197391593472) != 0)):
                 self._errHandler.recoverInline(self)
@@ -2913,7 +2915,7 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 276
+            self.state = 277
             _la = self._input.LA(1)
             if not(_la==6 or _la==7):
                 self._errHandler.recoverInline(self)
@@ -3056,7 +3058,7 @@ class dslParser ( Parser ):
         self.enterRecursionRule(localctx, 40, self.RULE_pt, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 286
+            self.state = 287
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,11,self._ctx)
             if la_ == 1:
@@ -3064,7 +3066,7 @@ class dslParser ( Parser ):
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 279
+                self.state = 280
                 self.match(dslParser.IntConst)
                 pass
 
@@ -3072,7 +3074,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.PtbasicContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 280
+                self.state = 281
                 self.match(dslParser.FloatConst)
                 pass
 
@@ -3080,7 +3082,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.PtbasicContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 281
+                self.state = 282
                 self.match(dslParser.VAR)
                 pass
 
@@ -3088,7 +3090,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.PtbasicContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 282
+                self.state = 283
                 self.match(dslParser.CURR)
                 pass
 
@@ -3096,17 +3098,17 @@ class dslParser ( Parser ):
                 localctx = dslParser.PtinContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 283
-                self.match(dslParser.VAR)
                 self.state = 284
-                self.match(dslParser.IN)
+                self.match(dslParser.VAR)
                 self.state = 285
+                self.match(dslParser.IN)
+                self.state = 286
                 self.match(dslParser.VAR)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 305
+            self.state = 306
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,13,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -3114,67 +3116,67 @@ class dslParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 303
+                    self.state = 304
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,12,self._ctx)
                     if la_ == 1:
                         localctx = dslParser.PtopContext(self, dslParser.PtContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_pt)
-                        self.state = 288
+                        self.state = 289
                         if not self.precpred(self._ctx, 3):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
-                        self.state = 289
-                        self.match(dslParser.PLUS)
                         self.state = 290
+                        self.match(dslParser.PLUS)
+                        self.state = 291
                         self.pt(4)
                         pass
 
                     elif la_ == 2:
                         localctx = dslParser.PtopContext(self, dslParser.PtContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_pt)
-                        self.state = 291
+                        self.state = 292
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 292
-                        self.match(dslParser.MINUS)
                         self.state = 293
+                        self.match(dslParser.MINUS)
+                        self.state = 294
                         self.pt(3)
                         pass
 
                     elif la_ == 3:
                         localctx = dslParser.PtbasicContext(self, dslParser.PtContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_pt)
-                        self.state = 294
+                        self.state = 295
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
-                        self.state = 295
-                        self.match(dslParser.LSQR)
                         self.state = 296
-                        self.match(dslParser.VAR)
+                        self.match(dslParser.LSQR)
                         self.state = 297
+                        self.match(dslParser.VAR)
+                        self.state = 298
                         self.match(dslParser.RSQR)
                         pass
 
                     elif la_ == 4:
                         localctx = dslParser.PtbasicContext(self, dslParser.PtContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_pt)
-                        self.state = 298
+                        self.state = 299
                         if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
-                        self.state = 299
-                        self.match(dslParser.LSQR)
                         self.state = 300
-                        self.metadata()
+                        self.match(dslParser.LSQR)
                         self.state = 301
+                        self.metadata()
+                        self.state = 302
                         self.match(dslParser.RSQR)
                         pass
 
              
-                self.state = 307
+                self.state = 308
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,13,self._ctx)
 
@@ -3312,7 +3314,7 @@ class dslParser ( Parser ):
         self.enterRecursionRule(localctx, 42, self.RULE_prop, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 333
+            self.state = 334
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,14,self._ctx)
             if la_ == 1:
@@ -3320,11 +3322,11 @@ class dslParser ( Parser ):
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 309
-                self.match(dslParser.LPAREN)
                 self.state = 310
-                self.prop(0)
+                self.match(dslParser.LPAREN)
                 self.state = 311
+                self.prop(0)
+                self.state = 312
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -3332,11 +3334,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.PropsingleContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 313
-                self.pt(0)
                 self.state = 314
-                self.match(dslParser.GT)
+                self.pt(0)
                 self.state = 315
+                self.match(dslParser.GT)
+                self.state = 316
                 self.pt(0)
                 pass
 
@@ -3344,11 +3346,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.PropsingleContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 317
-                self.pt(0)
                 self.state = 318
-                self.match(dslParser.GEQ)
+                self.pt(0)
                 self.state = 319
+                self.match(dslParser.GEQ)
+                self.state = 320
                 self.pt(0)
                 pass
 
@@ -3356,11 +3358,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.PropsingleContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 321
-                self.pt(0)
                 self.state = 322
-                self.match(dslParser.LEQ)
+                self.pt(0)
                 self.state = 323
+                self.match(dslParser.LEQ)
+                self.state = 324
                 self.pt(0)
                 pass
 
@@ -3368,11 +3370,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.PropsingleContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 325
-                self.pt(0)
                 self.state = 326
-                self.match(dslParser.LT)
+                self.pt(0)
                 self.state = 327
+                self.match(dslParser.LT)
+                self.state = 328
                 self.pt(0)
                 pass
 
@@ -3380,17 +3382,17 @@ class dslParser ( Parser ):
                 localctx = dslParser.PropsingleContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 329
-                self.pt(0)
                 self.state = 330
-                self.match(dslParser.EQQ)
+                self.pt(0)
                 self.state = 331
+                self.match(dslParser.EQQ)
+                self.state = 332
                 self.pt(0)
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 343
+            self.state = 344
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -3398,37 +3400,37 @@ class dslParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 341
+                    self.state = 342
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,15,self._ctx)
                     if la_ == 1:
                         localctx = dslParser.PropdoubleContext(self, dslParser.PropContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_prop)
-                        self.state = 335
+                        self.state = 336
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 336
-                        self.match(dslParser.AND)
                         self.state = 337
+                        self.match(dslParser.AND)
+                        self.state = 338
                         self.prop(3)
                         pass
 
                     elif la_ == 2:
                         localctx = dslParser.PropdoubleContext(self, dslParser.PropContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_prop)
-                        self.state = 338
+                        self.state = 339
                         if not self.precpred(self._ctx, 1):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
-                        self.state = 339
-                        self.match(dslParser.OR)
                         self.state = 340
+                        self.match(dslParser.OR)
+                        self.state = 341
                         self.prop(2)
                         pass
 
              
-                self.state = 345
+                self.state = 346
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
 

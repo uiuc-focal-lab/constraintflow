@@ -61,14 +61,14 @@ class Verify(astVisitor.ASTVisitor):
 					curr.symmap["weight"] = [(Real('weight_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
-					exptemp = Add(exptemp, Mult(curr.symmap["weight"][i], prev[i]))
+					exptemp = ADD(exptemp, MULT(curr.symmap["weight"][i], prev[i]))
 					
 				exptemp = s.os.convertToZ3(exptemp)
 
 			elif(op.op.op_name == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
-					exptemp = Add(exptemp, prev[i])
+					exptemp = ADD(exptemp, prev[i])
 
 				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
 

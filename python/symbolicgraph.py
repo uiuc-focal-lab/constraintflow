@@ -465,8 +465,16 @@ class checkPoly(astVisitor.ASTVisitor):
 	def visitUnOp(self, node: AST.UnOpNode):
 		self.visit(node.expr)
 
-	def visitNlistOp(self, node: AST.NlistOpNode):
+	def visitArgmaxOp(self, node: AST.ArgmaxOpNode):
 		self.visit(node.expr)
+		self.visit(node.func)
+
+	def visitMaxOp(self, node: AST.MaxOpNode):
+		self.visit(node.expr)
+
+	def visitMaxOpList(self, node: AST.MaxOpListNode):
+		self.visit(node.expr1)
+		self.visit(node.expr2)
 
 	def visitVar(self, node: AST.VarNode):
 		pass
@@ -481,12 +489,6 @@ class checkPoly(astVisitor.ASTVisitor):
 		pass
 
 	def visitBool(self, node: AST.ConstBoolNode):
-		pass
-
-	def visitCurr(self, node: AST.CurrNode):
-		pass
-
-	def visitPrev(self, node: AST.PrevNode):
 		pass
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
@@ -505,7 +507,7 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(node.func)
 
 
-	def visitSum(self, node: AST.SumNode):
+	def visitListOp(self, node: AST.ListOpNode):
 		self.visit(node.expr)
 
 	def visitMap(self, node: AST.MapNode):
@@ -571,8 +573,16 @@ class getVars(astVisitor.ASTVisitor):
 	def visitUnOp(self, node: AST.UnOpNode):
 		self.visit(node.expr)
 
-	def visitNlistOp(self, node: AST.NlistOpNode):
+	def visitArgmaxOp(self, node: AST.ArgmaxOpNode):
 		self.visit(node.expr)
+		self.visit(node.func)
+
+	def visitMaxOpList(self, node: AST.MaxOpListNode):
+		self.visit(node.expr)
+	
+	def visitMaxOp(self, node: AST.MaxOpNode):
+		self.visit(node.expr1)
+		self.visit(node.expr2)
 
 	def visitVar(self, node: AST.VarNode):
 		pass
@@ -589,11 +599,6 @@ class getVars(astVisitor.ASTVisitor):
 	def visitBool(self, node: AST.ConstBoolNode):
 		pass
 
-	def visitCurr(self, node: AST.CurrNode):
-		pass
-
-	def visitPrev(self, node: AST.PrevNode):
-		pass
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		pass
@@ -611,7 +616,7 @@ class getVars(astVisitor.ASTVisitor):
 		self.visit(node.func)
 
 
-	def visitSum(self, node: AST.SumNode):
+	def visitListOp(self, node: AST.ListOpNode):
 		self.visit(node.expr)
 
 	def visitMap(self, node: AST.MapNode):
