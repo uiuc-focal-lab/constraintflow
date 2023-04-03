@@ -59,119 +59,63 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitDot(self, node):
 		self.visit(node.left)
 		self.visit(node.right)
-		left = self.os.visit(node.left)
-		right = self.os.visit(node.right)
-		conds = []
-		length = min(len(left.elist), len(right.elist))
-		e1 = [None]*length
-		e2 = [None]*length
-		prev1 = -1
-		prev2 = -1
-		for i in range(length):
-			e1[i] = Int('Index'+str(self.number.nextn()))
-			e2[i] = Int('Index'+str(self.number.nextn()))
-			cond1 = -1
-			j = len(left.elist)
-			while(j > 0):
-				member, c = self.getMember(left.elist, prev1+j)
-				cond1 = If(left.elist_func(prev1+j, member), prev1+j, cond1)
-				conds += c
-				j -= 1
-			cond2 = -1
-			j = len(right.elist)
-			while(j > 0):
-				member, c = self.getMember(right.elist, prev1+j)
-				cond2 = If(right.elist_func(prev1+j, member), prev1+j, cond2)
-				conds += c
-				j -= 1
-			conds += [cond1 == e1[i], cond2 == e2[i]]
-			prev1 = e1[i]
-			prev2 = e2[i]
-		length1 = getLength(left.elist, left.elist_func)
-		length2 = getLength(right.elist, right.elist_func)
-		self.C.append(length1==length2)
-		out = Real('out'+str(self.number.nextn()))
-		sum = 0
-		for i in range(length):
-			conds.append(Implies(length1==i, out==sum))
-			mem1, c1 = getMember(left.elist, e1[i])
-			mem2, c2 = getMember(right.elist, e2[i])
-			sum += mem1 * mem2
-			conds += c1
-			conds += c2 
-		self.C += conds 
-		self.M[DOT(left, right)] = out
+
+	def get_getMetadata(self, n, node):
+		if(isinstance(n, IF)):
+			self.get_getMetadata(n.left, node)
+			self.get_getMetadata(n.right, node)
+		else:
+			if(not isinstance(n, list)):
+				if not node.metadata.name in self.V[n[0]].symmap.keys():
+					newvar = None
+					if(node.metadata.name == "bias"):
+						newvar = (Real('X' + str(self.number.nextn())), "Bool")
+					elif(node.metadata.name == "weight"):
+						newvar_list = [None]*(self.N)
+						for i in range(self.N):
+							newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
+						newvar = newvar_list
+					elif(node.metadata.name == "layer"):
+						newvar = (Int('X' + str(self.number.nextn())), "Int")
+					elif(node.metadata.name == "serial"):
+						newvar = (Int('X' + str(self.number.nextn())), "Int")
+					elif(node.metadata.name == "local_serial"):
+						newvar = (Int('X' + str(self.number.nextn())), "Int")
+					self.V[n[0]].symmap[node.metadata.name] = newvar
+			else:
+				for ni in n:
+					self.get_metadata(ni, node)
 
 	def visitGetMetadata(self, node):
 		self.visit(node.expr)
 		n = self.os.visit(node.expr)
-		if(not isinstance(n, LIST)):
-			if not node.metadata.name in self.V[n[0]].symmap.keys():
-				newvar = None
-				if(node.metadata.name == "bias"):
-					newvar = (Real('X' + str(self.number.nextn())), "Bool")
-				elif(node.metadata.name == "weight"):
-					f = Function('f'+str(self.number.nextn()))
-					newvar_list = [None]*(self.N)
-					for i in range(self.N):
-						newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
-						self.C.append(f(i, newvar[i]) == True)
-					newvar = LIST(newvar_list, f)
-				elif(node.metadata.name == "layer"):
-					newvar = (Int('X' + str(self.number.nextn())), "Int")
-				elif(node.metadata.name == "serial"):
-					newvar = (Int('X' + str(self.number.nextn())), "Int")
-				elif(node.metadata.name == "local_serial"):
-					newvar = (Int('X' + str(self.number.nextn())), "Int")
-				self.V[n[0]].symmap[node.metadata.name] = newvar
-		else:
-			f = Function('f'+ str(self.number.nextn()))
-			final_list = []
-			for i, ni in enumerate(n.elist):
-				if not node.metadata.name in self.V[ni[0]].symmap.keys():
-					newvar = None
-					if(node.metadata.name == "bias"):
-						newvar = (Real('X' + str(self.number.nextn())), "Bool")
-					# elif(node.metadata.name == "weight"):
-					# 	newvar = [(Real('X' + str(self.number.nextn())), "Float") for i in self.N]
-					elif(node.metadata.name == "layer"):
-						newvar = (Int('X' + str(self.number.nextn())), "Int")
-					self.V[ni[0]].symmap[node.metadata.name] = newvar
-				final_list.append(self.V[ni[0]].symmap[node.metadata.name])
-				self.C.append(f(i, self.V[ni[0]].symmap[node.metadata.name]) == n.elist_func(i, ni))
+		self.get_getMetadata(n, node)
 
-			self.M[GETMETADAT(n, node.metadat.name)] = LIST(final_list, f)
 
-	def visitGetElement(self, node):
-		self.visit(node.expr)
-		n = self.os.visit(node.expr)
-		if(not isinstance(n, LIST)):
-			if not node.elem.name in self.V[n[0]].symmap.keys():
-				newvar = None
-				if(self.shape[node.elem.name] == "Bool"):
-					newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), "Bool")
-				elif(self.shape[node.elem.name] == "Int"):
-					newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), "Int")
-				else:
-					newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
-				self.V[n[0]].symmap[node.elem.name] = newvar
+	def get_getElement(self, n, node):
+		if(isinstance(n, IF)):
+			self.get_getElement(n.left, node)
+			self.get_getElement(n.right, node)
 		else:
-			f = Function('f'+ str(self.number.nextn()))
-			final_list = []
-			for i, ni in enumerate(n.elist):
-				if not node.elem.name in self.V[ni[0]].symmap.keys():
+			if(not isinstance(n, list)):
+				if not node.elem.name in self.V[n[0]].symmap.keys():
 					newvar = None
-					
 					if(self.shape[node.elem.name] == "Bool"):
 						newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), "Bool")
 					elif(self.shape[node.elem.name] == "Int"):
 						newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), "Int")
 					else:
 						newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
-					self.V[ni[0]].symmap[node.elem.name] = newvar
-				final_list.append(self.V[ni[0]].symmap[node.elem.name])
-				self.C.append(f(i, self.V[ni[0]].symmap[node.elem.name]) == n.elist_func(i, ni))
-			self.M[GETELEMENT(n, node.elem.name)] = LIST(final_list, f)
+					self.V[n[0]].symmap[node.elem.name] = newvar
+			else:
+				for ni in n:
+					self.get_getElement(ni, node)
+				
+
+	def visitGetElement(self, node):
+		self.visit(node.expr)
+		n = self.os.visit(node.expr)
+		self.get_getElement(n, node)
 
 	def visitExprList(self, node):
 		for e in node.exprlist:
@@ -253,108 +197,18 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def visitArgmaxOp(self, node):
 		self.visit(node.expr)
-		e = self.os.visit(node.expr)
-
-		# if(node.op == "max"):
-		# 	newvar = Real('X' + str(self.number.nextn()))
-		# 	self.os.M[MAX(e)] = (newvar, "Float")
-		# 	t = False
-		# 	for i in range(len(e)):
-		# 		self.os.C.append(newvar >= self.os.convertToZ3(e[i]))
-		# 		t = Or(t, newvar == self.os.convertToZ3(e[i]))
-		# 	self.os.C.append(t)
-		# elif(node.op == "min"):
-		# 	newvar = Real('X' + str(self.number.nextn()))
-		# 	self.os.M[MIN(e)] = (newvar, "Float")
-		# 	t = False
-		# 	for i in range(len(e)):
-		# 		self.os.C.append(newvar <= self.os.convertToZ3(e[i]))
-		# 		t = Or(t, newvar == self.os.convertToZ3(e[i]))
-		# 	self.os.C.append(t)
-		if isinstance(node.func, AST.VarNode):
-			pre_elist = []
-		else:	
-			pre_elist = self.os.visit(node.func)
-		for n in e.elist:
-			elist = AST.ExprListNode(pre_elist + [n, n])
-			fcall = AST.FuncCallNode(node.func, elist)
-			self.visitFuncCall(fcall, True)
-		new_list = copy(e.elist)
-		f = Function('f'+str(self.number.nextn()), IntSort(), RealSort(), BoolSort())
-		for i in range(e.elist):
-			cond = True 
-			for j in range(e.elist):
-				if i!=j:
-					if(node.op == "argmax"):
-						elist = AST.ExprListNode(pre_elist + [e.elist[i], e.elist[j]])
-					else:
-						elist = AST.ExprListNode(pre_elist + [e.elist[j], e.elist[i]])
-					fcall = AST.FuncCallNode(node.func, elist)
-					r = self.os.visit(fcall)
-					cond = AND(cond, r)
-			self.C.append(f(i, e.elist[i]) == convertToZ3(cond) )
-		if(node.op == "argmax"):
-			self.os.M[ARGMAX(e, node.func.name)] = LIST(new_list, f)
-		else:
-			self.os.M[ARGMIN(e, node.func.name)] = LIST(new_list, f)
 
 	def visitMaxOp(self, node):
 		self.visit(node.expr1)
 		self.visit(node.expr2)
-		left = self.os.visit(node.expr1)
-		right = self.os.visit(node.expr2)
-
-		if(node.op == "max"):
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[MAX([left, right])] = (newvar, "Float")
-
-			self.os.C.append(newvar >= self.os.convertToZ3(left))
-			self.os.C.append(newvar >= self.os.convertToZ3(right))
-			t = Or(newvar == self.os.convertToZ3(right), newvar == self.os.convertToZ3(left))
-			self.os.C.append(t)
-		elif(node.op == "min"):
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[MIN([left, right])] = (newvar, "Float")
-
-			self.os.C.append(newvar <= self.os.convertToZ3(left))
-			self.os.C.append(newvar <= self.os.convertToZ3(right))
-			t = Or(newvar == self.os.convertToZ3(right), newvar == self.os.convertToZ3(left))
-			self.os.C.append(t)
 
 	def visitMaxOpList(self, node):
 		self.visit(node.expr)
-		e = self.os.visit(node.expr)
-
-		if(node.op == "max"):
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[MAX(e.elist)] = (newvar, "Float")
-			t = False
-			for i in range(len(e.elist)):
-				self.os.C.append(Implies(e.elist_func(i, e.elist[i]), newvar >= self.os.convertToZ3(e.elist[i])))
-				t = Or(t, And(e.elist_func(i, e.elist[i]), newvar == self.os.convertToZ3(e.elist[i])))
-			self.os.C.append(t)
 
 	def visitTernary(self, node):
 		self.visit(node.cond)
 		self.visit(node.texpr)
 		self.visit(node.fexpr)
-		c = self.os.visit(node.cond)
-		left = self.os.visit(node.texpr)
-		right = self.os.visit(node.fexpr)
-		if(isinstance(left, AND) or isinstance(left, OR) or isinstance(left, LT) or isinstance(left, GT) or
-		 isinstance(left, LEQ) or isinstance(left, GEQ) or isinstance(left, EQQ) or isinstance(left, NEQ) ):
-			newvar = Bool('X' + str(self.number.nextn()))
-			self.os.M[Ternary(c, left, right)] = (newvar, "Bool")
-			self.os.C.append(If(self.os.convertToZ3(c), self.os.convertToZ3(left) == newvar, self.os.convertToZ3(right) == newvar))
-		elif(isinstance(left, tuple) and isinstance(right, tuple) and left[1] == "Neuron" and right[1] == "Neuron"):
-			newvar = Vertex('X' + str(self.number.nextn()))
-			V[neuron.name] = neuron
-			self.os.M[Ternary(c, left, right)] = (newvar.name, "Neuron")
-			self.os.C.append(If(self.os.convertToZ3(c), self.compareV(self.os.V[left[0]], newvar), self.compareV(self.os.V[right[0]], newvar)))
-		else:
-			newvar = Real('X' + str(self.number.nextn()))
-			self.os.M[Ternary(c, left, right)] = (newvar, "Float")
-			self.os.C.append(If(self.os.convertToZ3(c), self.os.convertToZ3(left) == newvar, self.os.convertToZ3(right) == newvar))
 
 	def visitTraverse(self, node):
 		self.visit(node.expr)
@@ -418,8 +272,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			else: #expression like True
 				valf3 = self.os.visit(node.func)
 
-			newvar = ADD(newvar, Mult(const, (neuron.name, "Neuron")))
-			newval = newval + If(self.os.convertToZ3(valf2), self.os.convertToZ3(valf3), self.os.convertToZ3(Mult(const, (neuron.name, "Neuron"))))
+			newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
+			newval = newval + If(self.os.convertToZ3(valf2), self.os.convertToZ3(valf3), self.os.convertToZ3(MULT(const, (neuron.name, "Neuron"))))
 
 		s = Solver()
 		newstore1 = self.store 
@@ -474,7 +328,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		else:
 			s_name = self.os.visit(node.stop)
 
-		self.os.M[Traverse(e, node.direction, p_name, s_name, node.func.name)] = (temp_var, "Float") 
+		self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = (temp_var, "Float") 
 
 	def visitTransRetBasic(self, node):
 		self.visit(node.exprlist)

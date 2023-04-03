@@ -75,8 +75,11 @@ class Verify(astVisitor.ASTVisitor):
 			else: #Maxpool
 				mpool = Vertex("Maxpool")
 				#Don't add to V bc you shouldn't need it and you don't want to assume the shape constraint holds for it
+				mpoolc = False
 				for prevnode in prev:
-					Cnew.append(prevnode[0] == mpool.name)
+					Cnew.append(prevnode[0] <= mpool.name)
+					mpoolc = Or(mpoolc, prevnode[0] == mpool.name)
+				Cnew.append(mpoolc)
 				exptemp = mpool.name
 
 			s.currop = (curr.name == exptemp) #Would it be safe to just add this to s.C?
