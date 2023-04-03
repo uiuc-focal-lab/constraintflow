@@ -267,29 +267,28 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def visitBinOp(self, node: AST.BinOpNode):
 		left = self.visit(node.left)
 		right = self.visit(node.right)
-		else:
-			if(node.op == "+"):
-				return self.get_binop(left, right, ADD)
-			elif(node.op == "-"):
-				return self.get_binop(left, right, SUB)
-			elif(node.op == "*"):
-				return self.get_binop(left, right, MULT)
-			elif(node.op == "/"):
-				return self.get_binop(left, right, DIV)
-			elif(node.op == "<="):
-				return self.get_binop(left, right, LEQ)
-			elif(node.op == "<"):
-				return self.get_binop(left, right, LT)
-			elif(node.op == ">="):
-				return self.get_binop(left, right, GEQ)
-			elif(node.op == ">"):
-				return self.get_binop(left, right, GT)
-			elif(node.op == "and"):
-				return self.get_binop(left, right, AND)
-			elif(node.op == "or"):
-				return self.get_binop(left, right, OR)
-			elif(node.op == "=="):
-				return self.get_binop(left, right, EQQ)
+		if(node.op == "+"):
+			return self.get_binop(left, right, ADD)
+		elif(node.op == "-"):
+			return self.get_binop(left, right, SUB)
+		elif(node.op == "*"):
+			return self.get_binop(left, right, MULT)
+		elif(node.op == "/"):
+			return self.get_binop(left, right, DIV)
+		elif(node.op == "<="):
+			return self.get_binop(left, right, LEQ)
+		elif(node.op == "<"):
+			return self.get_binop(left, right, LT)
+		elif(node.op == ">="):
+			return self.get_binop(left, right, GEQ)
+		elif(node.op == ">"):
+			return self.get_binop(left, right, GT)
+		elif(node.op == "and"):
+			return self.get_binop(left, right, AND)
+		elif(node.op == "or"):
+			return self.get_binop(left, right, OR)
+		elif(node.op == "=="):
+			return self.get_binop(left, right, EQQ)
 
 	def visitUnOp(self, node: AST.UnOpNode):
 		expr = self.visit(node.expr)
@@ -322,7 +321,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			n = len(elist)
 			temp_array = []
 			for i in range(n):
-				temp_array += [None]*n 
+				temp = []
+				for j in range(n):
+					temp.append(None)
+				temp_array.append(temp)
+
 			for i in range(n):
 				for j in range(n):
 					if i == j:
@@ -333,7 +336,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 						else:
 							arglist = AST.ExprListNode(pre_elist + [elist[j], elist[i]])
 						fcall = AST.FuncCallNode(node.func, arglist)
-						temp_array[i][j] = self.visit(fcall)
+						temp_array[i][j] = self.visitFuncCall(fcall, True)
 			combination = list(itertools.product([0, 1], repeat=n))
 			out = []
 			for k in range(1, len(combination)):
@@ -359,7 +362,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			n = len(elist)
 			temp_array = []
 			for i in range(n):
-				temp_array += [None]*n 
+				temp = []
+				for j in range(n):
+					temp.append(None)
+				temp_array.append(temp)
 			for i in range(n):
 				for j in range(n):
 					if i == j:
@@ -385,7 +391,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def visitMaxOp(self, node: AST.MaxOpNode):
 		e1 = self.visit(node.expr1)
 		e2 = self.visit(node.expr2)
-		return IF(self.get_binop(e1, e2, GEQ), e1, e2)
+		if(node.op == "max"):
+			return IF(self.get_binop(e1, e2, GEQ), e1, e2)
+		else:
+			return IF(self.get_binop(e1, e2, LEQ), e1, e2)
 
 	def get_listOp(self, elist, node):
 		if isinstance(elist, IF):
@@ -400,6 +409,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			elif node.op == 'len':
 				return length 
 			elif node.op == 'avg':
+				if(length[0] == 0):
+					return 0
 				return self.get_binop(sum, length, DIV)
 			else:
 				assert False
@@ -431,7 +442,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if isinstance(expr, list):
 			out = []
 			for e in expr:
-				out += self.get_getElement(e, name)
+				out.append(self.get_getElement(e, name))
 			return out 
 		else:
 			return self.V[expr[0]].symmap[name]
@@ -553,7 +564,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else:
 			s_name = self.visit(node.stop)
 
-		return self.M[Traverse(e, node.direction, p_name, s_name, node.func.name)]
+		return self.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)]
 
 	# def visitCurr(self, node: AST.CurrNode):
 	# 	return self.store["curr"]

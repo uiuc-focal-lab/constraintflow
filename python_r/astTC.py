@@ -191,8 +191,8 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(not isinstance(exptype, ArrayType)):
 			raise TypeMismatchException(node.op + " requires list as first argument")
 		functype = self.visit(node.func)
-		if(self.isSubType(functype, Arrowtype([exptype.base, exptype.base], "Bool"))):
-			return exptype.base
+		if(self.isSubType(functype, ArrowType([exptype.base, exptype.base], "Bool"))):
+			return ArrayType(exptype.base)
 		else:
 			raise TypeMismatchException(node.op + " requires function from " + str(exptype.base) + " to Bool")
 
@@ -321,7 +321,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		exptype = self.visit(node.expr)
 
 		if(not isinstance(exptype, ArrayType)):
-			raise TypeMismatchException("Expression passed to sum must be a list")
+			raise TypeMismatchException("Expression passed to listOp must be a list")
 
 		base = exptype.base
 		if(node.op == "sum" or node.op == "avg"):
