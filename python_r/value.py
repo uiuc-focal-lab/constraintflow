@@ -21,12 +21,12 @@ class ADD(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, ADD)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, ADD)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("ADD", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("ADD", self.left, self.right))
 
 class SUB(TerminalValue):
 
@@ -34,12 +34,12 @@ class SUB(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, SUB)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, SUB)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("SUB", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("SUB", self.left, self.right))
 
 class MULT(TerminalValue):
 
@@ -47,12 +47,12 @@ class MULT(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, MULT)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, MULT)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("MULT", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("MULT", self.left, self.right))
 
 class DIV(TerminalValue):
 
@@ -60,12 +60,12 @@ class DIV(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, DIV)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, DIV)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("DIV", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("DIV", self.left, self.right))
 
 class LEQ(TerminalValue):
 
@@ -73,12 +73,12 @@ class LEQ(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, LEQ)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, LEQ)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("LEQ", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("LEQ", self.left, self.right))
 
 class LT(TerminalValue):
 
@@ -86,12 +86,12 @@ class LT(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, LT)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, LT)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("LT", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("LT", self.left, self.right))
 
 class GEQ(TerminalValue):
 
@@ -99,12 +99,12 @@ class GEQ(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, GEQ)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, GEQ)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("GEQ", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("GEQ", self.left, self.right))
 
 class GT(TerminalValue):
 
@@ -112,12 +112,12 @@ class GT(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, GT)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, GT)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("GT", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("GT", self.left, self.right))
 
 class EQQ(TerminalValue):
 
@@ -125,12 +125,12 @@ class EQQ(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, EQQ)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, EQQ)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("EQQ", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("EQQ", self.left, self.right))
 
 class NEQ(TerminalValue):
 
@@ -138,12 +138,12 @@ class NEQ(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, NEQ)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, NEQ)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("NEQ", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("NEQ", self.left, self.right))
 
 class AND(TerminalValue):
 
@@ -151,12 +151,12 @@ class AND(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, AND)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, AND)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("AND", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("AND", self.left, self.right))
 
 class OR(TerminalValue):
 
@@ -164,36 +164,36 @@ class OR(TerminalValue):
 		self.left = left
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, OR)):
-			return self.left == obj.left and self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, OR)):
+	# 		return self.left == obj.left and self.right == obj.right
 
-	def __hash__(self):
-		return hash(("OR", self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(("OR", self.left, self.right))
 
 class NOT(TerminalValue):
 
 	def __init__(self, right):
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, NOT)):
-			return self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, NOT)):
+	# 		return self.right == obj.right
 
-	def __hash__(self):
-		return hash(("NOT", self.right))
+	# def __hash__(self):
+	# 	return hash(("NOT", self.right))
 
 class NEG(TerminalValue):
 
 	def __init__(self, right):
 		self.right = right
 
-	def __eq__(self, obj):
-		if(isinstance(obj, NEG)):
-			return self.right == obj.right
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, NEG)):
+	# 		return self.right == obj.right
 
-	def __hash__(self):
-		return hash(("NEG", self.right))
+	# def __hash__(self):
+	# 	return hash(("NEG", self.right))
 
 class IF(TerminalValue):
 
@@ -202,12 +202,12 @@ class IF(TerminalValue):
 		self.left = left 
 		self.right = right 
 
-	def __eq__(self, obj):
-		if(isinstance(obj, IF)):
-			return (self.cond==obj.cond and self.left==obj.left and self.right==obj.right)
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, IF)):
+	# 		return (self.cond==obj.cond and self.left==obj.left and self.right==obj.right)
 
-	def __hash__(self):
-		return hash(('IF', self.cond, self.left, self.right))
+	# def __hash__(self):
+	# 	return hash(('IF', self.cond, self.left, self.right))
 
 # class LIST(TerminalValue):
 # 	def __init__(self, l, f):
@@ -222,19 +222,19 @@ class IF(TerminalValue):
 # 		return (('LIST', str(self.elist), self.list_func.name()))
 
 
-class EPSILON(NonTerminalValue):
+# class EPSILON(NonTerminalValue):
 
-	def __init__(self, identifier):
-		self.identifier = identifier
+# 	def __init__(self, identifier):
+# 		self.identifier = identifier
 
-	def __eq__(self, obj):
-		if(isinstance(obj, EPSILON)):
-			return self.identifier == obj.identifier
-		else:
-			return False
+# 	def __eq__(self, obj):
+# 		if(isinstance(obj, EPSILON)):
+# 			return self.identifier == obj.identifier
+# 		else:
+# 			return False
 
-	def __hash__(self):
-		return hash(("EPSILON", self.identifier))
+# 	def __hash__(self):
+# 		return hash(("EPSILON", self.identifier))
 
 # class TERNARY(NonTerminalValue):
 
