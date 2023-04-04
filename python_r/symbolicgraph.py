@@ -43,18 +43,18 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitListOp(self, node):
 		self.visit(node.expr)
 
-	def getMember(self, l, i):
-		member = Real('m' + str(self.number.nextn()))
-		conds = []
-		for j in len(l):
-			conds.append(Implies(i==j, member==l[j]))
-		return member, conds
+	# def getMember(self, l, i):
+	# 	member = Real('m' + str(self.number.nextn()))
+	# 	conds = []
+	# 	for j in len(l):
+	# 		conds.append(Implies(i==j, member==l[j]))
+	# 	return member, conds
 
-	def getLength(self, l, f):
-		length = 0
-		for i in range(len(l)):
-			length += If(f(i, l[i]), 1, 0)
-		return length 
+	# def getLength(self, l, f):
+	# 	length = 0
+	# 	for i in range(len(l)):
+	# 		length += If(f(i, l[i]), 1, 0)
+	# 	return length 
 
 	def visitDot(self, node):
 		self.visit(node.left)
@@ -69,7 +69,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				if not node.metadata.name in self.V[n[0]].symmap.keys():
 					newvar = None
 					if(node.metadata.name == "bias"):
-						newvar = (Real('X' + str(self.number.nextn())), "Bool")
+						newvar = (Real('X' + str(self.number.nextn())), "Float")
 					elif(node.metadata.name == "weight"):
 						newvar_list = [None]*(self.N)
 						for i in range(self.N):
@@ -84,7 +84,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					self.V[n[0]].symmap[node.metadata.name] = newvar
 			else:
 				for ni in n:
-					self.get_metadata(ni, node)
+					self.get_getMetadata(ni, node)
 
 	def visitGetMetadata(self, node):
 		self.visit(node.expr)
@@ -101,11 +101,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				if not node.elem.name in self.V[n[0]].symmap.keys():
 					newvar = None
 					if(self.shape[node.elem.name] == "Bool"):
-						newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), "Bool")
+						newvar = (Bool(str(node.elem.name) + '_X' + str(self.number.nextn())), self.shape[node.elem.name])
 					elif(self.shape[node.elem.name] == "Int"):
-						newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), "Int")
+						newvar = (Int(str(node.elem.name) + '_X' + str(self.number.nextn())), self.shape[node.elem.name])
 					else:
-						newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), "Float")
+						newvar = (Real(str(node.elem.name) + '_X' + str(self.number.nextn())), self.shape[node.elem.name])
 					self.V[n[0]].symmap[node.elem.name] = newvar
 			else:
 				for ni in n:
@@ -121,19 +121,38 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		for e in node.exprlist:
 			self.visit(e)
 
+	def get_map(self, val, node):
+		if isinstance(val, IF):
+			self.get_map(val.left, node)
+			self.get_map(val.right, node)
+		else:
+			if self.os.get_type(val)=='PolyExp':
+				expr = self.os.convertToPoly(val)
+			else:
+				expr = self.os.convertToZono(val)
+			for n in expr.coeffs.keys():
+				if isinstance(node.func, AST.VarNode):
+					elist = []
+				else:	
+					elist = self.os.visit(node.func)
+				elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
+				fcall = AST.FuncCallNode(node.func, elist)
+				self.visitFuncCall(fcall, True)
+
 	def visitMap(self, node):
 		self.visit(node.expr)
 		checkPoly(self.os).visit(node.expr)
 		p = self.os.visit(node.expr)
-		p_poly = self.os.convertToPoly(p)
-		for n in p_poly.coeffs.keys():
-			if isinstance(node.func, AST.VarNode):
-				elist = []
-			else:	
-				elist = self.os.visit(node.func)
-			elist = AST.ExprListNode(elist + [n, p_poly.coeffs[n]])
-			fcall = AST.FuncCallNode(node.func, elist)
-			self.visitFuncCall(fcall, True)
+		self.get_map(p, node)
+		# p_poly = self.os.convertToPoly(p)
+		# for n in p_poly.coeffs.keys():
+		# 	if isinstance(node.func, AST.VarNode):
+		# 		elist = []
+		# 	else:	
+		# 		elist = self.os.visit(node.func)
+		# 	elist = AST.ExprListNode(elist + [n, p_poly.coeffs[n]])
+		# 	fcall = AST.FuncCallNode(node.func, elist)
+		# 	self.visitFuncCall(fcall, True)
 
 	def visitFuncCall(self, node, preeval = False):
 		func = self.F[node.name.name]
@@ -164,36 +183,36 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.store[ov] = oldvalues[ov]
 
 
-	def initV(self, v1):
-		if(not "bias" in v1.symmap.keys()):
-			v1.symmap["bias"] = (Real('X' + str(self.number.nextn())), "Float")
-		if(not "layer" in v1.symmap.keys()):
-			v1.symmap["layer"] = (Int('X' + str(self.number.nextn())), "Int")
-		if(not "weight" in v1.symmap.keys()):
-			v1.symmap["weight"] = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
-		if(not "local_serial" in v1.symmap.keys()):
-			v1.symmap["local_serial"] = (Int('X' + str(self.number.nextn())), "Int")
-		if(not "serial" in v1.symmap.keys()):
-			v1.symmap["serial"] = (Int('X' + str(self.number.nextn())), "Int")
+	# def initV(self, v1):
+	# 	if(not "bias" in v1.symmap.keys()):
+	# 		v1.symmap["bias"] = (Real('X' + str(self.number.nextn())), "Float")
+	# 	if(not "layer" in v1.symmap.keys()):
+	# 		v1.symmap["layer"] = (Int('X' + str(self.number.nextn())), "Int")
+	# 	if(not "weight" in v1.symmap.keys()):
+	# 		v1.symmap["weight"] = [(Real('X' + str(self.number.nextn())), "Float") for i in range(self.N)]
+	# 	if(not "local_serial" in v1.symmap.keys()):
+	# 		v1.symmap["local_serial"] = (Int('X' + str(self.number.nextn())), "Int")
+	# 	if(not "serial" in v1.symmap.keys()):
+	# 		v1.symmap["serial"] = (Int('X' + str(self.number.nextn())), "Int")
 
-		for s in self.shape.keys():
-			if(not s in v1.symmap.keys()):
-				if(self.shape[s] == "Bool"):
-					newvar = (Bool('X' + str(self.number.nextn())), "Bool")
-				elif(self.shape[s] == "Int"):
-					newvar = (Int('X' + str(self.number.nextn())), "Int")
-				else:
-					newvar = (Real('X' + str(self.number.nextn())), "Float")
-				v1.symmap[s] = newvar
+	# 	for s in self.shape.keys():
+	# 		if(not s in v1.symmap.keys()):
+	# 			if(self.shape[s] == "Bool"):
+	# 				newvar = (Bool('X' + str(self.number.nextn())), "Bool")
+	# 			elif(self.shape[s] == "Int"):
+	# 				newvar = (Int('X' + str(self.number.nextn())), "Int")
+	# 			else:
+	# 				newvar = (Real('X' + str(self.number.nextn())), "Float")
+	# 			v1.symmap[s] = newvar
 
-	def compareV(self, v1, v2):
-		self.initV(v1)
-		self.initV(v2)
-		newC = True
-		for s in v1.symmap.keys():
-			newC = And(newC, self.os.convertToZ3(v1.symmap[s]) == self.os.convertToZ3(v2.symmap[s]))
+	# def compareV(self, v1, v2):
+	# 	self.initV(v1)
+	# 	self.initV(v2)
+	# 	newC = True
+	# 	for s in v1.symmap.keys():
+	# 		newC = And(newC, self.os.convertToZ3(v1.symmap[s]) == self.os.convertToZ3(v2.symmap[s]))
 
-		return newC
+	# 	return newC
 
 	def visitArgmaxOp(self, node):
 		self.visit(node.expr)
@@ -330,13 +349,13 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = (temp_var, "Float") 
 
-	def visitTransRetBasic(self, node):
-		self.visit(node.exprlist)
+	# def visitTransRetBasic(self, node):
+	# 	self.visit(node.exprlist)
 
-	def visitTransRetIf(self, node):
-		self.visit(node.cond)
-		self.visit(node.tret)
-		self.visit(node.fret)
+	# def visitTransRetIf(self, node):
+	# 	self.visit(node.cond)
+	# 	self.visit(node.tret)
+	# 	self.visit(node.fret)
 
 
 class checkPoly(astVisitor.ASTVisitor):
@@ -414,35 +433,73 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(node.arglist)
 
 
-	def visitSeq(self, node: AST.SeqNode):
-		self.visit(node.stmt1)
-		self.visit(node.stmt2)
+	# def visitSeq(self, node: AST.SeqNode):
+	# 	self.visit(node.stmt1)
+	# 	self.visit(node.stmt2)
 
-	def visitFlow(self, node):
-		pass
+	# def visitFlow(self, node):
+	# 	pass
 
-	def visitProg(self, node: AST.ProgramNode):
-		self.visit(node.shape)
-		self.visit(node.stmt)
+	# def visitProg(self, node: AST.ProgramNode):
+	# 	self.visit(node.shape)
+	# 	self.visit(node.stmt)
 
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
-		pass
+		self.visit(node.expr)
+
+	def get_getElement(self, val, node):
+		if isinstance(val, list):
+			for v in val:
+				self.get_getElement(v, node)
+		elif isinstance(val, IF):
+			self.get_getElement(val.left, node)
+			self.get_getElement(val.right, node)
+		else:
+			name = node.elem.name
+			if isinstance(self.os.V[val[0]].symmap[name], tuple):
+				if (self.os.V[val[0]].symmap[name])[1] == 'PolyExp':
+					oldvar = self.os.V[val[0]].symmap[name][0]
+					newvar = (Real('X' + str(self.number.nextn())), "Float")
+
+					for i in range(self.N):
+						neuron = Vertex('X' + str(self.number.nextn()))
+						V[neuron.name] = neuron 
+						const = (Real('X' + str(self.number.nextn())), "Float")
+						newvar = ADD(newvar, MULT(const, (neuron, "Neuron")))
+
+					self.os.V[val[0]].symmap[name] = newvar
+					self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+				elif (self.os.V[val[0]].symmap[name])[1] == 'ZonoExp':
+					oldvar = self.os.V[val[0]].symmap[name][0]
+					newvar = (Real('X' + str(self.number.nextn())), "Float")
+
+					for i in range(self.N):
+						epsilon = Real('eps' + str(self.number.nextn()))
+						const = (Real('X' + str(self.number.nextn())), "Float")
+						newvar = ADD(newvar, MULT(const, (epsilon, "Noise")))
+						self.os.C.append(epsilon <= 1)
+						self.os.C.append(epsilon >= -1)
+
+					self.os.V[val[0]].symmap[name] = newvar
+					self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+			return
 
 	def visitGetElement(self, node):
 		n = self.os.visit(node.expr)
-		if(isinstance(self.os.V[n[0]].symmap[n.elem.name], tuple)):
-			if(self.os.V[n[0]].symmap[n.elem.name][1] == "Float"):
-				oldvar = self.os.V[n[0]].symmap[n.elem.name][0]
-				newvar = (Real('X' + str(self.number.nextn())), "Float")
+		get_getElement(n, node)
+		# if(isinstance(self.os.V[n[0]].symmap[n.elem.name], tuple)):
+		# 	if(self.os.V[n[0]].symmap[n.elem.name][1] == "Float"):
+		# 		oldvar = self.os.V[n[0]].symmap[n.elem.name][0]
+		# 		newvar = (Real('X' + str(self.number.nextn())), "Float")
 
-				for i in range(self.N):
-					neuron = Vertex('X' + str(self.number.nextn()))
-					V[neuron.name] = neuron 
-					const = (Real('X' + str(self.number.nextn())), "Float")
-					newvar = ADD(newvar, Mult(const, (neuron, "Neuron")))
+		# 		for i in range(self.N):
+		# 			neuron = Vertex('X' + str(self.number.nextn()))
+		# 			V[neuron.name] = neuron 
+		# 			const = (Real('X' + str(self.number.nextn())), "Float")
+		# 			newvar = ADD(newvar, MULT(const, (neuron, "Neuron")))
 
-				self.os.V[n[0]].symmap[n.elem.name] = newvar
-				self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+		# 		self.os.V[n[0]].symmap[n.elem.name] = newvar
+		# 		self.os.C.append(oldvar == self.os.convertToZ3(newvar))
 
 class getVars(astVisitor.ASTVisitor):
 
