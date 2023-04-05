@@ -458,7 +458,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		return self.visit(node.term)
 
 	def visitPropTermOp(self, node: AST.PropTermOpNode):
-		if(node.op == "in"):
+		if(node.op == "In"):
 			ntype = self.visit(node.n)
 			ztype = self.visit(node.z)
 			if(ntype == "Neuron" and ztype == "ZonoExp"):
@@ -476,12 +476,21 @@ class ASTTC(astVisitor.ASTVisitor):
 			
 
 	def visitSingleProp(self, node: AST.SinglePropNode):
-		left = self.visit(node.leftpt)
-		right = self.visit(node.rightpt)
-		if(self.lub_type(left, right) != "Top"):
-			return "Bool"
+		if(node.op == "in"):
+			ntype = self.visit(node.leftpt)
+			ztype = self.visit(node.rightpt)
+			if(ntype == "Neuron" and ztype == "ZonoExp"):
+				return "Bool"
+			else:
+				raise TypeMismatchException("in operator not defined for " + str(ntype) + " " + str(ztype))
 		else:
-			raise TypeMismatchException(str(left) + " and " + str(right) + " are not lub_type")
+			left = self.visit(node.leftpt)
+			right = self.visit(node.rightpt)
+			if(self.lub_type(left, right) != "Top"):
+				return "Bool"
+			else:
+				print(node.op)
+				raise TypeMismatchException(str(left) + " and " + str(right) + " are not lub_type")
 
 	def visitDoubleProp(self, node: AST.DoublePropNode):
 		l = self.visit(node.leftprop)

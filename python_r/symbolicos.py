@@ -52,7 +52,7 @@ class ZonoExpValue():
 #The property visit functions return a symbolic constraint
 class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, M, V, C, shape):
+	def __init__(self, store, F, M, V, C, shape, N):
 		self.F = F #{function name -> function info}
 		self.M = M #{(op, value) -> value}
 		self.V = V #{symbolic var -> vertex}
@@ -63,6 +63,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.limit = 3 #max 3 neurons are connected to each one
 		self.number = Number()
 		self.symb = True
+		self.N = N
 
 	def getVname(self):
 		self.vname = self.vname + 1
@@ -132,17 +133,26 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToZono(right)
 
-		c = (left.const[0] + right.const[0], "Float")
+		c = ADD(left.const, right.const)
+		if isinstance(left.const, tuple):
+			if left.const[0]==0:
+				c = right.const 
+		if isinstance(right.const, tuple):
+			if right.const[0]==0:
+				c = left.const 
+		# (left.const[0] + right.const[0], "Float")
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
+				n[leftn] = ADD(left.coeffs[leftn], right.coeffs[leftn])
+				# n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
 			else:
-				n[leftn] = (left.coeffs[leftn][0], "Float")
+				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = (right.coeffs[rightn][0], "Float")
+				n[rightn] = right.coeffs[rightn]
+				# n[rightn] = (right.coeffs[rightn][0], "Float")
 
 		return ZonoExpValue(n, c)
 
@@ -160,17 +170,19 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToPoly(right)
 
-		c = left.const - right.const
+		c = SUB(left.const, right.const)
+		
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = (left.coeffs[leftn][0] - right.coeffs[leftn][0], "Float")
+				n[leftn] = SUB(left.coeffs[leftn], right.coeffs[leftn])
+				# n[leftn] = (left.coeffs[leftn][0] - right.coeffs[leftn][0], "Float")
 			else:
-				n[leftn] = (left.coeffs[leftn][0], "Float")
+				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = (- right.coeffs[rightn][0], "Float")
+				n[rightn] = SUB((0, 'Float'), right.coeffs[rightn])
 
 		return PolyExpValue(n, c)
 
@@ -187,19 +199,60 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToZono(right)
 
-		c = left.const - right.const
+		c = SUB(left.const, right.const)
+		if isinstance(left.const, tuple):
+			if left.const[0]==0:
+				c = MULT(right.const, (-1, 'Float')) 
+		if isinstance(right.const, tuple):
+			if right.const[0]==0:
+				c = left.const 
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = (left.coeffs[leftn][0] - right.coeffs[leftn][0], "Float")
+				n[leftn] = SUB(left.coeffs[leftn], right.coeffs[leftn])
 			else:
-				n[leftn] = (left.coeffs[leftn][0], "Float")
+				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = (- right.coeffs[rightn][0], "Float")
+				n[rightn] = SUB((0, 'Float'), right.coeffs[rightn])
 
 		return ZonoExpValue(n, c)
+
+	def easy_mult(self, l, r):
+		if isinstance(l, tuple):
+			if l[0]==0:
+				return l 
+			if l[0]==1:
+				return r 
+		if isinstance(r, tuple):
+			if r[0]==0:
+				return r 
+			if r[0]==1:
+				return l 
+		return MULT(l, r)
+
+	def MULTZono(self, left, right):
+		if len(left.coeffs)==0:
+			right.const = self.easy_mult(right.const, left.const)
+			for i in right.coeffs:
+				right.coeffs[i] = self.easy_mult(right.coeffs[i], left.const)
+			return right 
+		else:
+			left.const = self.easy_mult(left.const, right.const)
+			for i in left.coeffs:
+				left.coeffs[i] = self.easy_mult(left.coeffs[i], right.const)
+			return left 
+
+	def DIVZono(self, left, right):
+		left.const = DIV(left.const, right.const)
+		for i in left.coeffs:
+			if isinstance(right.const, tuple):
+				if not right.const[0]==1:
+					left.coeffs[i] = DIV(left.coeffs[i], right.const)
+			else:
+				left.coeffs[i] = DIV(left.coeffs[i], right.const)
+		return left 
 
 	def convertToPoly(self, node):
 		if(isinstance(node, tuple)):
@@ -241,12 +294,20 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			right = self.convertToZono(node.right)
 			return self.SUBZono(left, right)
 		elif(isinstance(node, MULT)):
-			if(node.left[1] == "Noise"):
-				return ZonoExpValue({node.left: node.right}, (0, "Float"))
-			else:
-				return ZonoExpValue({node.right: node.left}, (0, "Float"))
+			left = self.convertToZono(node.left)
+			right = self.convertToZono(node.right)
+			return self.MULTZono(left, right)
 		elif(isinstance(node, DIV)):
-			return ZonoExpValue({node.left: (1 / node.right[0], "Float")}, (0, "Float"))
+			left = self.convertToZono(node.left)
+			right = self.convertToZono(node.right)
+			return self.DIVZono(left, right)
+		# elif(isinstance(node, MULT)):
+		# 	if(self.get_type(node.left) == "ZonoExp"):
+		# 		return ZonoExpValue({node.left: self.convertToZono(node.right)}, (0, "Float"))
+		# 	else:
+		# 		return ZonoExpValue({node.right: self.convertToZono(node.left)}, (0, "Float"))
+		# elif(isinstance(node, DIV)):
+		# 	return ZonoExpValue({node.left: (1 / (self.convertToZono(node.right).const))}, (0, "Float"))
 		else:
 			print(node)
 			assert False
@@ -342,7 +403,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return self.store[pt.name]
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
-		return self.M[Epsilon(node.identifier)]
+		eps = Real('Eps_'+str(self.number.nextn()))
+		self.C.append(eps <= 1)
+		self.C.append(eps >= -1)
+		return (eps, 'Noise')
+		# return self.M[Epsilon(node.identifier)]
 	
 	def visitExprList(self, node: AST.ExprListNode):
 		exps = []
@@ -817,11 +882,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(pt.op == 'in'):
 			right = self.convertToZono(right)
 			max_right = right.const 
+			min_right = right.const 
 			zero = (0, 'Float')
 			neg = (-1, 'Float')
 			for c in right.coeffs:
 				coeff = right.coeffs[c]
-				abs = IF(self.get_binop(coeff, zero, GEQ), coeff, get_binop(coeff, neg, MULT))
+				abs = IF(self.get_binop(coeff, zero, GEQ), coeff, self.get_binop(coeff, neg, MULT))
 				max_right = self.get_binop(max_right, abs, ADD)
 				min_right = self.get_binop(min_right, abs, SUB)
 			leq = self.get_binop(left, max_right, LEQ)

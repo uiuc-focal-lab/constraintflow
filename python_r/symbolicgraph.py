@@ -6,12 +6,22 @@ from symbolicos import *
 import copy
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
+	print(v.name.decl().name())
 	for var in vars.keys():
 		if not var in v.symmap.keys():
 			if(vars[var] == "Bool"):
 				v.symmap[var] = (Bool(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == "Int"):
 				v.symmap[var] = (Int(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
+			elif(vars[var] == 'ZonoExp'):
+				sum = (Real(v.name.decl().name() + "_const_" + str(number.nextn())), 'Float')
+				for i in range(os.N):
+					coeff = (Real(v.name.decl().name() + "_coeff_" + str(number.nextn())), 'Float')
+					noise = Real(v.name.decl().name() + "_noise_" + str(number.nextn()))
+					sum = ADD(sum, MULT(coeff, (noise, 'Noise')))
+					C.append(noise <= 1)
+					C.append(noise >= -1)
+				v.symmap[var] = sum 
 			else:
 				v.symmap[var] = (Real(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
 
@@ -34,15 +44,18 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.store = store
 		self.F = F
 		self.shape = shape
-		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.shape)
-		self.number = number 
 		self.N = N 
+		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.shape, self.N)
+		self.number = number 
 		self.currop = None #Stores the relationship between curr and prev for traverse proof
 		g = getVars(self.constraint, self.shape)
 		g.visit(self.constraint)
 		self.vars = g.vars
 
 	def visitInt(self, node):
+		pass
+
+	def visitEpsilon(self, node):
 		pass
 
 	def visitVar(self, node):

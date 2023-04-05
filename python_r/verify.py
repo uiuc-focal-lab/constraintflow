@@ -12,7 +12,7 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.N = 3
+		self.N = 1
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -113,7 +113,7 @@ class Verify(astVisitor.ASTVisitor):
 			z3constraint = s.os.convertToZ3(c)
 			solver = Solver()
 			p = Not(Implies(leftC, z3constraint))
-			# print(p)
+			print(p)
 			solver.add(p)
 			if(not (solver.check() == unsat)):
 				raise Exception("Transformer"+ " " + " not true")
