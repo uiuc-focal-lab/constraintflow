@@ -1,4 +1,4 @@
-# Generated from dsl.g4 by ANTLR 4.12.0
+# Generated from dsl.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .dslParser import dslParser
@@ -449,15 +449,6 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#ptin.
-    def enterPtin(self, ctx:dslParser.PtinContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#ptin.
-    def exitPtin(self, ctx:dslParser.PtinContext):
-        pass
-
-
     # Enter a parse tree produced by dslParser#propsingle.
     def enterPropsingle(self, ctx:dslParser.PropsingleContext):
         pass
@@ -485,5 +476,12 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#ptin.
+    def enterPtin(self, ctx:dslParser.PtinContext):
+        pass
 
-del dslParser
+    # Exit a parse tree produced by dslParser#ptin.
+    def exitPtin(self, ctx:dslParser.PtinContext):
+        pass
+
+

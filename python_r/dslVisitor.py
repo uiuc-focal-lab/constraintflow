@@ -1,4 +1,4 @@
-# Generated from dsl.g4 by ANTLR 4.12.0
+# Generated from dsl.g4 by ANTLR 4.7.2
 from antlr4 import *
 if __name__ is not None and "." in __name__:
     from .dslParser import dslParser
@@ -254,11 +254,6 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#ptin.
-    def visitPtin(self, ctx:dslParser.PtinContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by dslParser#propsingle.
     def visitPropsingle(self, ctx:dslParser.PropsingleContext):
         return self.visitChildren(ctx)
@@ -271,6 +266,11 @@ class dslVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by dslParser#propdouble.
     def visitPropdouble(self, ctx:dslParser.PropdoubleContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#ptin.
+    def visitPtin(self, ctx:dslParser.PtinContext):
         return self.visitChildren(ctx)
 
 
