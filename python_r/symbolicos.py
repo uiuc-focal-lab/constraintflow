@@ -315,6 +315,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return node
 
 	def get_binop(self, left, right, f):
+		return f(left, right)
 		if isinstance(left, IF):
 			return IF(left.cond, self.get_binop(left.left, right, f), self.get_binop(left.right, right, f))
 		elif isinstance(right, IF):
@@ -555,8 +556,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		# 	return self.V[n[0]].symmap[node.metadata.name]
 
 	def visitFuncCall(self, node: AST.FuncCallNode, preeval = False):
-		func = self.F[node.name.name]
-
+		if isinstance(node.name, str):
+			func = self.F[node.name]
+		else:
+			func = self.F[node.name.name]
 		newvars = []
 		oldvalues = {}
 
@@ -591,39 +594,112 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def get_type(self, e):
 		if isinstance(e, ADD) or isinstance(e, SUB) or isinstance(e, MULT) or isinstance(e, DIV):
-			if self.get_type(e.left)=='Neuron':
+			# print("I am here!!!!!!!!!!!!!!!!!!!!!!!!")
+			if self.get_type(e.left)=='Neuron' or self.get_type(e.left)=='PolyExp':
 				return 'PolyExp'
-			elif self.get_type(e.left)=='Noise':
+			elif self.get_type(e.left)=='Noise' or self.get_type(e.left)=='ZonoExp':
 				return 'ZonoExp'
 			else:
-				self.get_type(e.right)
+				return self.get_type(e.right)
 		else:
-			if e[1]=='Neuron':
-				return 'PolyExp'
-			elif e[1]=='Noise':
-				return 'ZonoExp'
-			else:
-				assert(False)
+			return e[1]
+
 
 	def get_map(self, e, node):
 		if isinstance(e, IF):
 			return IF(e.cond, self.get_map(e.left, node), self.get_map(e.right, node))
 		else:
-			if self.get_type(e) == 'PolyExp':
-				expr = self.convertToPoly(e)
-			else:
-				expr = self.convertToZono(e)
-			exp = expr.const
-			for n in expr.coeffs.keys():
-
+			# if self.get_type(e) == 'PolyExp':
+			# 	expr = self.convertToPoly(e)
+			# else:
+			# 	expr = self.convertToZono(e)
+			if isinstance(e, ADD):
+				return self.get_binop(self.get_map(e.left, node), self.get_map(e.right, node), ADD)
+			elif isinstance(e, SUB):
+				return self.get_binop(self.get_map(e.left, node), self.get_map(e.right, node), SUB)
+			elif isinstance(e, MULT):
+				lhstype = self.get_type(e.left)
+				rhstype = self.get_type(e.right)
 				if isinstance(node.func, AST.VarNode):
 					elist = []
 				else:	
 					elist = self.visit(node.func)
-				elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
-				fcall = AST.FuncCallNode(node.func.name, elist)
-				exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
-			return exp
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp'):
+					elist = AST.ExprListNode(elist + [e.left, e.right])
+					fcall = AST.FuncCallNode(node.func.name, elist)
+					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					return exp
+				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp'):
+					elist = AST.ExprListNode(elist + [e.right, e.left])
+					fcall = AST.FuncCallNode(node.func.name, elist)
+					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					return exp
+				else:
+					return e
+			elif isinstance(e, DIV):
+				lhstype = self.get_type(e.left)
+				rhstype = self.get_type(e.right)
+				if isinstance(node.func, AST.VarNode):
+					elist = []
+				else:	
+					elist = self.visit(node.func)
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp'):
+					elist = AST.ExprListNode(elist + [e.left, DIV(1,e.right)])
+					fcall = AST.FuncCallNode(node.func.name, elist)
+					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					return exp
+				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp'):
+					elist = AST.ExprListNode(elist + [e.right, DIV(1,e.left)])
+					fcall = AST.FuncCallNode(node.func.name, elist)
+					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					return exp
+				else:
+					return e
+			else: #tuple
+				if(e[1] == 'Neuron' or e[1] == 'Noise'):
+					if isinstance(node.func, AST.VarNode):
+						elist = []
+					else:	
+						elist = self.visit(node.func)
+					elist = AST.ExprListNode(elist + [e, 1])
+					fcall = AST.FuncCallNode(node.func.name, elist)
+					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					return exp
+				else:
+					return e
+
+
+			# exp = expr.const
+			# for n in expr.coeffs.keys():
+
+			# 	if isinstance(node.func, AST.VarNode):
+			# 		elist = []
+			# 	else:	
+			# 		elist = self.visit(node.func)
+			# 	elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
+			# 	fcall = AST.FuncCallNode(node.func.name, elist)
+			# 	exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+			# return exp
+
+	# def get_map(self, e, node):
+	# 	if isinstance(e, IF):
+	# 		return IF(e.cond, self.get_map(e.left, node), self.get_map(e.right, node))
+	# 	else:
+	# 		if self.get_type(e) == 'PolyExp':
+	# 			expr = self.convertToPoly(e)
+	# 		else:
+	# 			expr = self.convertToZono(e)
+	# 		exp = expr.const
+	# 		for n in expr.coeffs.keys():
+
+	# 			if isinstance(node.func, AST.VarNode):
+	# 				elist = []
+	# 			else:	
+	# 				elist = self.visit(node.func)
+	# 			elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
+	# 			fcall = AST.FuncCallNode(node.func.name, elist)
+	# 			exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+	# 		return exp
 
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
@@ -666,7 +742,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			s_name = node.stop.name
 		else:
 			s_name = self.visit(node.stop)
-
 		return self.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)]
 
 	# def visitCurr(self, node: AST.CurrNode):
@@ -704,43 +779,54 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				
 
 	def visitPropTermOp(self, prop):
-		left = self.convertToZ3(self.visit(prop.leftpt))
-		right = self.convertToZ3(self.visit(prop.rightpt))
+		left = self.visit(prop.leftpt)
+		right = self.visit(prop.rightpt)
 		if(prop.op == "+"):
-			return left + right
+			return self.get_binop(left, right, ADD)
 		elif(prop.op == "-"):
-			return left - right
+			return self.get_binop(left, right, SUB)
 
 	def visitDoubleProp(self, prop):
 		left = self.visit(prop.leftprop)
 		right = self.visit(prop.rightprop)
 		if(prop.op == "and"):
-			return And(left, right)
+			return self.get_binop(left, right, AND)
 		if(prop.op == "or"):
-			return Or(left, right)
+			return self.get_binop(left, right, OR)
 
 	def visitPropTermBasic(self, prop):
-		return self.convertToZ3(self.visit(prop.term))
+		return self.visit(prop.term)
 
 	def visitSingleProp(self, pt):
-		left = self.convertToZ3(self.visit(pt.leftpt))
-		right = self.convertToZ3(self.visit(pt.rightpt))
+		left = self.visit(pt.leftpt)
+		right = self.visit(pt.rightpt)
 		if(pt.op == "<"):
-			return left < right
+			return self.get_binop(left, right, LT)
 		elif(pt.op == "<="):
-			return left <= right
+			return self.get_binop(left, right, LEQ)
+			# return left <= right
 		elif(pt.op == ">"):
-			return left > right
+			return self.get_binop(left, right, GT)
+			# return left > right
 		elif(pt.op == ">="):
-			return left >= right
+			return self.get_binop(left, right, GEQ)
+			# return left >= right
 		elif(pt.op == "=="):
-			return left == right
-
-	def visitPropTermIn(self, pt):
-		nexpr = self.visit(pt.n)
-		zexpr = self.visit(pt.z)
-		#Calculate min and max of zexpr
-	
+			return self.get_binop(left, right, EQQ)
+			# return left == right
+		elif(pt.op == 'in'):
+			right = self.convertToZono(right)
+			max_right = right.const 
+			zero = (0, 'Float')
+			neg = (-1, 'Float')
+			for c in right.coeffs:
+				coeff = right.coeffs[c]
+				abs = IF(self.get_binop(coeff, zero, GEQ), coeff, get_binop(coeff, neg, MULT))
+				max_right = self.get_binop(max_right, abs, ADD)
+				min_right = self.get_binop(min_right, abs, SUB)
+			leq = self.get_binop(left, max_right, LEQ)
+			geq = self.get_binop(left, min_right, GEQ)
+			return self.get_binop(leq, geq, AND)
 
 	def visitFunc(self, node: AST.FuncNode):
 		name = node.decl.name.name
@@ -750,9 +836,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.visit(node.stmt1)
 		self.visit(node.stmt2)
 
-	def visitFlow(self, node: AST.FlowNode):
-		pass #verification should be done by this point
+	# def visitFlow(self, node: AST.FlowNode):
+	# 	pass #verification should be done by this point
 
-	def visitProg(self, node: AST.ProgramNode):
-		self.visit(node.shape)
-		self.visit(node.stmt)
+	# def visitProg(self, node: AST.ProgramNode):
+	# 	self.visit(node.shape)
+	# 	self.visit(node.stmt)

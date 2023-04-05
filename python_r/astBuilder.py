@@ -275,9 +275,9 @@ class ASTBuilder(dslVisitor):
             return AST.VarNode(ctx.VAR().getText())
 
     def visitPtin(self, ctx:dslParser.PtinContext):
-        n = AST.VarNode(ctx.VAR(0).getText())
-        z = AST.VarNode(ctx.VAR(1).getText())
-        return AST.PropTermInNode(n, z)
+        n = self.visit(ctx.prop(0))
+        z = self.visit(ctx.prop(1))
+        return AST.SinglePropNode(n, "in", z)
 
     def visitPropsingle(self, ctx:dslParser.PropsingleContext):
         leftpt = self.visit(ctx.pt(0))

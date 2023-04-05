@@ -5,12 +5,6 @@ from value import *
 from symbolicos import *
 from symbolicgraph import *
 
-class IfListVal:
-
-	def __init__(self, cond, left, right):
-		self.cond = cond
-		self.left = left
-		self.right = right
 
 class Verify(astVisitor.ASTVisitor):
 
@@ -20,6 +14,10 @@ class Verify(astVisitor.ASTVisitor):
 		self.theta = {}
 		self.N = 3
 		self.number = Number()
+		self.M = {}
+		self.V = {}
+		self.C = []
+		self.store = {}
 
 	def visitShapeDecl(self, node):
 		for (t,e) in node.elements.arglist:
@@ -31,58 +29,62 @@ class Verify(astVisitor.ASTVisitor):
 		self.F[node.decl.name.name] = node
 
 	def visitTransformer(self, node):
-		self.theta[node.name] = node
-		store = {}
+		self.theta[node.name.name] = node
+
+	def visitFlow(self, node):
+		store = self.store
+		s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, self.N, self.number, self.M, self.V, self.C)
+		node = self.theta[node.trans.name]
 		curr = Vertex('Curr')
-		V = {}
-		V[curr.name] = curr
+		self.V[curr.name] =  curr 
+		populate_vars(s.vars, curr, self.C, self.store, s.os, self.constraint, self.number)
 		prev = []
 		for i in range(self.N):
 			p = Vertex('Prev'+str(i))
 			prev.append((p.name, "Neuron"))
-			V[p.name] = p
+			self.V[p.name] = p
+			populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
 
 		store["curr"] = (curr.name, "Neuron")
-		store["prev"] = prev
-		s = SymbolicGraph(store, self.F, self.constraint, self.shape)
-		s.V = V
-		s.os.V = V
-		s.os.store = store
+		store["prev"] = prev 
 
-		for i in range(len(node.oplist.olist)):
-			op = node.oplist.olist[i]
-			Cnew = []
+		for op_i in range(len(node.oplist.olist)):
+			op = node.oplist.olist[op_i]
+			curr_prime = Vertex('curr_prime' + str(op_i))
+			s.V[curr_prime.name] = curr_prime
 
 			#Define relationship between curr and prev
 			if(op.op.op_name == "Affine"):
 				if(not "bias" in curr.symmap.keys()):
-					curr.symmap["bias"] = ((Real('bias_Y' + str(self.number.nextn())), "Float"))
+					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				if(not "weight" in curr.symmap.keys()):
-					curr.symmap["weight"] = [(Real('weight_Y' + str(i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
+					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, MULT(curr.symmap["weight"][i], prev[i]))
 					
-				exptemp = s.os.convertToZ3(exptemp)
 
 			elif(op.op.op_name == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
-
-				exptemp = If(s.os.convertToZ3(exptemp) >= 0, s.os.convertToZ3(exptemp), 0)
+				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
 
 			else: #Maxpool
-				mpool = Vertex("Maxpool")
-				#Don't add to V bc you shouldn't need it and you don't want to assume the shape constraint holds for it
-				mpoolc = False
-				for prevnode in prev:
-					Cnew.append(prevnode[0] <= mpool.name)
-					mpoolc = Or(mpoolc, prevnode[0] == mpool.name)
-				Cnew.append(mpoolc)
-				exptemp = mpool.name
-
+				exptemp = prev[0]
+				for i in range(1, self.N):
+					cond = (True, 'Bool')
+					for j in range(self.N):
+						if i!=j:
+							cond = AND(cond, GEQ(prev[i], prev[j]))
+					exptemp = IF(cond, prev[i], exptemp)
+			
+			for m in curr.symmap.keys():
+				curr_prime.symmap[m] = curr.symmap[m]
+			
+			exptemp = s.os.convertToZ3(exptemp)
 			s.currop = (curr.name == exptemp) #Would it be safe to just add this to s.C?
+			computation = (curr_prime.name == curr.name)
 
 			s.visit(op.ret)
 			vallist = None
@@ -90,53 +92,35 @@ class Verify(astVisitor.ASTVisitor):
 				vallist = self.visitTransRetIf(op.ret, s)
 			else:
 				vallist = self.visitTransRetBasic(op.ret, s)
+				
+			# print(computation)
+			# print(s.currop)
+			# print(s.os.C)
+			leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
-			
-			gv = getVars(self.constraint, self.shape)
-			gv.visit(self.constraint)
-			vars = gv.vars
+			self.applyTrans(leftC, vallist, s, curr_prime)
+			print("Proved ", op.op.op_name)
 
-			for v in s.V.keys():
-				for var in vars.keys():
-					if not var in s.V[v].symmap.keys():
-						if(vars[var] == "Bool"):
-							s.V[v].symmap[var] = (Bool(var + '_Y' + str(self.number.nextn())), "Bool")
-						elif(vars[var] == "Int"):
-							s.V[v].symmap[var] = (Int(var + '_Y' + str(self.number.nextn())), "Int")
-						else:
-							s.V[v].symmap[var] = (Real(var + '_Y' + str(self.number.nextn())), "Float")
-
-				s.os.store["curr_new"] = (v, "Neuron")
-				Cnew.append(s.os.visit(self.constraint))
-
-			del s.os.store["curr_new"]
-
-			currprime = Vertex('Currprime' + str(i))
-			s.V[currprime.name] = currprime
-
-			s.os.store["curr_new"] = (currprime.name, "Neuron")
-
-
-			computation = s.os.convertToZ3(s.os.store["curr_new"]) == exptemp
-			leftC = And(And(And(And(s.os.C), And(Cnew)), computation), currprime.name == curr.name)
-
-			self.applyTrans(leftC, vallist, s, currprime)
-
-	def applyTrans(self, leftC, vallist, s, currprime):
-		if(not isinstance(vallist, IfListVal)):
+	def applyTrans(self, leftC, vallist, s, curr_prime):
+		if(isinstance(vallist, list)):
+			# print(leftC)
 			for (elem, val) in zip(self.shape.keys(), vallist):
-				currprime.symmap[elem] = val
+				curr_prime.symmap[elem] = val
 
-			z3constraint = s.os.visit(self.constraint)
+			# print(self.store)
+			# print(s.os.store)
+			c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, self.constraint, self.number, False)
+			z3constraint = s.os.convertToZ3(c)
 			solver = Solver()
 			p = Not(Implies(leftC, z3constraint))
+			# print(p)
 			solver.add(p)
 			if(not (solver.check() == unsat)):
 				raise Exception("Transformer"+ " " + " not true")
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
-			self.applyTrans(And(leftC, condz3), vallist.left, s, currprime)
-			self.applyTrans(And(leftC, Not(condz3)), vallist.right, s, currprime)
+			self.applyTrans(And(leftC, condz3), vallist.left, s, curr_prime)
+			self.applyTrans(And(leftC, Not(condz3)), vallist.right, s, curr_prime)
 
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)
@@ -155,10 +139,10 @@ class Verify(astVisitor.ASTVisitor):
 		else:
 			right = self.visitTransRetBasic(node.fret, s)
 
-		return IfListVal(cond, left, right)
+		return IF(cond, left, right)
 
-	def visitFlow(self, node):
-		pass
+	# def visitFlow(self, node):
+	# 	pass
 
 	def visitSeq(self, node: AST.SeqNode):
 		self.visit(node.stmt1)

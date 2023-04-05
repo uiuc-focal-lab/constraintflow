@@ -120,7 +120,6 @@ pt: IntConst #ptbasic
 	|	CURR #ptbasic
 	|	pt PLUS pt #ptop
 	|	pt MINUS pt #ptop
-    |   VAR IN VAR #ptin
 	;
 
 prop: LPAREN prop RPAREN #propparen
@@ -131,6 +130,7 @@ prop: LPAREN prop RPAREN #propparen
     |       pt EQQ pt #propsingle
     |       prop AND prop #propdouble
     |       prop OR prop #propdouble
+    |       prop IN prop #ptin
     ;
 
 FLOW: 'flow' ;
