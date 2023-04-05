@@ -10,7 +10,7 @@ else:
 
 def serializedATN():
     return [
-        4,1,71,348,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
+        4,1,71,349,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
         6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
         2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,
         7,20,2,21,7,21,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -35,16 +35,16 @@ def serializedATN():
         20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,1,20,5,20,302,8,20,10,20,12,
         20,305,9,20,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,
         21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,
-        21,1,21,3,21,332,8,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,21,1,
-        21,5,21,343,8,21,10,21,12,21,346,9,21,1,21,0,5,4,20,26,40,42,22,
-        0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,0,7,
-        1,0,55,59,1,0,48,49,1,0,50,51,1,0,42,44,3,0,17,23,25,25,27,29,1,
-        0,52,54,1,0,6,7,376,0,44,1,0,0,0,2,48,1,0,0,0,4,77,1,0,0,0,6,86,
+        21,1,21,1,21,1,21,1,21,1,21,3,21,336,8,21,1,21,1,21,1,21,1,21,1,
+        21,1,21,5,21,344,8,21,10,21,12,21,347,9,21,1,21,0,5,4,20,26,40,42,
+        22,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42,
+        0,7,1,0,55,59,1,0,48,49,1,0,50,51,1,0,42,44,3,0,17,23,25,25,27,29,
+        1,0,52,54,1,0,6,7,377,0,44,1,0,0,0,2,48,1,0,0,0,4,77,1,0,0,0,6,86,
         1,0,0,0,8,91,1,0,0,0,10,103,1,0,0,0,12,105,1,0,0,0,14,109,1,0,0,
         0,16,117,1,0,0,0,18,130,1,0,0,0,20,139,1,0,0,0,22,156,1,0,0,0,24,
         163,1,0,0,0,26,211,1,0,0,0,28,267,1,0,0,0,30,269,1,0,0,0,32,271,
         1,0,0,0,34,273,1,0,0,0,36,275,1,0,0,0,38,277,1,0,0,0,40,284,1,0,
-        0,0,42,331,1,0,0,0,44,45,3,2,1,0,45,46,3,4,2,0,46,47,5,0,0,1,47,
+        0,0,42,335,1,0,0,0,44,45,3,2,1,0,45,46,3,4,2,0,46,47,5,0,0,1,47,
         1,1,0,0,0,48,49,5,60,0,0,49,50,5,31,0,0,50,51,3,22,11,0,51,52,5,
         32,0,0,52,53,5,35,0,0,53,54,3,42,21,0,54,55,5,36,0,0,55,56,5,37,
         0,0,56,3,1,0,0,0,57,58,6,2,-1,0,58,59,5,1,0,0,59,60,5,31,0,0,60,
@@ -122,19 +122,19 @@ def serializedATN():
         0,301,289,1,0,0,0,301,292,1,0,0,0,301,296,1,0,0,0,302,305,1,0,0,
         0,303,301,1,0,0,0,303,304,1,0,0,0,304,41,1,0,0,0,305,303,1,0,0,0,
         306,307,6,21,-1,0,307,308,5,31,0,0,308,309,3,42,21,0,309,310,5,32,
-        0,0,310,332,1,0,0,0,311,312,3,40,20,0,312,313,5,27,0,0,313,314,3,
-        40,20,0,314,332,1,0,0,0,315,316,3,40,20,0,316,317,5,29,0,0,317,318,
-        3,40,20,0,318,332,1,0,0,0,319,320,3,40,20,0,320,321,5,28,0,0,321,
-        322,3,40,20,0,322,332,1,0,0,0,323,324,3,40,20,0,324,325,5,23,0,0,
-        325,326,3,40,20,0,326,332,1,0,0,0,327,328,3,40,20,0,328,329,5,25,
-        0,0,329,330,3,40,20,0,330,332,1,0,0,0,331,306,1,0,0,0,331,311,1,
-        0,0,0,331,315,1,0,0,0,331,319,1,0,0,0,331,323,1,0,0,0,331,327,1,
-        0,0,0,332,344,1,0,0,0,333,334,10,3,0,0,334,335,5,21,0,0,335,343,
-        3,42,21,4,336,337,10,2,0,0,337,338,5,22,0,0,338,343,3,42,21,3,339,
-        340,10,1,0,0,340,341,5,4,0,0,341,343,3,42,21,2,342,333,1,0,0,0,342,
-        336,1,0,0,0,342,339,1,0,0,0,343,346,1,0,0,0,344,342,1,0,0,0,344,
-        345,1,0,0,0,345,43,1,0,0,0,346,344,1,0,0,0,17,77,83,103,130,139,
-        145,156,163,211,262,264,284,301,303,331,342,344
+        0,0,310,336,1,0,0,0,311,312,3,40,20,0,312,313,5,27,0,0,313,314,3,
+        40,20,0,314,336,1,0,0,0,315,316,3,40,20,0,316,317,5,29,0,0,317,318,
+        3,40,20,0,318,336,1,0,0,0,319,320,3,40,20,0,320,321,5,28,0,0,321,
+        322,3,40,20,0,322,336,1,0,0,0,323,324,3,40,20,0,324,325,5,23,0,0,
+        325,326,3,40,20,0,326,336,1,0,0,0,327,328,3,40,20,0,328,329,5,25,
+        0,0,329,330,3,40,20,0,330,336,1,0,0,0,331,332,3,40,20,0,332,333,
+        5,4,0,0,333,334,3,40,20,0,334,336,1,0,0,0,335,306,1,0,0,0,335,311,
+        1,0,0,0,335,315,1,0,0,0,335,319,1,0,0,0,335,323,1,0,0,0,335,327,
+        1,0,0,0,335,331,1,0,0,0,336,345,1,0,0,0,337,338,10,3,0,0,338,339,
+        5,21,0,0,339,344,3,42,21,4,340,341,10,2,0,0,341,342,5,22,0,0,342,
+        344,3,42,21,3,343,337,1,0,0,0,343,340,1,0,0,0,344,347,1,0,0,0,345,
+        343,1,0,0,0,345,346,1,0,0,0,346,43,1,0,0,0,347,345,1,0,0,0,17,77,
+        83,103,130,139,145,156,163,211,262,264,284,301,303,335,343,345
     ]
 
 class dslParser ( Parser ):
@@ -147,7 +147,7 @@ class dslParser ( Parser ):
 
     sharedContextCache = PredictionContextCache()
 
-    literalNames = [ "<INVALID>", "'flow'", "'->'", "'transformer'", "'in'", 
+    literalNames = [ "<INVALID>", "'flow'", "'->'", "'transformer'", "'In'", 
                      "'out'", "'backward'", "'forward'", "'Int'", "'Float'", 
                      "'Bool'", "'PolyExp'", "'ZonoExp'", "'Neuron'", "'List'", 
                      "'.'", "','", "'+'", "'-'", "'*'", "'/'", "'and'", 
@@ -3267,11 +3267,11 @@ class dslParser ( Parser ):
             super().__init__(parser)
             self.copyFrom(ctx)
 
-        def prop(self, i:int=None):
+        def pt(self, i:int=None):
             if i is None:
-                return self.getTypedRuleContexts(dslParser.PropContext)
+                return self.getTypedRuleContexts(dslParser.PtContext)
             else:
-                return self.getTypedRuleContext(dslParser.PropContext,i)
+                return self.getTypedRuleContext(dslParser.PtContext,i)
 
         def IN(self):
             return self.getToken(dslParser.IN, 0)
@@ -3301,7 +3301,7 @@ class dslParser ( Parser ):
         self.enterRecursionRule(localctx, 42, self.RULE_prop, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 331
+            self.state = 335
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,14,self._ctx)
             if la_ == 1:
@@ -3377,9 +3377,21 @@ class dslParser ( Parser ):
                 self.pt(0)
                 pass
 
+            elif la_ == 7:
+                localctx = dslParser.PtinContext(self, localctx)
+                self._ctx = localctx
+                _prevctx = localctx
+                self.state = 331
+                self.pt(0)
+                self.state = 332
+                self.match(dslParser.IN)
+                self.state = 333
+                self.pt(0)
+                pass
+
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 344
+            self.state = 345
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -3387,50 +3399,37 @@ class dslParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 342
+                    self.state = 343
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,15,self._ctx)
                     if la_ == 1:
                         localctx = dslParser.PropdoubleContext(self, dslParser.PropContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_prop)
-                        self.state = 333
+                        self.state = 337
                         if not self.precpred(self._ctx, 3):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 3)")
-                        self.state = 334
+                        self.state = 338
                         self.match(dslParser.AND)
-                        self.state = 335
+                        self.state = 339
                         self.prop(4)
                         pass
 
                     elif la_ == 2:
                         localctx = dslParser.PropdoubleContext(self, dslParser.PropContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_prop)
-                        self.state = 336
+                        self.state = 340
                         if not self.precpred(self._ctx, 2):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 2)")
-                        self.state = 337
+                        self.state = 341
                         self.match(dslParser.OR)
-                        self.state = 338
+                        self.state = 342
                         self.prop(3)
                         pass
 
-                    elif la_ == 3:
-                        localctx = dslParser.PtinContext(self, dslParser.PropContext(self, _parentctx, _parentState))
-                        self.pushNewRecursionContext(localctx, _startState, self.RULE_prop)
-                        self.state = 339
-                        if not self.precpred(self._ctx, 1):
-                            from antlr4.error.Errors import FailedPredicateException
-                            raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
-                        self.state = 340
-                        self.match(dslParser.IN)
-                        self.state = 341
-                        self.prop(2)
-                        pass
-
              
-                self.state = 346
+                self.state = 347
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,16,self._ctx)
 
@@ -3521,10 +3520,6 @@ class dslParser ( Parser ):
 
             if predIndex == 14:
                 return self.precpred(self._ctx, 2)
-         
-
-            if predIndex == 15:
-                return self.precpred(self._ctx, 1)
          
 
 

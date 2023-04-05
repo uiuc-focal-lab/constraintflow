@@ -1,4 +1,4 @@
-def Shape as (Float l, Float u, PolyExp L, PolyExp U, ZonoExp z){(curr in curr[z]) and (curr[l]<=curr) and (curr[L]<=curr) and (curr[u]>=curr) and (curr[U]>=curr)};
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, ZonoExp z){(curr In curr[z]) and (curr[l]<=curr) and (curr[L]<=curr) and (curr[u]>=curr) and (curr[U]>=curr)};
 
 func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
 func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
@@ -16,7 +16,7 @@ func f(Neuron n1, Neuron n2) = (n1[l] >= n2[u]);
 func f2(Neuron n1, Neuron n2) = (n1[l] >= n2[l]);
 
 transformer deeppoly(curr, prev){
-    Relu -> min(sum(prev[l]), 0) == 0 ? (sum(prev[l]), sum(prev[u]), sum(prev[L]), sum(prev[U]), sum(prev[z])) : (sum(prev[u])<=0 ? (0,0,0,0, 0) : (0, sum(prev[u]), 0, (sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev) - (sum(prev[u])*sum(prev[l]) / (sum(prev[u]) - sum(prev[l])))), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps));
+    Relu -> min(sum(prev[l]), 0) == 0 ? (sum(prev[l]), sum(prev[u]), sum(prev[L]), sum(prev[U]), sum(prev[z])) : (sum(prev[u])<=0 ? (0,0,0,0,0) : (0, sum(prev[u]), 0, (sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev) - (sum(prev[u])*sum(prev[l]) / (sum(prev[u]) - sum(prev[l]))), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps)));
     Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias], prev[z].dot(curr[weight]) + curr[bias]);
 }
 
