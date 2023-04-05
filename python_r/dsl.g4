@@ -130,13 +130,13 @@ prop: LPAREN prop RPAREN #propparen
     |       pt EQQ pt #propsingle
     |       prop AND prop #propdouble
     |       prop OR prop #propdouble
-    |       prop IN prop #ptin
+    |       pt IN pt #ptin
     ;
 
 FLOW: 'flow' ;
 ARROW: '->' ;
 TRANSFORMER: 'transformer' ;
-IN: 'in' ;
+IN: 'In' ;
 OUT: 'out' ;
 BACKWARD: 'backward' ;
 FORWARD: 'forward' ;
