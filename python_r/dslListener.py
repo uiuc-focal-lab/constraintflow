@@ -440,6 +440,15 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#ptparen.
+    def enterPtparen(self, ctx:dslParser.PtparenContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#ptparen.
+    def exitPtparen(self, ctx:dslParser.PtparenContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#ptbasic.
     def enterPtbasic(self, ctx:dslParser.PtbasicContext):
         pass

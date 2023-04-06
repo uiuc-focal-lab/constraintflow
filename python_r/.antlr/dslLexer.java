@@ -1,4 +1,4 @@
-// Generated from /home/avaljot/cf/constraintflow/python_r/dsl.g4 by ANTLR 4.9.2
+// Generated from /home/avaljot/cf2/constraintflow/python_r/dsl.g4 by ANTLR 4.9.2
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;
@@ -50,7 +50,7 @@ public class dslLexer extends Lexer {
 
 	private static String[] makeLiteralNames() {
 		return new String[] {
-			null, "'flow'", "'->'", "'transformer'", "'in'", "'out'", "'backward'", 
+			null, "'flow'", "'->'", "'transformer'", "'In'", "'out'", "'backward'", 
 			"'forward'", "'Int'", "'Float'", "'Bool'", "'PolyExp'", "'ZonoExp'", 
 			"'Neuron'", "'List'", "'.'", "','", "'+'", "'-'", "'*'", "'/'", "'and'", 
 			"'or'", "'<'", "'='", "'=='", "'!='", "'>'", "'<='", "'>='", "'!'", "'('", 
@@ -204,7 +204,7 @@ public class dslLexer extends Lexer {
 		"@\2\2\u009e\6\3\2\2\2\u009f\u00a0\7v\2\2\u00a0\u00a1\7t\2\2\u00a1\u00a2"+
 		"\7c\2\2\u00a2\u00a3\7p\2\2\u00a3\u00a4\7u\2\2\u00a4\u00a5\7h\2\2\u00a5"+
 		"\u00a6\7q\2\2\u00a6\u00a7\7t\2\2\u00a7\u00a8\7o\2\2\u00a8\u00a9\7g\2\2"+
-		"\u00a9\u00aa\7t\2\2\u00aa\b\3\2\2\2\u00ab\u00ac\7k\2\2\u00ac\u00ad\7p"+
+		"\u00a9\u00aa\7t\2\2\u00aa\b\3\2\2\2\u00ab\u00ac\7K\2\2\u00ac\u00ad\7p"+
 		"\2\2\u00ad\n\3\2\2\2\u00ae\u00af\7q\2\2\u00af\u00b0\7w\2\2\u00b0\u00b1"+
 		"\7v\2\2\u00b1\f\3\2\2\2\u00b2\u00b3\7d\2\2\u00b3\u00b4\7c\2\2\u00b4\u00b5"+
 		"\7e\2\2\u00b5\u00b6\7m\2\2\u00b6\u00b7\7y\2\2\u00b7\u00b8\7c\2\2\u00b8"+
