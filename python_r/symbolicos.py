@@ -467,8 +467,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else: 
 			if isinstance(node.func, AST.VarNode):
 				pre_elist = []
+				fname = node.func
 			else:	
 				pre_elist = self.visit(node.func)
+				fname = node.func.name
+
 			n = len(elist)
 			temp_array = []
 			for i in range(n):
@@ -486,7 +489,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 							arglist = AST.ExprListNode(pre_elist + [elist[i], elist[j]])
 						else:
 							arglist = AST.ExprListNode(pre_elist + [elist[j], elist[i]])
-						fcall = AST.FuncCallNode(node.func, arglist)
+						fcall = AST.FuncCallNode(fname, arglist)
 						temp_array[i][j] = self.visitFuncCall(fcall, True)
 			combination = list(itertools.product([0, 1], repeat=n))
 			out = []
@@ -634,6 +637,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			elist = node.arglist.exprlist
 
 		if len(elist)==len(func.decl.arglist.arglist):
+
 			for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 				if arg.name in self.store.keys():
 					oldvalues[arg.name] = self.store[arg.name]
@@ -650,6 +654,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			for ov in oldvalues.keys():
 				self.store[ov] = oldvalues[ov]
 
+			#print(node.name.name)
+			#print(val)
 			return val
 
 		elif len(elist)<=len(func.decl.arglist.arglist):
@@ -671,9 +677,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 
 	def get_map(self, e, node):
+
 		if isinstance(e, IF):
 			return IF(e.cond, self.get_map(e.left, node), self.get_map(e.right, node))
 		else:
+
 			# if self.get_type(e) == 'PolyExp':
 			# 	expr = self.convertToPoly(e)
 			# else:
@@ -685,19 +693,27 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			elif isinstance(e, MULT):
 				lhstype = self.get_type(e.left)
 				rhstype = self.get_type(e.right)
+				if(lhstype == 'Neuron'):
+					lhstype = 'PolyExp'
+				if(rhstype == 'Noise'):
+					rhstype = 'ZonoExp'
+
 				if isinstance(node.func, AST.VarNode):
 					elist = []
+					fname = node.func
 				else:	
 					elist = self.visit(node.func)
+					fname = node.func.name
+
 				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp'):
 					elist = AST.ExprListNode(elist + [e.left, e.right])
-					fcall = AST.FuncCallNode(node.func.name, elist)
-					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					fcall = AST.FuncCallNode(fname, elist)
+					exp = self.visitFuncCall(fcall, True)
 					return exp
 				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp'):
 					elist = AST.ExprListNode(elist + [e.right, e.left])
-					fcall = AST.FuncCallNode(node.func.name, elist)
-					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					fcall = AST.FuncCallNode(fname, elist)
+					exp = self.visitFuncCall(fcall, True)
 					return exp
 				else:
 					return e
@@ -706,16 +722,19 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				rhstype = self.get_type(e.right)
 				if isinstance(node.func, AST.VarNode):
 					elist = []
+					fname = node.func
 				else:	
 					elist = self.visit(node.func)
+					fname = node.funcname
+
 				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp'):
 					elist = AST.ExprListNode(elist + [e.left, DIV(1,e.right)])
-					fcall = AST.FuncCallNode(node.func.name, elist)
+					fcall = AST.FuncCallNode(fname, elist)
 					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					return exp
 				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp'):
 					elist = AST.ExprListNode(elist + [e.right, DIV(1,e.left)])
-					fcall = AST.FuncCallNode(node.func.name, elist)
+					fcall = AST.FuncCallNode(fname, elist)
 					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					return exp
 				else:
@@ -724,10 +743,14 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				if(e[1] == 'Neuron' or e[1] == 'Noise'):
 					if isinstance(node.func, AST.VarNode):
 						elist = []
+						fname = node.func
 					else:	
 						elist = self.visit(node.func)
+						fname = node.func.name
+
 					elist = AST.ExprListNode(elist + [e, 1])
-					fcall = AST.FuncCallNode(node.func.name, elist)
+					fcall = AST.FuncCallNode(fname, elist)
+
 					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					return exp
 				else:
@@ -776,10 +799,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else:
 			if isinstance(node.func, AST.VarNode):
 				elist = []
+				fname = node.func
 			else:	
 				elist = self.visit(node.func)
+				fname = node.func.name
 			elist = AST.ExprListNode(elist + [e])
-			fcall = AST.FuncCallNode(node.func.name, elist)
+			fcall = AST.FuncCallNode(fname, elist)
 			return self.visitFuncCall(fcall, True)
 
 	def get_mapList(self, e, node):

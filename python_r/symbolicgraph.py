@@ -6,7 +6,7 @@ from symbolicos import *
 import copy
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
-	print(v.name.decl().name())
+	#print(v.name.decl().name())
 	for var in vars.keys():
 		if not var in v.symmap.keys():
 			if(vars[var] == "Bool"):

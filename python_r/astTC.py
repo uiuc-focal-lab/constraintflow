@@ -77,11 +77,13 @@ class ASTTC(astVisitor.ASTVisitor):
 				return self.isSubType(t2.tleft, t1.tleft) and self.isSubType(t1.tright, t2.tright)
 			else:
 				return self.isSubType(t1, t2.tright) #for True instead of Neuron -> Bool
-
+		elif(isinstance(t1, ArrowType)):
+			return False
 		elif(isinstance(t1, ArrayType)):
 			if(isinstance(t2, ArrayType)):
 				return self.isSubType(t1.base, t2.base)
-		
+		elif(isinstance(t2, ArrayType)):
+			return False
 		else:
 			l = self.edges[t1]
 			if isinstance(l, list):
