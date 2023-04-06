@@ -12,7 +12,8 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.N = 2
+		self.Npoly = 3
+		self.Nzono = 2
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -33,13 +34,13 @@ class Verify(astVisitor.ASTVisitor):
 
 	def visitFlow(self, node):
 		store = self.store
-		s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, self.N, self.number, self.M, self.V, self.C)
+		s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, self.Npoly, self.Nzono, self.number, self.M, self.V, self.C)
 		node = self.theta[node.trans.name]
 		curr = Vertex('Curr')
 		self.V[curr.name] =  curr 
 		populate_vars(s.vars, curr, self.C, self.store, s.os, self.constraint, self.number)
 		prev = []
-		for i in range(self.N):
+		for i in range(self.Npoly):
 			p = Vertex('Prev'+str(i))
 			prev.append((p.name, "Neuron"))
 			self.V[p.name] = p
@@ -58,7 +59,7 @@ class Verify(astVisitor.ASTVisitor):
 				if(not "bias" in curr.symmap.keys()):
 					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				if(not "weight" in curr.symmap.keys()):
-					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.N)]
+					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.Npoly)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, MULT(curr.symmap["weight"][i], prev[i]))
@@ -72,9 +73,9 @@ class Verify(astVisitor.ASTVisitor):
 
 			else: #Maxpool
 				exptemp = prev[0]
-				for i in range(1, self.N):
+				for i in range(1, self.Npoly):
 					cond = (True, 'Bool')
-					for j in range(self.N):
+					for j in range(self.Npoly):
 						if i!=j:
 							cond = AND(cond, GEQ(prev[i], prev[j]))
 					exptemp = IF(cond, prev[i], exptemp)
