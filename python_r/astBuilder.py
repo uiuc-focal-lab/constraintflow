@@ -253,6 +253,9 @@ class ASTBuilder(dslVisitor):
         else:
             return AST.PropTermOpNode(leftpt, ctx.MINUS().getText(), rightpt)
 
+    def visitPtparen(self, ctx):
+        return self.visit(ctx.pt())
+
     def visitPtbasic(self, ctx:dslParser.PtbasicContext):
         if(ctx.IntConst()):
             intNode = AST.ConstIntNode(int(ctx.IntConst().getText()))
@@ -260,6 +263,12 @@ class ASTBuilder(dslVisitor):
         elif(ctx.FloatConst()):
             floatNode = AST.ConstFloatNode(float(ctx.FloatConst().getText()))
             return AST.PropTermBasicNode(floatNode)
+        # elif(ctx.TRUE()):
+        #     boolNode = AST.ConstBoolNode(True)
+        #     return AST.PropTermBasicNode(boolNode)
+        # elif(ctx.FALSE()):
+        #     boolNode = AST.ConstBoolNode(False)
+        #     return AST.PropTermBasicNode(boolNode)
         elif(ctx.pt() and ctx.VAR()):
             expr = self.visit(ctx.pt())
             elem = AST.VarNode(ctx.VAR().getText())
@@ -280,10 +289,17 @@ class ASTBuilder(dslVisitor):
         return AST.SinglePropNode(n, "in", z)
 
     def visitPropsingle(self, ctx:dslParser.PropsingleContext):
-        leftpt = self.visit(ctx.pt(0))
-        rightpt = self.visit(ctx.pt(1))
-        op = ctx.children[1].getText()
-        return AST.SinglePropNode(leftpt, op, rightpt)
+        if(ctx.TRUE()):
+            boolNode = AST.ConstBoolNode(True)
+            return AST.PropTermBasicNode(boolNode)
+        elif(ctx.FALSE()):
+            boolNode = AST.ConstBoolNode(False)
+            return AST.PropTermBasicNode(boolNode)
+        else:
+            leftpt = self.visit(ctx.pt(0))
+            rightpt = self.visit(ctx.pt(1))
+            op = ctx.children[1].getText()
+            return AST.SinglePropNode(leftpt, op, rightpt)
 
     def visitPropparen(self, ctx:dslParser.PropparenContext):
         return self.visit(ctx.prop())

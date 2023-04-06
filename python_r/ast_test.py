@@ -1,3 +1,5 @@
+import sys
+
 import antlr4 as antlr
 
 import ast as AST
@@ -6,6 +8,8 @@ import dslParser
 import astBuilder
 import astTC
 import verify
+
+
 
 def genAST(inputfile):
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
@@ -19,4 +23,4 @@ def genAST(inputfile):
     verify.Verify().visit(ast)
 
 
-genAST("test_input.cf")
+genAST(sys.argv[1])

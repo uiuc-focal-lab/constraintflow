@@ -279,6 +279,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			print(node)
 			assert False
 
+	def cond_mult(self, c, zono):
+		zono.const  = MULT(zono.const, IF(c, 1, 0))
+		for i in zono.coeffs:
+			zono.coeffs[i] = MULT(zono.coeffs[i], IF(c, 1, 0))
+		return zono
+
 	def convertToZono(self, node):
 		if(isinstance(node, tuple)):
 			if(node[1] == "Float" or node[1] == "Int"):
@@ -301,6 +307,16 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			left = self.convertToZono(node.left)
 			right = self.convertToZono(node.right)
 			return self.DIVZono(left, right)
+		elif(isinstance(node, IF)):
+			if self.get_type(node)=='Float':
+				return ZonoExpValue({}, node)
+			elif self.get_type(node) == 'Noise':
+				return ZonoExp({node : (1, 'Float')}, (0, 'Float'))
+			else:
+				left = self.convertToZono(node.left)
+				right = self.convertToZono(node.right)
+				return ADDZono(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
+
 		# elif(isinstance(node, MULT)):
 		# 	if(self.get_type(node.left) == "ZonoExp"):
 		# 		return ZonoExpValue({node.left: self.convertToZono(node.right)}, (0, "Float"))
@@ -665,7 +681,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def get_type(self, e):
 		if isinstance(e, ADD) or isinstance(e, SUB) or isinstance(e, MULT) or isinstance(e, DIV):
-			# print("I am here!!!!!!!!!!!!!!!!!!!!!!!!")
 			if self.get_type(e.left)=='Neuron' or self.get_type(e.left)=='PolyExp':
 				return 'PolyExp'
 			elif self.get_type(e.left)=='Noise' or self.get_type(e.left)=='ZonoExp':
@@ -673,6 +688,19 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				return self.get_type(e.right)
 		else:
+			if isinstance(e, IF):
+				left = self.get_type(e.left)
+				right = self.get_type(e.right)
+				if left=='Float' and right=='Float':
+					return 'Float'
+				if left=='Int' and right=='Int':
+					return 'Int'
+				if left=='Bool' and right=='Bool':
+					return 'Bool'
+				if left=='ZonoExp' or right=='ZonoExp' or left=='Noise' or right=='Noise':
+					return 'ZonoExp'
+				if left=='PolyExp' or right=='PolyExp' or left=='Neuron' or right=='Neuron':
+					return 'PolyExp'
 			return e[1]
 
 
