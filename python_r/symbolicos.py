@@ -52,7 +52,7 @@ class ZonoExpValue():
 #The property visit functions return a symbolic constraint
 class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, M, V, C, shape, N):
+	def __init__(self, store, F, M, V, C, shape, Npoly, Nzono):
 		self.F = F #{function name -> function info}
 		self.M = M #{(op, value) -> value}
 		self.V = V #{symbolic var -> vertex}
@@ -63,7 +63,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.limit = 3 #max 3 neurons are connected to each one
 		self.number = Number()
 		self.symb = True
-		self.N = N
+		self.Npoly = Npoly
+		self.Nzono = Nzono
 
 	def getVname(self):
 		self.vname = self.vname + 1
@@ -96,29 +97,39 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def ADDPoly(self, left, right):
 		if(isinstance(left, tuple)):
 			if(left[1] == "Neuron"):
-				left = self.NeuronToPoly(left)
+				left = self.NoiseToZono(left)
 			else:
-				left = self.ConstToPoly(left)
+				left = self.ConstToZono(left)
 
 		if(isinstance(right, tuple)):
 			if(right[1] == "Neuron"):
-				right = self.NeuronToPoly(right)
+				right = self.NoiseToZono(right)
 			else:
-				right = self.ConstToPoly(right)
+				right = self.ConstToZono(right)
 
-		c = (left.const[0] + right.const[0], "Float")
+		c = ADD(left.const, right.const)
+		if isinstance(left.const, tuple):
+			if left.const[0]==0:
+				c = right.const 
+		if isinstance(right.const, tuple):
+			if right.const[0]==0:
+				c = left.const 
+		# (left.const[0] + right.const[0], "Float")
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
+				n[leftn] = ADD(left.coeffs[leftn], right.coeffs[leftn])
+				# n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
 			else:
-				n[leftn] = (left.coeffs[leftn][0], "Float")
+				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = (right.coeffs[rightn][0], "Float")
+				n[rightn] = right.coeffs[rightn]
+				# n[rightn] = (right.coeffs[rightn][0], "Float")
 
-		return PolyExpValue(n, c)
+		return ZonoExpValue(n, c)
+
 
 	def ADDZono(self, left, right):
 		if(isinstance(left, tuple)):
@@ -232,6 +243,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				return l 
 		return MULT(l, r)
 
+	def cond_mult(self, c, e):
+		e.const  = MULT(e.const, IF(c, 1, 0))
+		for i in e.coeffs:
+			e.coeffs[i] = MULT(e.coeffs[i], IF(c, 1, 0))
+		return e
+
 	def MULTZono(self, left, right):
 		if len(left.coeffs)==0:
 			right.const = self.easy_mult(right.const, left.const)
@@ -254,6 +271,28 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				left.coeffs[i] = DIV(left.coeffs[i], right.const)
 		return left 
 
+	def MULTPoly(self, left, right):
+		if len(left.coeffs)==0:
+			right.const = self.easy_mult(right.const, left.const)
+			for i in right.coeffs:
+				right.coeffs[i] = self.easy_mult(right.coeffs[i], left.const)
+			return right 
+		else:
+			left.const = self.easy_mult(left.const, right.const)
+			for i in left.coeffs:
+				left.coeffs[i] = self.easy_mult(left.coeffs[i], right.const)
+			return left 
+
+	def DIVPoly(self, left, right):
+		left.const = DIV(left.const, right.const)
+		for i in left.coeffs:
+			if isinstance(right.const, tuple):
+				if not right.const[0]==1:
+					left.coeffs[i] = DIV(left.coeffs[i], right.const)
+			else:
+				left.coeffs[i] = DIV(left.coeffs[i], right.const)
+		return left
+
 	def convertToPoly(self, node):
 		if(isinstance(node, tuple)):
 			if(node[1] == "Float" or node[1] == "Int"):
@@ -269,21 +308,27 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			right = self.convertToPoly(node.right)
 			return self.SUBPoly(left, right)
 		elif(isinstance(node, MULT)):
-			if(node.left[1] == "Neuron"):
-				return PolyExpValue({node.left: node.right}, (0, "Float"))
-			else:
-				return PolyExpValue({node.right: node.left}, (0, "Float"))
+			left = self.convertToPoly(node.left)
+			right = self.convertToPoly(node.right)
+			return self.MULTPoly(left, right)
 		elif(isinstance(node, DIV)):
-			return PolyExpValue({node.left: (1 / node.right[0], "Float")}, (0, "Float"))
+			left = self.convertToPoly(node.left)
+			right = self.convertToPoly(node.right)
+			return self.DIVPoly(left, right)
+		elif(isinstance(node, IF)):
+			if self.get_type(node)=='Float':
+				return PolyExpValue({}, node)
+			elif self.get_type(node) == 'Noise':
+				return PolyExpValue({node : (1, 'Float')}, (0, 'Float'))
+			else:
+				left = self.convertToPoly(node.left)
+				right = self.convertToPoly(node.right)
+				return ADDPoly(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
 		else:
 			print(node)
 			assert False
 
-	def cond_mult(self, c, zono):
-		zono.const  = MULT(zono.const, IF(c, 1, 0))
-		for i in zono.coeffs:
-			zono.coeffs[i] = MULT(zono.coeffs[i], IF(c, 1, 0))
-		return zono
+	
 
 	def convertToZono(self, node):
 		if(isinstance(node, tuple)):
@@ -725,10 +770,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			elif isinstance(e, MULT):
 				lhstype = self.get_type(e.left)
 				rhstype = self.get_type(e.right)
-				if(lhstype == 'Neuron'):
-					lhstype = 'PolyExp'
-				if(rhstype == 'Noise'):
-					rhstype = 'ZonoExp'
 
 				if isinstance(node.func, AST.VarNode):
 					elist = []
@@ -755,7 +796,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					return e
 			elif isinstance(e, DIV):
 				lhstype = self.get_type(e.left)
-				rhstype = self.get_type(e.right)
 				if isinstance(node.func, AST.VarNode):
 					elist = []
 					fname = node.func
@@ -763,13 +803,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					elist = self.visit(node.func)
 					fname = node.funcname
 
-				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp'):
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
 					elist = AST.ExprListNode(elist + [e.left, DIV(1,e.right)])
-					fcall = AST.FuncCallNode(fname, elist)
-					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
-					return exp
-				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp'):
-					elist = AST.ExprListNode(elist + [e.right, DIV(1,e.left)])
 					fcall = AST.FuncCallNode(fname, elist)
 					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					return exp
