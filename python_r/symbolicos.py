@@ -919,11 +919,15 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			min_right = right.const 
 			zero = (0, 'Float')
 			neg = (-1, 'Float')
+			# sum = (0, 'Float')
 			for c in right.coeffs:
 				coeff = right.coeffs[c]
 				abs = IF(self.get_binop(coeff, zero, GEQ), coeff, self.get_binop(coeff, neg, MULT))
+				# sum = self.get_binop(sum, abs, ADD)
 				max_right = self.get_binop(max_right, abs, ADD)
 				min_right = self.get_binop(min_right, abs, SUB)
+			# max_right = self.get_binop(max_right, (s, 'Float'), ADD)
+			# min_right = self.get_binop(min_right, (s, 'Float'), SUB)
 			leq = self.get_binop(left, max_right, LEQ)
 			geq = self.get_binop(left, min_right, GEQ)
 			return self.get_binop(leq, geq, AND)

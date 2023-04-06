@@ -6,7 +6,6 @@ from symbolicos import *
 import copy
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
-	#print(v.name.decl().name())
 	for var in vars.keys():
 		if not var in v.symmap.keys():
 			if(vars[var] == "Bool"):
@@ -278,7 +277,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		
 		# self.os.store[node.expr.name] = old_val
 
-		p = Not(Implies(And(And(newC), p_input), p_output))
+		p = Not(Implies(And(newC + [p_input]), p_output))
 		s.add(p)
 		if(not (s.check() == unsat)):
 			raise Exception("Induction step is not true")
@@ -319,11 +318,13 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		p = self.os.visit(node.p)
 		
 		pz3 = self.os.convertToZ3(p)
-		prop = Not(Implies(And(And(self.os.C), self.currop), pz3))
+		prop = Not(Implies(And(self.os.C + [self.currop]), pz3))
 		s = Solver()
 		s.add(prop)
 		if(not (s.check() == unsat)):
 			raise Exception("Invariant is not true on input")
+		else:
+			print("Invariant true on input")
 
 		# old_val = self.os.store[node.expr.name]
 		output, prop_output = self.check_invariant(node)
