@@ -12,7 +12,7 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.N = 2
+		self.N = 3
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -84,7 +84,8 @@ class Verify(astVisitor.ASTVisitor):
 			
 			exptemp = s.os.convertToZ3(exptemp)
 			s.currop = (curr.name == exptemp) #Would it be safe to just add this to s.C?
-			computation = (curr_prime.name == curr.name)
+			# computation = (curr_prime.name == curr.name)
+			computation = [s.currop, (curr_prime.name == curr.name)]
 
 			s.visit(op.ret)
 			vallist = None
@@ -96,7 +97,8 @@ class Verify(astVisitor.ASTVisitor):
 			# print(computation)
 			# print(s.currop)
 			# print(s.os.C)
-			leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
+			leftC = And(s.os.C + computation)
+			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
 			self.applyTrans(leftC, vallist, s, curr_prime)
 			print("Proved ", op.op.op_name)
