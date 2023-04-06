@@ -12,7 +12,7 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.N = 3
+		self.N = 2
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -96,8 +96,10 @@ class Verify(astVisitor.ASTVisitor):
 				
 			# print(computation)
 			# print(s.currop)
+			# print()
 			# print(s.os.C)
-			leftC = And(s.os.C + computation)
+			# print()
+			leftC = s.os.C + computation
 			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
 			self.applyTrans(leftC, vallist, s, curr_prime)
@@ -114,15 +116,15 @@ class Verify(astVisitor.ASTVisitor):
 			c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, self.constraint, self.number, False)
 			z3constraint = s.os.convertToZ3(c)
 			solver = Solver()
-			p = Not(Implies(leftC, z3constraint))
-			print(p)
+			p = Not(Implies(And(leftC), z3constraint))
+			# print(p)
 			solver.add(p)
 			if(not (solver.check() == unsat)):
 				raise Exception("Transformer"+ " " + " not true")
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
-			self.applyTrans(And(leftC, condz3), vallist.left, s, curr_prime)
-			self.applyTrans(And(leftC, Not(condz3)), vallist.right, s, curr_prime)
+			self.applyTrans(leftC.append(condz3), vallist.left, s, curr_prime)
+			self.applyTrans(leftC.append(Not(condz3)), vallist.right, s, curr_prime)
 
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)
