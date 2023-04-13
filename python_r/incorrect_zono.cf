@@ -7,8 +7,8 @@ func priority(Neuron n) = n[layer];
 
 
 transformer zono(curr, prev){
-    Maxpool -> (max(prev[l]), max(prev[u]), ((max(prev[u]) + max(prev[l])) / 2) + (((max(prev[u]) + max(prev[l])) / 2) * eps));
-    Relu -> (sum(prev[l]) >= 0) ? (sum(prev[l]), sum(prev[u]), sum(prev[z])) : ((sum(prev[u]) <= 0) ? (0, 0, 0) : (0, sum(prev[u]), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps)));
+    Maxpool -> (max(prev[l]), max(prev[u]), ((max(prev[u]) + max(prev[l])) / 2) + (((max(prev[u]) - max(prev[l])) / 2) * eps));
+    Relu -> (sum(prev[l]) < 0) ? (sum(prev[l]), sum(prev[u]), sum(prev[z])) : ((sum(prev[u]) <= 0) ? (0, 0, 0) : (0, sum(prev[u]), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps)));
     Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper), prev[z].dot(curr[weight]) + curr[bias]);
 }
 

@@ -52,18 +52,21 @@ class ZonoExpValue():
 #The property visit functions return a symbolic constraint
 class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, M, V, C, shape, Npoly, Nzono):
+	def __init__(self, store, F, M, V, C, E, old_eps, old_neurons, shape, Nprev, Nzono):
 		self.F = F #{function name -> function info}
 		self.M = M #{(op, value) -> value}
 		self.V = V #{symbolic var -> vertex}
 		self.C = C #symbolic constraints
+		self.E = E 
+		self.old_eps = old_eps 
+		self.old_neurons = old_neurons 
 		self.store = store #{var -> value}
 		self.shape = shape #{name -> type} of each variable in the shape
 		self.vname = 0
 		self.limit = 3 #max 3 neurons are connected to each one
 		self.number = Number()
 		self.symb = True
-		self.Npoly = Npoly
+		self.Nprev = Nprev
 		self.Nzono = Nzono
 
 	def getVname(self):
@@ -380,14 +383,36 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, ADD)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			if isinstance(l, float):
+				if l==0:
+					return r 
+			if isinstance(r, float):
+				if r==0:
+					return l 
 			return l + r
 		elif(isinstance(node, SUB)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			if isinstance(l, float):
+				if l==0:
+					return -r 
+			if isinstance(r, float):
+				if r==0:
+					return l 
 			return l - r
 		elif(isinstance(node, MULT)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			if isinstance(l, float):
+				if l==0:
+					return 0 
+				if l==1:
+					return r 
+			if isinstance(r, float):
+				if r==0:
+					return 0 
+				if r==1:
+					return l
 			return l * r
 		elif(isinstance(node, DIV)):
 			l = self.convertToZ3(node.left)
@@ -396,6 +421,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, NEG)):
 			l = self.convertToZ3(node.left)
 			return -l
+		elif(isinstance(node, NOT)):
+			l = self.convertToZ3(node.left)
+			if isinstance(l, bool):
+				if l:
+					return False 
+				return True
+			return Not(l)
 		elif(isinstance(node, LT)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
@@ -415,6 +447,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, EQQ)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			# print(l)
+			# print(r)
 			return l == r
 		elif(isinstance(node, NEQ)):
 			l = self.convertToZ3(node.left)
@@ -423,15 +457,38 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, AND)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			if isinstance(l, bool):
+				if l:
+					return r 
+				else:
+					return False 
+			if isinstance(r, bool):
+				if r:
+					return l 
+				else:
+					return False 
 			return And(l, r)
 		elif(isinstance(node, OR)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			if isinstance(l, bool):
+				if l:
+					return True  
+				else:
+					return r  
+			if isinstance(r, bool):
+				if r:
+					return True  
+				else:
+					return l  
 			return Or(l,r)
 		elif(isinstance(node, IF)):
+			y = Real('new_'+str(self.number.nextn()))
 			c = self.convertToZ3(node.cond)
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			self.C.append(Or([And(c, y == l), And(Not(c), y == r)]))
+			return y
 			return If(c, l, r)
 		else:
 			return node
@@ -465,8 +522,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		eps = Real('Eps_'+str(self.number.nextn()))
-		self.C.append(eps <= 1)
-		self.C.append(eps >= -1)
+		# self.C.append(eps <= 1)
+		# self.C.append(eps >= -1)
+		self.E.append(eps)
 		return (eps, 'Noise')
 		# return self.M[Epsilon(node.identifier)]
 	
@@ -617,8 +675,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else:
 			sum = (0, "Float")
 			length = (len(elist), 'Int')
-			for e in elist:
-				sum = self.get_binop(sum, e, ADD)
+			if len(elist)>0:
+				sum = elist[0]
+			for e in range(1, len(elist)):
+				sum = self.get_binop(sum, elist[e], ADD)
+			# for e in elist:
+			# 	sum = self.get_binop(sum, e, ADD)
 			if node.op == 'sum':
 				return sum
 			elif node.op == 'len':
@@ -977,23 +1039,24 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return self.get_binop(left, right, EQQ)
 			# return left == right
 		elif(pt.op == 'in'):
-			right = self.convertToZono(right)
-			max_right = right.const 
-			min_right = right.const 
-			zero = (0, 'Float')
-			neg = (-1, 'Float')
-			# sum = (0, 'Float')
-			for c in right.coeffs:
-				coeff = right.coeffs[c]
-				abs = IF(self.get_binop(coeff, zero, GEQ), coeff, self.get_binop(coeff, neg, MULT))
-				# sum = self.get_binop(sum, abs, ADD)
-				max_right = self.get_binop(max_right, abs, ADD)
-				min_right = self.get_binop(min_right, abs, SUB)
-			# max_right = self.get_binop(max_right, (s, 'Float'), ADD)
-			# min_right = self.get_binop(min_right, (s, 'Float'), SUB)
-			leq = self.get_binop(left, max_right, LEQ)
-			geq = self.get_binop(left, min_right, GEQ)
-			return self.get_binop(leq, geq, AND)
+			# right = self.convertToZono(right)
+			# max_right = right.const 
+			# min_right = right.const 
+			# zero = (0, 'Float')
+			# neg = (-1, 'Float')
+			# # sum = (0, 'Float')
+			# for c in right.coeffs:
+			# 	coeff = right.coeffs[c]
+			# 	abs = IF(self.get_binop(coeff, zero, GEQ), coeff, self.get_binop(coeff, neg, MULT))
+			# 	# sum = self.get_binop(sum, abs, ADD)
+			# 	max_right = self.get_binop(max_right, abs, ADD)
+			# 	min_right = self.get_binop(min_right, abs, SUB)
+			# # max_right = self.get_binop(max_right, (s, 'Float'), ADD)
+			# # min_right = self.get_binop(min_right, (s, 'Float'), SUB)
+			# leq = self.get_binop(left, max_right, LEQ)
+			# geq = self.get_binop(left, min_right, GEQ)
+			# return self.get_binop(leq, geq, AND)
+			return self.get_binop(left, right, EQQ)
 
 	def visitFunc(self, node: AST.FuncNode):
 		name = node.decl.name.name
