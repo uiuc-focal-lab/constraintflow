@@ -4,7 +4,7 @@ from z3 import *
 from value import *
 from symbolicos import *
 from symbolicgraph import *
-
+set_param('parallel.enable', True)
 
 class Verify(astVisitor.ASTVisitor):
 
@@ -12,12 +12,22 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.Npoly = 3
-		self.Nzono = 2
+		self.Nprev = 5
+		self.Nzono = 5
 		self.number = Number()
 		self.M = {}
 		self.V = {}
 		self.C = []
+		self.E = []
+		self.old_eps = []
+		self.old_neurons = []
+		# for i in range(self.Nzono):
+		# 	e = Real('eps_'+str(self.number.nextn()))
+		# 	self.old_eps.append(e)
+		# 	self.C.append(e <= 1)
+		# 	self.C.append(e >= -1)
+			# n = Real('V_'+str(self.number.nextn()))
+			# self.old_neurons.append(n)
 		self.store = {}
 
 	def visitShapeDecl(self, node):
@@ -34,13 +44,13 @@ class Verify(astVisitor.ASTVisitor):
 
 	def visitFlow(self, node):
 		store = self.store
-		s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, self.Npoly, self.Nzono, self.number, self.M, self.V, self.C)
+		s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, self.Nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons)
 		node = self.theta[node.trans.name]
 		curr = Vertex('Curr')
 		self.V[curr.name] =  curr 
 		populate_vars(s.vars, curr, self.C, self.store, s.os, self.constraint, self.number)
 		prev = []
-		for i in range(self.Npoly):
+		for i in range(self.Nprev):
 			p = Vertex('Prev'+str(i))
 			prev.append((p.name, "Neuron"))
 			self.V[p.name] = p
@@ -50,6 +60,7 @@ class Verify(astVisitor.ASTVisitor):
 		store["prev"] = prev 
 
 		for op_i in range(len(node.oplist.olist)):
+			self.E.clear()
 			op = node.oplist.olist[op_i]
 			curr_prime = Vertex('curr_prime' + str(op_i))
 			s.V[curr_prime.name] = curr_prime
@@ -59,7 +70,7 @@ class Verify(astVisitor.ASTVisitor):
 				if(not "bias" in curr.symmap.keys()):
 					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				if(not "weight" in curr.symmap.keys()):
-					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.Npoly)]
+					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.Nprev)]
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, MULT(curr.symmap["weight"][i], prev[i]))
@@ -73,9 +84,9 @@ class Verify(astVisitor.ASTVisitor):
 
 			else: #Maxpool
 				exptemp = prev[0]
-				for i in range(1, self.Npoly):
+				for i in range(1, self.Nprev):
 					cond = (True, 'Bool')
-					for j in range(self.Npoly):
+					for j in range(self.Nprev):
 						if i!=j:
 							cond = AND(cond, GEQ(prev[i], prev[j]))
 					exptemp = IF(cond, prev[i], exptemp)
@@ -105,10 +116,10 @@ class Verify(astVisitor.ASTVisitor):
 			# print(vallist)
 			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
-			self.applyTrans(leftC, vallist, s, curr_prime)
+			self.applyTrans([], vallist, s, curr_prime, computation)
 			print("Proved ", op.op.op_name)
 
-	def applyTrans(self, leftC, vallist, s, curr_prime):
+	def applyTrans(self, leftC, vallist, s, curr_prime, computation):
 		# print(vallist)
 		# print(leftC)
 		if(isinstance(vallist, list)):
@@ -119,19 +130,27 @@ class Verify(astVisitor.ASTVisitor):
 			# print(self.store)
 			# print(s.os.store)
 			c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, self.constraint, self.number, False)
+			# print(c)
 			z3constraint = s.os.convertToZ3(c)
+			if len(self.E) > 0:
+				conds_eps = [z3constraint]
+				for e in self.E:
+					conds_eps.append(e <= 1)
+					conds_eps.append(e >= -1)
+				z3constraint = Exists(self.E, And(conds_eps))
 			solver = Solver()
+			leftC += s.os.C + computation
 			# print(leftC)
 			p = Not(Implies(And(leftC), z3constraint))
-			# print(p)
+			print(p)
 			solver.add(p)
 			if(not (solver.check() == unsat)):
-				print(s.model())
+				# print(s.model())
 				raise Exception("Transformer"+ " " + " not true")
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
-			self.applyTrans(leftC + [condz3], vallist.left, s, curr_prime)
-			self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime)
+			self.applyTrans(leftC + [condz3], vallist.left, s, curr_prime, computation)
+			self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)

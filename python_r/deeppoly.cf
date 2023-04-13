@@ -16,8 +16,8 @@ func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
 transformer deeppoly(curr, prev){
     Relu -> (sum(prev[l]) >= 0) ? (sum(prev[l]), sum(prev[u]), sum(prev), sum(prev)) : ((sum(prev[u]) <= 0) ? (0, 0, 0, 0) : (0, sum(prev[u]), 0, ((sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev)) - ((sum(prev[u]) * sum(prev[l])) / (sum(prev[u]) - sum(prev[l]))) ));
+    Maxpool -> (max(prev[l]), max(prev[u]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[l]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[u]));
     Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
-    Maxpool -> len(argmax(prev, f)) > 0 ? (max(prev[l]), max(prev[u]), avg(argmax(prev, f)), avg(argmax(prev, f))) : (max(prev[l]), max(prev[u]), max(prev[l]), max(prev[u]));
 }
 
 flow(forward, priority, true, deeppoly);

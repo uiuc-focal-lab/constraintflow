@@ -16,10 +16,13 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 				sum = (Real(v.name.decl().name() + "_const_" + str(number.nextn())), 'Float')
 				for i in range(os.Nzono):
 					coeff = (Real(v.name.decl().name() + "_coeff_" + str(number.nextn())), 'Float')
-					noise = Real(v.name.decl().name() + "_noise_" + str(number.nextn()))
+					if len(os.old_eps)==i:
+						noise = Real("noise_" + str(number.nextn()))
+						os.old_eps.append(noise)
+						C.append(noise <= 1)
+						C.append(noise >= -1)
+					noise = os.old_eps[i]
 					sum = ADD(sum, MULT(coeff, (noise, 'Noise')))
-					C.append(noise <= 1)
-					C.append(noise >= -1)
 				v.symmap[var] = sum 
 			else:
 				v.symmap[var] = (Real(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
@@ -35,17 +38,20 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 
 class SymbolicGraph(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, constraint, shape, Npoly, Nzono, number, M, V, C):
+	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons):
 		self.M = M
 		self.V = V 
 		self.C = C 
+		self.E = E 
+		self.old_eps = old_eps 
+		self.old_neurons = old_neurons 
 		self.constraint = constraint
 		self.store = store
 		self.F = F
 		self.shape = shape
-		self.Npoly = Npoly
+		self.Nprev = Nprev
 		self.Nzono = Nzono
-		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.shape, self.Npoly, self.Nzono)
+		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.shape, self.Nprev, self.Nzono)
 		self.number = number 
 		self.currop = None #Stores the relationship between curr and prev for traverse proof
 		g = getVars(self.constraint, self.shape)
@@ -93,7 +99,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						newvar = (Real('X' + str(self.number.nextn())), "Float")
 					elif(node.metadata.name == "weight"):
 						newvar_list = [None]*(self.poly)
-						for i in range(self.Npoly):
+						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = newvar_list
 					elif(node.metadata.name == "layer"):
@@ -225,7 +231,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def check_invariant(self, node):
 		# newV = copy.copy(self.os.V)
 		# newM = copy.copy(self.os.M)
-		newC = copy.copy(self.os.C)
+		# newC = copy.copy(self.os.C)
 		# newStore = copy.copy(self.store)
 		
 		# oldV = copy.copy(self.os.V)
@@ -233,14 +239,17 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		# oldC = copy.copy(self.os.C)
 		# oldStore = copy.copy(self.store)
 
-		const = Real('X' + str(self.number.nextn()))
+		const = Real('inv_X' + str(self.number.nextn()))
 		input = (const, "Float")
 		output = (const, "Float")
-		for i in range(self.Npoly):
-			neuron = Vertex('V' + str(self.number.nextn()))
-			self.os.V[neuron.name] = neuron 
-			populate_vars(self.vars, neuron, newC, self.store, self.os, self.constraint, self.number)
-			coeff = (Real('X' + str(self.number.nextn())), "Float")
+		for i in range(self.Nzono):
+			if len(self.old_neurons)==i:
+				neuron = Vertex('V' + str(self.number.nextn()))
+				self.os.V[neuron.name] = neuron 
+				populate_vars(self.vars, neuron, self.os.C, self.store, self.os, self.constraint, self.number)
+				self.old_neurons.append(neuron)
+			neuron = self.old_neurons[i]
+			coeff = (Real('inv_X' + str(self.number.nextn())), "Float")
 			if isinstance(node.stop, AST.VarNode):
 				elist_stop = []
 			else:	
@@ -278,9 +287,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		
 		# self.os.store[node.expr.name] = old_val
 
-		p = Not(Implies(And(newC + [p_input]), p_output))
+		p = Not(Implies(And(self.os.C + [p_input]), p_output))
 		s.add(p)
 		if(not (s.check() == unsat)):
+			print(p)
+			print(s.model())
 			raise Exception("Induction step is not true")
 		else:
 			print("Induction step proved")
@@ -295,13 +306,16 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		# self.C = self.os.C 
 		# self.store = self.os.store 
 
-		const = Real('X' + str(self.number.nextn()))
+		const = Real('out_trav_X' + str(self.number.nextn()))
 		output_poly = (const, "Float")
-		for i in range(self.Npoly):
-			neuron = Vertex('V' + str(self.number.nextn()))
-			self.os.V[neuron.name] = neuron 
-			populate_vars(self.vars, neuron, self.os.C, self.store, self.os, self.constraint, self.number)
-			coeff = (Real('c' + str(self.number.nextn())), "Float")
+		for i in range(self.Nzono):
+			if len(self.os.old_neurons)==i:
+				neuron = Vertex('V' + str(self.number.nextn()))
+				self.os.V[neuron.name] = neuron 
+				populate_vars(self.vars, neuron, self.os.C, self.store, self.os, self.constraint, self.number)
+				self.os.old_neurons.append(neuron)
+			neuron = self.os.old_neurons[i]
+			coeff = (Real('out_trav_c' + str(self.number.nextn())), "Float")
 			output_poly = ADD(output_poly, MULT(coeff, (neuron.name, "Neuron")))
 
 		# print(type(output))
@@ -329,7 +343,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		# old_val = self.os.store[node.expr.name]
 		output, prop_output = self.check_invariant(node)
-		self.C.append(prop_output)
+		# self.C.append(prop_output)
 
 		if(isinstance(node.priority, AST.VarNode)):
 			p_name = node.priority.name
@@ -445,10 +459,13 @@ class checkPoly(astVisitor.ASTVisitor):
 					oldvar = self.os.V[val[0]].symmap[name][0]
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
 
-					for i in range(self.Npoly):
-						neuron = Vertex('V' + str(self.number.nextn()))
-						V[neuron.name] = neuron
-						populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
+					for i in range(self.Nzono):
+						if len(self.os.old_neurons == i):
+							neuron = Vertex('V' + str(self.number.nextn()))
+							self.os.old_neurons.append(neuron)
+							populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
+							V[neuron.name] = neuron
+						neuron = self.os.old_neurons[i]
 						const = (Real('c' + str(self.number.nextn())), "Float")
 						newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
 
@@ -459,11 +476,16 @@ class checkPoly(astVisitor.ASTVisitor):
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 					for i in range(self.Nzono):
-						epsilon = Real('eps' + str(self.number.nextn()))
+						# epsilon = Real('eps' + str(self.number.nextn()))
+						if len(self.os.old_eps == i):
+							epsilon = Real('eps_'+str(self.number.nextn()))
+							self.os.old_eps.append(epsilon)
+							self.os.C.append(epsilon <= 1)
+							self.os.C.append(epsilon >= -1)
+						epsilon = self.os.old_eps[i]
 						const = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = ADD(newvar, MULT(const, (epsilon, "Noise")))
-						self.os.C.append(epsilon <= 1)
-						self.os.C.append(epsilon >= -1)
+						
 
 					self.os.V[val[0]].symmap[name] = newvar
 					self.os.C.append(oldvar == self.os.convertToZ3(newvar))
@@ -471,8 +493,8 @@ class checkPoly(astVisitor.ASTVisitor):
 
 	def visitGetElement(self, node):
 		n = self.os.visit(node.expr)
-		print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		print(n)
+		# print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		# print(n)
 		get_getElement(n, node)
 
 class getVars(astVisitor.ASTVisitor):
