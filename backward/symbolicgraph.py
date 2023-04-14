@@ -165,10 +165,9 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.get_map(val.left, node)
 			self.get_map(val.right, node)
 		else:
-			# print(val)
-			# print(self.os.get_type(val))
 			if self.os.get_type(val)=='PolyExp' or self.os.get_type(val)=='Neuron':
 				expr = self.os.convertToPoly(val)
+
 			else:
 				expr = self.os.convertToZono(val)
 			for n in expr.coeffs.keys():
@@ -205,6 +204,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.get_maplist(p, node)
 
 	def visitFuncCall(self, node, preeval = False):
+		print(type(node.name.name))
 		func = self.F[node.name.name]
 
 		newvars = []

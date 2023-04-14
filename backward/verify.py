@@ -88,14 +88,13 @@ class Verify(astVisitor.ASTVisitor):
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 			elif(op.op.op_name == "rev_Affine"):
-				if(not "equations" in curr.symmmap.keys()):
-					curr.symmap["equations"] = [(Real('curr_list' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(self.Ncurr)]
-				exptemp = (o, "Float")
+				if(not "equations" in curr.symmap.keys()):
+					curr.symmap["equations"] = [(Real('equations_' + str(op_i) + "_" + str(self.number.nextn())), "PolyExp") for i in range(self.Ncurr)]
+				exptemp = (True, "Bool")
 				for t in curr.symmap["equations"]:
-					exptemp = ADD(exptemp, t)
+					exptemp = AND(exptemp, EQQ(curr.name, t))
 
-				exptemp = s.os.convertToZ3(exptemp)
-				s.currop = (curr.name == exptemp)
+				s.currop = s.os.convertToZ3(exptemp)
 			elif(op.op.op_name == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):

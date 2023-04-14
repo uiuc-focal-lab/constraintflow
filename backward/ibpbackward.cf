@@ -1,13 +1,22 @@
-def Shape as (Float l, Float u){(curr[l]<=curr) and (curr[u]>=curr)};
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){(curr[l]<=curr) and (curr[u]>=curr)};
+
+func priority(Neuron n) = n[layer];
 
 func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
 func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
 
-func priority(Neuron n) = n[layer];
+func simplify_lower_list(PolyExp e) = e.map(simplify_lower);
+func simplify_upper_list(PolyExp e) = e.map(simplify_upper);
+
+func replace_lower(Neuron n, Float c) = c >= 0? c*n[L] : c*n[U];
+func replace_upper(Neuron n, Float c) = c >= 0? c*n[U] : c*n[L];
+
+func forward_subs_lower(Neuron n, PolyExp e) = (e.traverse(forward, priority, true, replace_lower){e <= n}).map(simplify_lower);
+func forward_subs_upper(Neuron n, PolyExp e) = (e.traverse(forward, priority, true, replace_upper){e >= n}).map(simplify_upper);
+
 
 transformer ibp(curr, prev, curr_list){
-    rev_Relu -> ( sum(prev[l]) > 0 ? max(sum(prev[l]), curr[l])  : curr[l]), (min(sum(prev[u]), curr[u]));
-    rev_Maxpool -> ((( (sum(prev[l]) > 0) and (sum(prev[l]) > max(curr_list[u]))) or (curr[l] >= max(curr_list[u]))) ? max(curr[l], sum(prev[l])) : curr[l]) , min(curr[u], sum(prev[u]));
+    rev_Affine -> (max(curr[equations].map_list(forward_subs_lower(curr))), min(curr[equations].map_list(forward_subs_upper(curr))), max(curr[equations].map_list(forward_subs_lower(curr))), min(curr[equations].map_list(forward_subs_upper(curr))));
 }
 
 flow(backward, priority, true, ibp);

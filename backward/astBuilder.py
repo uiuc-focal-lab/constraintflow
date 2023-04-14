@@ -122,6 +122,13 @@ class ASTBuilder(dslVisitor):
         else:
             return AST.ExprListNode([expr])
 
+    def visitExprs(self, ctx):
+        expr1 = self.visit(ctx.expr())
+        if(ctx.exprs()):
+            expr_list = self.visit(ctx.exprs())
+            return [expr1] + expr_list
+        return [expr1]
+
     def visitDot(self, ctx:dslParser.DotContext):
         left = self.visit(ctx.expr(0))
         right = self.visit(ctx.expr(1))
@@ -192,7 +199,9 @@ class ASTBuilder(dslVisitor):
 
     def visitMap(self, ctx:dslParser.MapContext):
         expr = self.visit(ctx.expr(0))
-        func = AST.VarNode(ctx.expr(1).getText())
+        func = self.visit(ctx.expr(1))
+        if(not isinstance (func, AST.FuncCallNode)):
+            func = AST.VarNode(ctx.expr(1).getText())
         return AST.MapNode(expr, func)
 
     def visitMap_list(self, ctx:dslParser.MapContext):
@@ -270,6 +279,11 @@ class ASTBuilder(dslVisitor):
         name = AST.VarNode(ctx.VAR().getText())
         arglist = self.visit(ctx.expr_list())
         return AST.FuncCallNode(name, arglist)
+
+    def visitCurry(self, ctx):
+        name = AST.VarNode(ctx.VAR().getText())
+        arglist = self.visit(ctx.exprs())
+        return AST.FuncCallNode(name, AST.ExprListNode(arglist))
 
     def visitMetadata(self, ctx:dslParser.MetadataContext):
         return AST.MetadataNode(ctx.getText())
