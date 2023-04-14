@@ -180,6 +180,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				self.visitFuncCall(fcall, True)
 
 	def visitMap(self, node):
+		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		self.visit(node.expr)
 		p = self.os.visit(node.expr)
 		self.get_map(p, node)
@@ -199,13 +200,17 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				self.visitFuncCall(fcall, True)
 
 	def visitMapList(self, node):
+		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		self.visit(node.expr)
 		p = self.os.visit(node.expr)
 		self.get_maplist(p, node)
 
 	def visitFuncCall(self, node, preeval = False):
-		print(type(node.name.name))
-		func = self.F[node.name.name]
+		name = node.name.name
+		if(isinstance(name, str)): 
+			func = self.F[node.name.name]
+		else:
+			func = self.F[node.name.name.name]
 
 		newvars = []
 		oldvalues = {}
@@ -397,10 +402,12 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 class checkPoly(astVisitor.ASTVisitor):
 	
-	def __init__(self, os, vars, constraint):
+	def __init__(self, os, vars, constraint, number, Nzono):
 		self.os = os
 		self.vars = vars 
 		self.constraint = constraint
+		self.number = number
+		self.Nzono = Nzono
 
 	def visitExprList(self, node: AST.ExprListNode):
 		for e in node.exprlist:
@@ -474,8 +481,41 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(F[name].expr)
 		self.visit(node.arglist)
 
+	def get_getMetadata(self, val, node):
+		if isinstance(val, list):
+			for v in val:
+				self.get_getMetadata(v, node)
+		elif isinstance(val, IF):
+			self.get_getgetMetadata(val.left, node)
+			self.get_getgetMetadata(val.right, node)
+		else:
+			name = node.metadata.name
+			if name == "equations":
+				newlist = []
+				for eq in (self.os.V[val[0]].symmap[name]):
+					if(isinstance(eq, tuple)):
+
+						oldvar = eq[0]
+						newvar = (Real('X' + str(self.number.nextn())), "Float")
+
+						for i in range(self.Nzono):
+							if len(self.os.old_neurons) == i:
+								neuron = Vertex('V' + str(self.number.nextn()))
+								self.os.old_neurons.append(neuron)
+								self.os.V[neuron.name] = neuron
+								populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
+							neuron = self.os.old_neurons[i]
+							const = (Real('c' + str(self.number.nextn())), "Float")
+							newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
+
+						newlist.append(newvar)
+						self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+				if newlist != []:
+					self.os.V[val[0]].symmap[name] = newlist
+
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
-		self.visit(node.expr)
+		n = self.os.visit(node.expr)
+		self.get_getMetadata(n, node)
 
 	def get_getElement(self, val, node):
 		if isinstance(val, list):
@@ -495,8 +535,8 @@ class checkPoly(astVisitor.ASTVisitor):
 						if len(self.os.old_neurons == i):
 							neuron = Vertex('V' + str(self.number.nextn()))
 							self.os.old_neurons.append(neuron)
+							self.os.V[neuron.name] = neuron
 							populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
-							V[neuron.name] = neuron
 						neuron = self.os.old_neurons[i]
 						const = (Real('c' + str(self.number.nextn())), "Float")
 						newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
@@ -527,7 +567,7 @@ class checkPoly(astVisitor.ASTVisitor):
 		n = self.os.visit(node.expr)
 		# print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 		# print(n)
-		get_getElement(n, node)
+		self.get_getElement(n, node)
 
 class getVars(astVisitor.ASTVisitor):
 

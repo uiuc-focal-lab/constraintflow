@@ -206,7 +206,9 @@ class ASTBuilder(dslVisitor):
 
     def visitMap_list(self, ctx:dslParser.MapContext):
         expr = self.visit(ctx.expr(0))
-        func = AST.VarNode(ctx.expr(1).getText())
+        func = self.visit(ctx.expr(1))
+        if(not isinstance (func, AST.FuncCallNode)):
+            func = AST.VarNode(ctx.expr(1).getText())
         return AST.MapListNode(expr, func)
 
     def visitGetMetadata(self, ctx:dslParser.GetMetadataContext):

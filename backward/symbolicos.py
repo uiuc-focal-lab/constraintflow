@@ -492,8 +492,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			c = self.convertToZ3(node.cond)
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			# self.C.append(Or([And(c, y == l), And(Not(c), y == r)]))
-			# return y
+			#self.C.append(Or([And(c, y == l), And(Not(c), y == r)]))
+			#return y
 			return If(c, l, r)
 		else:
 			return node

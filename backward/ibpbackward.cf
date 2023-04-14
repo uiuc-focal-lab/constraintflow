@@ -1,4 +1,4 @@
-def Shape as (Float l, Float u, PolyExp L, PolyExp U){(curr[l]<=curr) and (curr[u]>=curr)};
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr), (curr[L]<=curr),(curr[U]>= curr)]};
 
 func priority(Neuron n) = n[layer];
 
@@ -16,7 +16,8 @@ func forward_subs_upper(Neuron n, PolyExp e) = (e.traverse(forward, priority, tr
 
 
 transformer ibp(curr, prev, curr_list){
-    rev_Affine -> (max(curr[equations].map_list(forward_subs_lower(curr))), min(curr[equations].map_list(forward_subs_upper(curr))), max(curr[equations].map_list(forward_subs_lower(curr))), min(curr[equations].map_list(forward_subs_upper(curr))));
+    rev_Affine -> (max(curr[equations].map_list(simplify_lower_list)), min(curr[equations].map_list(simplify_upper_list)), curr[L], curr[U]);
+    rev_Affine -> (max(curr[equations].map_list(forward_subs_lower curr )), min(curr[equations].map_list(forward_subs_upper curr )), max(curr[equations].map_list(forward_subs_lower curr )), min(curr[equations].map_list(forward_subs_upper curr )));
 }
 
 flow(backward, priority, true, ibp);

@@ -12,9 +12,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.Nprev = 3
-		self.Nzono = 3
-		self.Ncurr = 2
+		self.Nprev = 2
+		self.Nzono = 2
+		self.Ncurr = 1
 		self.number = Number()
 		self.M = {}
 		self.V = {}
