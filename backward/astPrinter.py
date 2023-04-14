@@ -108,33 +108,3 @@ class ASTPrinter(astVisitor.ASTVisitor):
 		print("Get element:")
 		self.visit(node.expr)
 		print(node.elem.name)		
-
-	def visitPropTermBasic(self, node: AST.PropTermBasicNode):
-		self.visit(node.term)
-
-	def visitPropTermIn(self, node: AST.PropTermInNode):
-		print("Constraint Term: in")
-		self.visit(node.n)
-		self.visit(node.z)
-
-	def visitPropTermOp(self, node: AST.PropTermOpNode):
-		print("Constraint Term: " + node.op)
-		print("Left:")
-		self.visit(node.leftpt)
-		print("Right:")
-		self.visit(node.rightpt)
-		
-
-	def visitSingleProp(self, node: AST.SinglePropNode):
-		print("Constraint: " + node.op)
-		print("Left:")
-		self.visit(node.leftpt)
-		print("Right:")
-		self.visit(node.rightpt)
-
-	def visitDoubleProp(self, node: AST.DoublePropNode):
-		print("Constraint: " + node.op)
-		print("Left:")
-		self.visit(node.leftprop)
-		print("Right:")
-		self.visit(node.rightprop)

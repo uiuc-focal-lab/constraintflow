@@ -471,7 +471,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				if r:
 					return l 
 				else:
-					return False 
+					return False
 			return And(l, r)
 		elif(isinstance(node, OR)):
 			l = self.convertToZ3(node.left)
@@ -564,6 +564,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return self.get_binop(left, right, OR)
 		elif(node.op == "=="):
 			return self.get_binop(left, right, EQQ)
+		elif(node.op == "In"):
+			return self.get_binop(left, right, EQQ)
+
 
 	def visitUnOp(self, node: AST.UnOpNode):
 		expr = self.visit(node.expr)

@@ -32,12 +32,12 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	if(not isinstance(constraint, list)):
 		constraint = [constraint]
 	for cons in constraint:
-		CTemp.append(os.convertToZ3(os.visit(cons)))
+		Ctemp.append(os.convertToZ3(os.visit(cons)))
 		
 	del store["curr_new"]
 	if flag:
-		C += CTemp
-	return CTemp
+		C += Ctemp
+	return Ctemp
 
 class SymbolicGraph(astVisitor.ASTVisitor):
 

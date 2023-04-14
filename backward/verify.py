@@ -12,9 +12,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.Nprev = 5
-		self.Nzono = 5
-		self.Ncurr = 3
+		self.Nprev = 3
+		self.Nzono = 3
+		self.Ncurr = 2
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -106,12 +106,14 @@ class Verify(astVisitor.ASTVisitor):
 				s.currop = (curr.name == exptemp)
 
 			elif(op.op.op_name == "rev_Relu"):
+
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
 				exptemp = s.os.convertToZ3(exptemp)
-				s.currop = (IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float')) == exptemp)
+				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
 
 			elif(op.op.op_name == "Maxpool"):
 				exptemp = prev[0]
@@ -126,13 +128,14 @@ class Verify(astVisitor.ASTVisitor):
 				s.currop = (curr.name == exptemp)
 			
 			elif(op.op.op_name == "rev_Maxpool"):
-				exptemp = curr_list[0]
-				for i in range(1, self.Ncurr):
+				total_list = curr_list + [(curr.name, "Neuron")]
+				exptemp = total_list[0]
+				for i in range(1, self.Ncurr+1):
 					cond = (True, 'Bool')
-					for j in range(self.Ncurr):
+					for j in range(self.Ncurr+1):
 						if i!=j:
-							cond = AND(cond, GEQ(prev[i], prev[j]))
-					exptemp = IF(cond, prev[i], exptemp)
+							cond = AND(cond, GEQ(total_list[i], total_list[j]))
+					exptemp = IF(cond, total_list[i], exptemp)
 				prevexp = (0, "Float") 
 				for i in range(len(prev)):
 					prevexp = ADD(prevexp, prev[i])
@@ -191,11 +194,12 @@ class Verify(astVisitor.ASTVisitor):
 				solver = Solver()
 				leftC += s.os.C + computation
 				# print(leftC)
+
 				p = Not(Implies(And(leftC), z3constraint))
 				print(p)
 				solver.add(p)
 				if(not (solver.check() == unsat)):
-					# print(s.model())
+					#print(solver.model())
 					raise Exception("Transformer"+ " " + " not true")
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
