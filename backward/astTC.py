@@ -166,7 +166,7 @@ class ASTTC(astVisitor.ASTVisitor):
 				return self.lub_type(ltype, rtype)
 			else:
 				raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
-		elif(node.op == "in"):
+		elif(node.op == "In"):
 			if(self.isSubType(ltype, "PolyExp") and self.isSubType(rtype, "ZonoExp")):
 				return "Ct"
 			else:
@@ -454,14 +454,23 @@ class ASTTC(astVisitor.ASTVisitor):
 			self.shape.append((t.name,e.name))
 
 		self.Gamma["curr_new"] = "Neuron"
+		self.Gamma["curr"] = "Neuron"
+		self.Gamma["prev"] = "Neuron"
 		prop = self.visit(node.p)
-		if not(self.isSubType(prop, "Ct") or self.isSubType(prop, ArrayType("Ct"))):
-			raise TypeMismatchException("Shape property not correct type")
+		if not(self.isSubType(prop, "Ct")):
+			if not(isinstance(prop, list)):
+				raise TypeMismatchException("Shape property not correct type")
+			for t in prop:
+				if not self.isSubType(t, "Ct"):
+					raise TypeMismatchException("Shape property not correct type")
 		del self.Gamma["curr_new"]
+		del self.Gamma["curr"]
+		del self.Gamma["prev"]
 
 	def visitTransRetBasic(self, node: AST.TransRetBasicNode):
 		rettype = self.visit(node.exprlist)
 		if(not self.isSubType(rettype, [x[0] for x in self.shape])):
+			print(rettype)
 			raise TypeMismatchException("Expression in transformer is different from shape declaration")
 
 
@@ -486,15 +495,14 @@ class ASTTC(astVisitor.ASTVisitor):
 			raise DuplicateVarException(tname + " is already defined")
 
 		for expr in node.arglist:
-			if(isinstance(expr, AST.VarNode())):
-				if(expr.name == "curr"):
-					self.Gamma["curr"] = "Neuron"
-				elif(expr.name == "prev"):
-					self.Gamma["prev"] = ArrayType("Neuron")
-				elif(expr.name == "curr_list"):
-					self.Gamma["curr_list"] = ArrayType("Neuron")
-				else:
-					raise TypeMismatchException("Arguments to transformer have to be prev, curr or curr_list")	
+			if(expr == "curr"):
+				self.Gamma["curr"] = "Neuron"
+			elif(expr == "prev"):
+				self.Gamma["prev"] = ArrayType("Neuron")
+			elif(expr == "curr_list"):
+				self.Gamma["curr_list"] = ArrayType("Neuron")
+			else:
+				raise TypeMismatchException("Arguments to transformer have to be prev, curr or curr_list")	
 
 		self.visit(node.oplist)
 		if("curr_list" in self.Gamma):

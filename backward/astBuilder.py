@@ -12,6 +12,7 @@ class ASTBuilder(dslVisitor):
 
     def __init__(self):
         self.epsilon_count = 0
+        self.inconstraint = False
 
     def visitProg(self, ctx: dslParser.ProgContext):
         shape = self.visit(ctx.shape_decl())
@@ -20,7 +21,9 @@ class ASTBuilder(dslVisitor):
 
     def visitShape_decl(self, ctx:dslParser.Shape_declContext):
         elements = self.visit(ctx.arglist())
+        self.inconstraint = True
         p = self.visit(ctx.expr())
+        self.inconstraint = False
         return AST.ShapeDeclNode(elements, p)
 
     def visitFlowstmt(self, ctx:dslParser.FlowstmtContext):
@@ -41,10 +44,7 @@ class ASTBuilder(dslVisitor):
         return AST.SeqNode(stmt1, stmt2)
 
     def visitTransstmt(self, ctx:dslParser.TransstmtContext):
-        t = self.visit(ctx.transformer())
-        l = self.visit(ctx.expr_list())
-        t.arglist = l
-        return t
+        return self.visit(ctx.transformer())
 
     def visitFunc_decl(self, ctx:dslParser.Func_declContext):
         name = AST.VarNode(ctx.VAR().getText())
@@ -54,7 +54,9 @@ class ASTBuilder(dslVisitor):
     def visitTransformer(self, ctx:dslParser.TransformerContext):
         op_list = self.visit(ctx.op_list())
         name = AST.VarNode(ctx.trans_decl().VAR().getText())
-        return AST.TransformerNode(name, op_list)
+        l = self.visit(ctx.trans_decl().expr_list())
+        expr_list = [v.name for v in l.exprlist]
+        return AST.TransformerNode(name, expr_list, op_list)
 
     #this O(n^2) to retain the order of the expressions
     def visitOp_list(self, ctx:dslParser.Op_listContext):
@@ -111,9 +113,9 @@ class ASTBuilder(dslVisitor):
             return AST.ArgListNode([(type_node, var)])
 
     def visitExpr_list(self, ctx:dslParser.Expr_listContext):
-        exprs = ctx.expr_list()
         expr = self.visit(ctx.expr())
-        if(exprs):
+        if(ctx.expr_list()):
+            exprs = ctx.expr_list()
             listNode = self.visit(exprs)
             newList = [expr] + listNode.exprlist
             return AST.ExprListNode(newList)
@@ -174,7 +176,10 @@ class ASTBuilder(dslVisitor):
         return AST.UnOpNode("~", expr)
 
     def visitCurr(self, ctx:dslParser.CurrContext):
-        return AST.VarNode("curr")
+        if(self.inconstraint):
+            return AST.VarNode("curr_new")
+        else:
+            return AST.VarNode("curr")
 
     def visitPrev(self, ctx:dslParser.PrevContext):
         return AST.VarNode("prev")
@@ -217,7 +222,9 @@ class ASTBuilder(dslVisitor):
         priority = self.visit(ctx.expr(1))
         stop = self.visit(ctx.expr(2))
         func = self.visit(ctx.expr(3))
+        self.inconstraint = True
         p = self.visit(ctx.expr(4))
+        self.inconstraint = False
         return AST.TraverseNode(expr, direction, priority, stop, func, p)
 
     def visitBinopExp(self, ctx:dslParser.BinopExpContext):
