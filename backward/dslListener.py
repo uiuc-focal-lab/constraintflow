@@ -170,6 +170,15 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#exprs.
+    def enterExprs(self, ctx:dslParser.ExprsContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#exprs.
+    def exitExprs(self, ctx:dslParser.ExprsContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#lp.
     def enterLp(self, ctx:dslParser.LpContext):
         pass
@@ -356,6 +365,15 @@ class dslListener(ParseTreeListener):
 
     # Exit a parse tree produced by dslParser#concat.
     def exitConcat(self, ctx:dslParser.ConcatContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#curry.
+    def enterCurry(self, ctx:dslParser.CurryContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#curry.
+    def exitCurry(self, ctx:dslParser.CurryContext):
         pass
 
 

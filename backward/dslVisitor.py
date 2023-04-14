@@ -99,6 +99,11 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#exprs.
+    def visitExprs(self, ctx:dslParser.ExprsContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#lp.
     def visitLp(self, ctx:dslParser.LpContext):
         return self.visitChildren(ctx)
@@ -201,6 +206,11 @@ class dslVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by dslParser#concat.
     def visitConcat(self, ctx:dslParser.ConcatContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#curry.
+    def visitCurry(self, ctx:dslParser.CurryContext):
         return self.visitChildren(ctx)
 
 

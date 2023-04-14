@@ -59,6 +59,9 @@ arglist : types VAR COMMA arglist
 expr_list : expr COMMA expr_list
 	|	expr ; 
 
+exprs: expr exprs
+    | expr;
+
 expr: FALSE					                        #false
     | TRUE 					                        #true
     | IntConst 					                    #int
@@ -87,6 +90,7 @@ expr: FALSE					                        #false
     | expr DOT CONCAT LPAREN expr RPAREN 		    #concat
     | LP LPAREN lp_op COMMA expr COMMA expr RPAREN  #lp
     | VAR LPAREN expr_list RPAREN 		            #funcCall
+    | VAR exprs                                     #curry
 ;
 
 argmax_op: ARGMAX
