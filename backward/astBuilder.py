@@ -141,8 +141,8 @@ class ASTBuilder(dslVisitor):
     
     def visitLp(self, ctx):
         op = ctx.lp_op().getText()
-        e = self.visit(ctx.expr(1))
-        c = self.visit(ctx.expr(2))
+        e = self.visit(ctx.expr(0))
+        c = self.visit(ctx.expr(1))
         return AST.LpNode(op, e, c)
 
 

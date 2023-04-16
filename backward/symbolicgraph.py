@@ -241,10 +241,10 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.expr)
 		self.visit(node.constraints)
 		expr = self.os.visit(node.expr)
-		constraints = self.os.visit(node.constraints)
+		constraints = self.os.convertToZ3(self.os.visit(node.constraints))
 		out = Real('Lp_'+str(self.number.nextn()))
 		self.M[LP(node.op, expr, constraints)] = out
-		if(self.op == "maximize"):
+		if(node.op == "maximize"):
 			self.C.append(Implies(self.os.convertToZ3(constraints), out >= self.os.convertToZ3(expr)))
 		else:
 			self.C.append(Implies(self.os.convertToZ3(constraints), out <= self.os.convertToZ3(expr)))

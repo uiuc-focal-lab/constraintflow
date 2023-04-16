@@ -992,7 +992,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitLp(self, node):
 		e = self.visit(node.expr)
-		c = self.visit(node.constraints)
+		c = self.convertToZ3(self.visit(node.constraints))
 		return self.M[LP(node.op, e, c)]
 
 	# def visitPropTermOp(self, prop):
