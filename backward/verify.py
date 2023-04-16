@@ -14,7 +14,7 @@ class Verify(astVisitor.ASTVisitor):
 		self.theta = {}
 		self.Nprev = 2
 		self.Nzono = 2
-		self.Ncurr = 1
+		self.Ncurr = 2
 		self.number = Number()
 		self.M = {}
 		self.V = {}
