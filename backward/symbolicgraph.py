@@ -8,7 +8,7 @@ import copy
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
 		if not var in v.symmap.keys():
-			if(vars[var] == "Bool"):
+			if(vars[var] == "Bool" or vars[var] == "Ct"):
 				v.symmap[var] = (Bool(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == "Int"):
 				v.symmap[var] = (Int(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
