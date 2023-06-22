@@ -1,4 +1,4 @@
-def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, ZonoExp z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
 
 func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
 func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
@@ -15,9 +15,7 @@ func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
 transformer deeppoly(curr, prev){
-    Relu -> (sum(prev[l]) >= 0) ? (sum(prev[l]), sum(prev[u]), sum(prev), sum(prev)) : ((sum(prev[u]) <= 0) ? (0, 0, 0, 0) : (0, sum(prev[u]), 0, ((sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev)) - ((sum(prev[u]) * sum(prev[l])) / (sum(prev[u]) - sum(prev[l]))) ));
-    Maxpool -> (max(prev[l]), max(prev[u]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[l]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[u]));
-    Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
+    Relu -> (sum(prev[l]) >= 0) ? (sum(prev[l]), sum(prev[u]), sum(prev), sum(prev), sum(prev[z])) : ((sum(prev[u]) <= 0) ? (0, 0, 0, 0, 0) : (0, sum(prev[u]), 0, ((sum(prev[u]) / (sum(prev[u]) - sum(prev[l]))) * sum(prev)) - ((sum(prev[u])/2 * sum(prev[l])) / (sum(prev[u]) - sum(prev[l]))), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps)));
 }
 
 flow(forward, priority, true, deeppoly);

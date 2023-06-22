@@ -1,5 +1,5 @@
 import astVisitor
-import ast as AST
+import astcf as AST
 from z3 import *
 from value import *
 from symbolicos import *

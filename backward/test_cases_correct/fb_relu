@@ -1,0 +1,10 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+func create_c(Neuron n, PolyExp e) = n == e;
+
+transformer ibp(curr, prev, curr_list){
+    rev_Relu -> sum(prev[l]) > 0 ? (sum(prev[u]) >= 0 ? (max(sum(prev[l]), curr[l]), min(sum(prev[u]), curr[u]), curr[L], curr[U]) : (max(sum(prev[l]), curr[l]),curr[u], curr[L], curr[U])) : (sum(prev[u]) >= 0 ? (curr[l], min(sum(prev[u]), curr[u]), curr[L], curr[U]) : (curr[l], curr[u], curr[L], curr[U]));
+}
+
+flow(backward, priority, true, ibp);

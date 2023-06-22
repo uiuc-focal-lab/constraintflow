@@ -1,5 +1,5 @@
 import astVisitor
-import ast as AST
+import astcf as AST
 
 class ASTPrinter(astVisitor.ASTVisitor):
 

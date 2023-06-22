@@ -9,9 +9,12 @@ import astBuilder
 import astTC
 import verify
 
+import time
+from multiprocessing import Process
+from call_function_with_timeout import SetTimeout
 
 
-def genAST(inputfile, nprev, nsymb):
+def genAST(inputfile, nprev, nsymb, ncurr):
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
     tokens = antlr.CommonTokenStream(lexer)
     parser = dslParser.dslParser(tokens)
@@ -23,7 +26,8 @@ def genAST(inputfile, nprev, nsymb):
     v = verify.Verify()
     v.Nprev = nprev
     v.Nzono = nsymb
+    v.Ncurr = ncurr
     v.visit(ast)
 
-
-genAST(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]))
+a = sys.argv[2].split(" ")
+genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))

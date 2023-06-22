@@ -1,7 +1,7 @@
 from verify import *
 from z3 import *
 from value import *
-import ast as AST
+import astcf as AST
 
 n = Number()
 prev1 = Vertex('prev1', [], n)
