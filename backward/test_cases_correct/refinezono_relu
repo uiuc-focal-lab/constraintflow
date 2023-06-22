@@ -1,0 +1,22 @@
+def Shape as (Float l, Float u, ZonoExp z, Ct c){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z]),curr[c]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func foo(Neuron n) = n[c];
+
+transformer zono(curr, prev){
+    Relu -> (sum(prev[l]) >= 0) ? 
+        (sum(prev[l]), sum(prev[u]), sum(prev[z]), (sum(prev[l]) <= curr) and (sum(prev[u]) >= curr)) : 
+        (
+            (sum(prev[u]) <= 0) ? 
+            (0, 0, 0, curr == 0) : 
+            (0, sum(prev[u]), (sum(prev[u]) / 2) + ((sum(prev[u]) / 2) * eps), 
+            (sum(prev[l]) <= sum(prev)) and (sum(prev[u]) >= sum(prev)) and 
+            (((sum(prev) <= 0) and (curr == 0) ) or ((sum(prev) > 0) and (curr == sum(prev))) )
+        )
+    );
+}
+
+flow(forward, priority, true, zono);

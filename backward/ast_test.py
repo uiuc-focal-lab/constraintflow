@@ -2,7 +2,7 @@ import sys
 
 import antlr4 as antlr
 
-import ast as AST
+import astcf as AST
 import dslLexer
 import dslParser
 import astBuilder
@@ -11,7 +11,7 @@ import verify
 
 
 
-def genAST(inputfile):
+def genAST(inputfile, nprev, nsymb):
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
     tokens = antlr.CommonTokenStream(lexer)
     parser = dslParser.dslParser(tokens)
@@ -20,7 +20,10 @@ def genAST(inputfile):
 
     x = astTC.ASTTC().visit(ast)
 
-    verify.Verify().visit(ast)
+    v = verify.Verify()
+    v.Nprev = nprev
+    v.Nzono = nsymb
+    v.visit(ast)
 
 
-genAST(sys.argv[1])
+genAST(sys.argv[1],int(sys.argv[2]),int(sys.argv[3]))
