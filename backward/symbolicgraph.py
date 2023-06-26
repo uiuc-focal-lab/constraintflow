@@ -1,6 +1,7 @@
 import astVisitor
 import astcf as AST
 from z3 import *
+#from cvc5.pythonic import * 
 from value import *
 from symbolicos import *
 import copy
@@ -8,14 +9,16 @@ import copy
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
 		if not var in v.symmap.keys():
+			#vname = str(v.name) #uncomment when using cvc5
+			vname = v.name.decl().name() #uncomment when using Z3
 			if(vars[var] == "Bool" or vars[var] == "Ct"):
-				v.symmap[var] = (Bool(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
+				v.symmap[var] = (Bool(vname + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == "Int"):
-				v.symmap[var] = (Int(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
+				v.symmap[var] = (Int(vname + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == 'ZonoExp'):
-				sum = (Real(v.name.decl().name() + "_const_" + str(number.nextn())), 'Float')
+				sum = (Real(vname + "_const_" + str(number.nextn())), 'Float')
 				for i in range(os.Nzono):
-					coeff = (Real(v.name.decl().name() + "_coeff_" + str(number.nextn())), 'Float')
+					coeff = (Real(vname + "_coeff_" + str(number.nextn())), 'Float')
 					if len(os.old_eps)==i:
 						noise = Real("noise_" + str(number.nextn()))
 						os.old_eps.append(noise)
@@ -25,7 +28,7 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 					sum = ADD(sum, MULT(coeff, (noise, 'Noise')))
 				v.symmap[var] = sum 
 			else:
-				v.symmap[var] = (Real(v.name.decl().name() + "_" + var + "_" + str(number.nextn())), vars[var])
+				v.symmap[var] = (Real(vname + "_" + var + "_" + str(number.nextn())), vars[var])
 
 	store["curr_new"] = (v.name, "Neuron")
 	Ctemp = []
