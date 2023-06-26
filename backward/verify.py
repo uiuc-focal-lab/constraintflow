@@ -1,11 +1,12 @@
 import astVisitor
 import astcf as AST
 from z3 import *
+#from cvc5.pythonic import * 
 from value import *
 from symbolicos import *
 from symbolicgraph import *
 import time
-set_param('parallel.enable', True)
+set_param('parallel.enable', True) #uncomment when using Z3
 
 class AstRefKey:
     def __init__(self, n):
@@ -39,9 +40,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.shape = {}
 		self.F = {}
 		self.theta = {}
-		self.Nprev = 4
-		self.Nzono = 4
-		self.Ncurr = 4
+		self.Nprev = 3
+		self.Nzono = 3
+		self.Ncurr = 2
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -239,6 +240,7 @@ class Verify(astVisitor.ASTVisitor):
 
 				p = Not(Implies(And(leftC), z3constraint))
 				#print(p)
+				#print("------------------------------------------------------------------------------")
 				solver.add(p)
 				#print(time.time(), "generated")
 				
