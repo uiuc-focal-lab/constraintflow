@@ -5,6 +5,7 @@ from z3 import *
 from value import *
 from symbolicos import *
 import copy
+import time
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
@@ -63,6 +64,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		g = getVars(self.constraint, self.shape)
 		g.visit(self.constraint)
 		self.vars = g.vars
+		#set_param("timeout", 30)
 
 	def visitInt(self, node):
 		pass
@@ -328,12 +330,22 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		p = Not(Implies(And(self.os.C + [p_input]), p_output))
 		s.add(p)
+		print("gen",time.time())
+		#set_param('timeout', 30)
+		#print("timeout place")
+		#s.set("timeout",10000)
+		#print(p)
+		#z3.set_option(timeout=30)
+		'''
 		if(not (s.check() == unsat)):
 			print(p)
 			print(s.model())
+			print("end",time.time())
 			raise Exception("Induction step is not true")
 		else:
 			print("Induction step proved")
+		'''
+		print("end",time.time())
 		
 		# self.os.M = oldM
 		# self.os.V = oldV
@@ -374,11 +386,17 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		pz3 = self.os.convertToZ3(p)
 		prop = Not(Implies(And(self.os.C + [self.currop]), pz3))
 		s = Solver()
+		#s.set("timeout",3000)
 		s.add(prop)
+		print("gen",time.time())
+		'''
 		if(not (s.check() == unsat)):
+			print("end",time.time())
 			raise Exception("Invariant is not true on input")
 		else:
 			print("Invariant true on input")
+		'''
+		print("end",time.time())
 
 		output, prop_output = self.check_invariant(node)
 

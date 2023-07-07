@@ -6,6 +6,9 @@ from value import *
 import astPrinter
 import copy
 import itertools
+import sys
+
+sys.setrecursionlimit(1500) 
 
 class Number:
 

@@ -1,0 +1,296 @@
+start 1688739729.0596824
+Invariant true on input
+Not(Implies(And(noise_7 <= 1,
+                noise_7 >= -1,
+                noise_9 <= 1,
+                noise_9 >= -1,
+                noise_11 <= 1,
+                noise_11 >= -1,
+                noise_13 <= 1,
+                noise_13 >= -1,
+                noise_15 <= 1,
+                noise_15 >= -1,
+                noise_17 <= 1,
+                noise_17 >= -1,
+                noise_19 <= 1,
+                noise_19 >= -1,
+                noise_21 <= 1,
+                noise_21 >= -1,
+                noise_23 <= 1,
+                noise_23 >= -1,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr ==
+                                    Curr_const_5 +
+                                    Curr_coeff_6*noise_7 +
+                                    Curr_coeff_8*noise_9 +
+                                    Curr_coeff_10*noise_11 +
+                                    Curr_coeff_12*noise_13 +
+                                    Curr_coeff_14*noise_15 +
+                                    Curr_coeff_16*noise_17 +
+                                    Curr_coeff_18*noise_19 +
+                                    Curr_coeff_20*noise_21 +
+                                    Curr_coeff_22*noise_23,
+                                    True))))),
+                And(Prev0_l_24 <= Prev0,
+                    And(Prev0_u_25 >= Prev0,
+                        And(Prev0_L_26 <= Prev0,
+                            And(Prev0_U_27 >= Prev0,
+                                And(Prev0 ==
+                                    Prev0_const_28 +
+                                    Prev0_coeff_29*noise_7 +
+                                    Prev0_coeff_30*noise_9 +
+                                    Prev0_coeff_31*noise_11 +
+                                    Prev0_coeff_32*noise_13 +
+                                    Prev0_coeff_33*noise_15 +
+                                    Prev0_coeff_34*noise_17 +
+                                    Prev0_coeff_35*noise_19 +
+                                    Prev0_coeff_36*noise_21 +
+                                    Prev0_coeff_37*noise_23,
+                                    True))))),
+                And(Prev1_l_38 <= Prev1,
+                    And(Prev1_u_39 >= Prev1,
+                        And(Prev1_L_40 <= Prev1,
+                            And(Prev1_U_41 >= Prev1,
+                                And(Prev1 ==
+                                    Prev1_const_42 +
+                                    Prev1_coeff_43*noise_7 +
+                                    Prev1_coeff_44*noise_9 +
+                                    Prev1_coeff_45*noise_11 +
+                                    Prev1_coeff_46*noise_13 +
+                                    Prev1_coeff_47*noise_15 +
+                                    Prev1_coeff_48*noise_17 +
+                                    Prev1_coeff_49*noise_19 +
+                                    Prev1_coeff_50*noise_21 +
+                                    Prev1_coeff_51*noise_23,
+                                    True))))),
+                And(Prev2_l_52 <= Prev2,
+                    And(Prev2_u_53 >= Prev2,
+                        And(Prev2_L_54 <= Prev2,
+                            And(Prev2_U_55 >= Prev2,
+                                And(Prev2 ==
+                                    Prev2_const_56 +
+                                    Prev2_coeff_57*noise_7 +
+                                    Prev2_coeff_58*noise_9 +
+                                    Prev2_coeff_59*noise_11 +
+                                    Prev2_coeff_60*noise_13 +
+                                    Prev2_coeff_61*noise_15 +
+                                    Prev2_coeff_62*noise_17 +
+                                    Prev2_coeff_63*noise_19 +
+                                    Prev2_coeff_64*noise_21 +
+                                    Prev2_coeff_65*noise_23,
+                                    True))))),
+                And(Prev3_l_66 <= Prev3,
+                    And(Prev3_u_67 >= Prev3,
+                        And(Prev3_L_68 <= Prev3,
+                            And(Prev3_U_69 >= Prev3,
+                                And(Prev3 ==
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ... +
+                                    ...,
+                                    ...))))),
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...,
+                ...),
+            ...))
+[V243_L_246 = -1/2,
+ inv_X258 = -1/2,
+ V243 = 1,
+ inv_X274 = -1/2,
+ inv_X226 = 1/4,
+ V147_L_150 = 1/2,
+ Curr = -3,
+ inv_X130 = -1,
+ V227_L_230 = 1/2,
+ V131 = 2,
+ noise_17 = 0,
+ inv_X242 = 1/8,
+ V179 = 1,
+ inv_X194 = -1,
+ inv_X210 = -1/4,
+ noise_21 = 0,
+ noise_15 = 0,
+ V259 = 1,
+ V163 = 1,
+ V147 = 2,
+ V211 = 0,
+ inv_X162 = -1/4,
+ noise_9 = 0,
+ V195 = 2,
+ inv_X146 = 1/8,
+ V179_L_182 = -1/2,
+ noise_11 = 0,
+ noise_13 = 0,
+ inv_X178 = -1/8,
+ V227 = 2,
+ noise_7 = 0,
+ noise_23 = 0,
+ noise_19 = 0,
+ V131_L_134 = 1/8,
+ V163_L_166 = -1/2,
+ V211_L_214 = -1,
+ V259_L_262 = -1/2,
+ V195_L_198 = 1,
+ Prev6_L_110 = 0,
+ V195_l_196 = 2,
+ V259_U_263 = 1,
+ Curr_u_2 = -3,
+ Prev2_U_55 = 0,
+ Prev6_u_109 = 0,
+ V179_U_183 = 1,
+ V259_u_261 = 1,
+ Curr_l_1 = -3,
+ Prev2_L_54 = 0,
+ Prev6_l_108 = 0,
+ V179_u_181 = 1,
+ V259_l_260 = 1,
+ Prev2_u_53 = 0,
+ Prev5_U_97 = 0,
+ V179_l_180 = 1,
+ V243_U_247 = 1,
+ Prev2_l_52 = 0,
+ Prev5_L_96 = 0,
+ V163_U_167 = 1,
+ V243_u_245 = 1,
+ Prev1_U_41 = 0,
+ Prev5_u_95 = 0,
+ V163_u_165 = 1,
+ V243_l_244 = 1,
+ Prev1_L_40 = 0,
+ Prev5_l_94 = 0,
+ V163_l_164 = 1,
+ V227_U_231 = 2,
+ Prev1_u_39 = 0,
+ Prev4_U_83 = 0,
+ V147_U_151 = 2,
+ V227_u_229 = 2,
+ Prev1_l_38 = 0,
+ Prev4_L_82 = 0,
+ V147_u_149 = 2,
+ V227_l_228 = 2,
+ Prev0_U_27 = 0,
+ Prev4_u_81 = 0,
+ V147_l_148 = 2,
+ V211_U_215 = 0,
+ Prev0_L_26 = 0,
+ Prev4_l_80 = 0,
+ V131_U_135 = 2,
+ V211_u_213 = 0,
+ Prev0_u_25 = 0,
+ Prev3_U_69 = 0,
+ V131_u_133 = 2,
+ V211_l_212 = 0,
+ Prev0_l_24 = 0,
+ Prev3_L_68 = 0,
+ V131_l_132 = 2,
+ V195_U_199 = 2,
+ Curr_U_4 = -3,
+ Prev3_u_67 = 0,
+ Prev6_U_111 = 0,
+ V195_u_197 = 2,
+ Curr_L_3 = -3,
+ Prev3_l_66 = 0,
+ Prev6 = 0,
+ Prev5 = 0,
+ Prev4 = 0,
+ Prev3 = 0,
+ Prev2 = 0,
+ Prev1 = 0,
+ Prev0 = 0,
+ V195_coeff_201 = 0,
+ V195_coeff_202 = 0,
+ V195_coeff_203 = 0,
+ V195_coeff_204 = 0,
+ V195_coeff_205 = 0,
+ V195_coeff_206 = 0,
+ V195_coeff_207 = 0,
+ V195_coeff_208 = 0,
+ V195_coeff_209 = 0,
+ V195_const_200 = 2,
+ Prev6_coeff_113 = 0,
+ Prev6_coeff_114 = 0,
+ Prev6_coeff_115 = 0,
+ Prev6_coeff_116 = 0,
+ Prev6_coeff_117 = 0,
+ Prev6_coeff_118 = 0,
+ Prev6_coeff_119 = 0,
+ Prev6_coeff_120 = 0,
+ Prev6_coeff_121 = 0,
+ Prev6_const_112 = 0,
+ Prev3_coeff_71 = 0,
+ Prev3_coeff_72 = 0,
+ Prev3_coeff_73 = 0,
+ Prev3_coeff_74 = 0,
+ Prev3_coeff_75 = 0,
+ ...]
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+    genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 191, in visitFlow
+    s.visit(op.ret)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 65, in visit
+    return self.visitTransRetBasic(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 398, in visitTransRetBasic
+    self.visit(node.exprlist)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 13, in visit
+    return self.visitExprList(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 164, in visitExprList
+    self.visit(e)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 61, in visit
+    return self.visitFuncCall(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 235, in visitFuncCall
+    self.visit(func.expr)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 51, in visit
+    return self.visitMap(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 187, in visitMap
+    self.visit(node.expr)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 49, in visit
+    return self.visitTraverse(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 383, in visitTraverse
+    output, prop_output = self.check_invariant(node)
+  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 334, in check_invariant
+    raise Exception("Induction step is not true")
+Exception: Induction step is not true
+real 0.88
+user 0.87
+sys 0.01
