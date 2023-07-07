@@ -7,7 +7,7 @@ igen = {}
 iverify = {}
 ccount = {}
 icount = {}
-#correct
+
 cfile = "out_correct"
 ifile = "out_incorrect"
 

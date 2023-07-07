@@ -26,7 +26,7 @@ def stripn(s):
 		i = i+1
 	return s[0:i]
 
-folder = "times_full_correct/"
+folder = "times_full_incorrect/"
 names = []
 for filename in os.listdir(folder):
 	names.append(filename)
@@ -46,8 +46,9 @@ for filename in names:
 					solve = solve + float(l.split(" ")[1]) - start
 					start = float(l.split(" ")[1])
 			#Add AST to filenames
-			f = stripn(filename[3:])
-			gen = gen + asttimes[f]
+			if(gen != 0):
+				f = stripn(filename[3:])
+				gen = gen + asttimes[f]
 			print(filename[3:])
 			print(gen)
 			print(solve)
