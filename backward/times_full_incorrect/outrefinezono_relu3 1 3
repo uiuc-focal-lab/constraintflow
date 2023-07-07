@@ -1,0 +1,52 @@
+start 1688737263.6244366
+gen 1688737263.6382809
+end 1688737263.6416814
+gen 1688737263.6482267
+end 1688737263.651393
+gen 1688737263.6575603
+end 1688737263.6606965
+gen 1688737263.6668115
+end 1688737263.6700232
+gen 1688737263.6758487
+end 1688737263.6789448
+gen 1688737263.684737
+end 1688737263.6878843
+gen 1688737263.69378
+end 1688737263.6968818
+gen 1688737263.7029204
+end 1688737263.7060502
+gen 1688737263.711783
+end 1688737263.7149246
+gen 1688737263.7207701
+end 1688737263.7238605
+gen 1688737263.7299507
+end 1688737263.7336512
+gen 1688737263.7399993
+end 1688737263.743212
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+    genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 208, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 251, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.38
+user 0.35
+sys 0.02

@@ -1,0 +1,56 @@
+start 1688739655.7989776
+gen 1688739655.8126264
+end 1688739655.8159516
+gen 1688739655.822242
+end 1688739655.8252714
+gen 1688739655.8310997
+end 1688739655.834054
+gen 1688739655.8398657
+end 1688739655.8428316
+gen 1688739655.848909
+end 1688739655.8519278
+gen 1688739655.8573813
+end 1688739655.8603144
+gen 1688739655.8658397
+end 1688739655.8687892
+gen 1688739655.874421
+end 1688739655.8773956
+gen 1688739655.8831806
+end 1688739655.886154
+gen 1688739655.8920743
+end 1688739655.8950083
+gen 1688739655.9003534
+end 1688739655.9033365
+gen 1688739655.9088166
+end 1688739655.9118109
+gen 1688739655.9174294
+end 1688739655.920305
+gen 1688739655.9263117
+end 1688739655.9295864
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+    genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 208, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 251, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.40
+user 0.38
+sys 0.02

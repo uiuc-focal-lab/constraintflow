@@ -1,0 +1,17 @@
+start 1688655645.5976713
+Invariant true on input
+Induction step proved
+Invariant true on input
+Induction step proved
+gen 1688655648.1443388
+end 1688655648.6169605
+gen 1688655648.6263855
+end 1688655649.6297317
+gen 1688655649.6382751
+end 1688655649.641676
+gen 1688655649.6501215
+end 1688655649.6533885
+Proved  Affine
+real 4.26
+user 4.23
+sys 0.02

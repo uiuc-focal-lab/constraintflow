@@ -1,0 +1,56 @@
+start 1688739674.483247
+gen 1688739674.4978087
+end 1688739674.5012286
+gen 1688739674.507759
+end 1688739674.510907
+gen 1688739674.5171463
+end 1688739674.5202634
+gen 1688739674.5266757
+end 1688739674.5298095
+gen 1688739674.5369167
+end 1688739674.54005
+gen 1688739674.5456417
+end 1688739674.5487118
+gen 1688739674.554552
+end 1688739674.5576484
+gen 1688739674.5636783
+end 1688739674.5667274
+gen 1688739674.5730658
+end 1688739674.576186
+gen 1688739674.582832
+end 1688739674.5859423
+gen 1688739674.5914674
+end 1688739674.5945716
+gen 1688739674.6003702
+end 1688739674.6034281
+gen 1688739674.609829
+end 1688739674.6128762
+gen 1688739674.6194441
+end 1688739674.6228778
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+    genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 208, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 256, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 251, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.41
+user 0.39
+sys 0.02

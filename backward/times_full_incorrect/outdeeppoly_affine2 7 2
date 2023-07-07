@@ -1,0 +1,40 @@
+start 1688759285.985939
+lexer 1688759285.986225
+tokens 1688759285.9862316
+parser 1688759285.9862537
+visit 1688759286.1143997
+type check 1688759286.1148279
+start 1688759286.1148903
+gen 1688759286.130627
+end 1688759286.1306312
+gen 1688759286.1476474
+end 1688759286.1476514
+gen 1688759286.158572
+end 1688759286.1585767
+gen 1688759286.16939
+end 1688759286.1693945
+gen 1688759286.2001512
+end 1688759286.2066104
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 38, in <module>
+    genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.39
+user 0.36
+sys 0.03

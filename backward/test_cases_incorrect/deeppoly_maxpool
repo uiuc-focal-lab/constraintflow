@@ -12,10 +12,12 @@ func priority2(Neuron n) = -n[layer];
 func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_lower){e <= n}).map(simplify_lower);
 func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_upper){e >= n}).map(simplify_upper);
 
-func f(Neuron n1, Neuron n2) = n1[l] >= n2[l];
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
 transformer deeppoly(curr, prev){
-    Maxpool -> (max(prev[l]), max(prev[u]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[l]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[u]));
+    Maxpool -> (max(prev[l]), max(prev[u]), 
+    len(argmax(prev, f)) > 0 ? sum(argmax(prev, f)) : max(prev[l]), 
+    len(argmax(prev, f)) > 0 ? sum(argmax(prev, f)) : max(prev[u]));
 }
 
 flow(forward, priority, true, deeppoly);

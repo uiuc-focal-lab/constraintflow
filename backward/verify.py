@@ -58,6 +58,7 @@ class Verify(astVisitor.ASTVisitor):
 			# n = Real('V_'+str(self.number.nextn()))
 			# self.old_neurons.append(n)
 		self.store = {}
+		#set_param("timeout", 30)
 
 	def visitShapeDecl(self, node):
 		for (t,e) in node.elements.arglist:
@@ -72,9 +73,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.theta[node.name.name] = node
 
 	def visitFlow(self, node):
+		print("start",time.time())
 		node = self.theta[node.trans.name]
 		for op_i in range(len(node.oplist.olist)):
-			#print(time.time(), "start")
 			self.E.clear()
 
 			op = node.oplist.olist[op_i]
@@ -235,6 +236,7 @@ class Verify(astVisitor.ASTVisitor):
 						conds_eps.append(e >= -1)
 					z3constraint = Exists(self.E, And(conds_eps))
 				solver = Solver()
+				#solver.set(timeout=30)
 				leftC += s.os.C + computation
 				# print(leftC)
 
@@ -242,17 +244,14 @@ class Verify(astVisitor.ASTVisitor):
 				#print(p)
 				#print("------------------------------------------------------------------------------")
 				solver.add(p)
-				#print(time.time(), "generated")
+				print("gen",time.time())
 				
 				#Printing stats about Z3 Queries:
 				#print(len(get_vars(p)) )
-
 				if(not (solver.check() == unsat)):
-					#print(solver.model())
-					#print(time.time(), "finished")
-					#print(solver.model())
+					print("end",time.time())
 					raise Exception("Transformer"+ " " + " not true")
-				#print(time.time(), "finished")
+				print("end",time.time())
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
 			self.applyTrans(leftC + [condz3], vallist.left, s, curr_prime, computation)

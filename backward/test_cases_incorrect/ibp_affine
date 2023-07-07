@@ -7,7 +7,7 @@ func priority(Neuron n) = n[layer];
 
 
 transformer ibp(curr, prev){
-    Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) - curr[bias]).map(simplify_upper));
+    Affine -> ((prev.dot(curr[weight]) - curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper));
 }
 
 flow(forward, priority, true, ibp);
