@@ -57,8 +57,8 @@ class ASTTC(astVisitor.ASTVisitor):
 		self.shape = []
 		# self.currdefined = False #prev is also defined when curr is
 		self.edges = {"Int": "Float", "Float" : ["PolyExp", "ZonoExp"], "Neuron":"PolyExp", "Noise":"ZonoExp", "ZonoExp":"Top", "PolyExp":"Top", "Bool":"Ct", "Ct":"Top", "Bot":["Bool", "Int", "Noise", "Neuron"]}
-		self.metadata = {"layer":"Int", "weight": ArrayType("Float"), "bias": "Float", "serial":"Int", "local_serial": "Int", "equations":ArrayType("PolyExp")}
-	
+		self.metadata = {"layer":"Int", "weight": ArrayType("Float"), "bias": "Float", "serial":"Int", "local_serial": "Int", "equations":ArrayType("PolyExp")}	
+		self.hasE = False
 
 	def isSubType(self, t1, t2):
 		if(t1 == t2):
@@ -251,6 +251,7 @@ class ASTTC(astVisitor.ASTVisitor):
 	# 		raise UndefinedVarException("Prev is not defined")
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
+		self.hasE = True
 		return "Noise"
 
 	def visitTernary(self, node: AST.TernaryNode):
@@ -486,8 +487,11 @@ class ASTTC(astVisitor.ASTVisitor):
 		self.visit(node.ret)
 		
 	def visitOpList(self, node: AST.OpListNode):
+		node.opsE = []
 		for s in node.olist:
 			self.visit(s)
+			node.opsE.append(self.hasE)
+			self.hasE = False
 
 	def visitTransformer(self, node: AST.TransformerNode):
 		tname = node.name.name 

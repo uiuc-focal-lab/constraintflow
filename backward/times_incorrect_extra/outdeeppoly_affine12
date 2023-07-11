@@ -1,0 +1,86 @@
+start 1688858974.4729803
+lexer 1688858974.4731827
+tokens 1688858974.4731886
+parser 1688858974.4732075
+visit 1688858974.5733812
+type check 1688858974.5737035
+start 1688858974.5737514
+jhsgdjfhakjshdgfkjhaskdhfg
+1688858974.6036649
+1688858974.603668
+PolyExp
+1688858974.604697
+1688858974.6049054
+jhsgdjfhakjshdgfkjhaskdhfg
+1688858974.6212718
+1688858974.621274
+PolyExp
+1688858974.622271
+1688858974.6224515
+graph expansion done 1688858974.622473
+symbolic output 1688858974.6232517
+sjdhfgkhujasdgfjhasgdf
+[out_trav_X104 +
+If(out_trav_c105 >= 0,
+   out_trav_c105*V32_l_33,
+   out_trav_c105*V32_u_34) +
+If(out_trav_c106 >= 0,
+   out_trav_c106*V38_l_39,
+   out_trav_c106*V38_u_40) +
+If(out_trav_c107 >= 0,
+   out_trav_c107*V44_l_45,
+   out_trav_c107*V44_u_46) +
+If(out_trav_c108 >= 0,
+   out_trav_c108*V50_l_51,
+   out_trav_c108*V50_u_52) +
+If(out_trav_c109 >= 0,
+   out_trav_c109*V56_l_57,
+   out_trav_c109*V56_u_58) +
+If(out_trav_c110 >= 0,
+   out_trav_c110*V62_l_63,
+   out_trav_c110*V62_u_64) +
+If(out_trav_c111 >= 0,
+   out_trav_c111*V68_l_69,
+   out_trav_c111*V68_u_70) +
+If(out_trav_c112 >= 0,
+   out_trav_c112*V74_l_75,
+   out_trav_c112*V74_u_76) +
+If(out_trav_c113 >= 0,
+   out_trav_c113*V80_l_81,
+   out_trav_c113*V80_u_82) +
+If(out_trav_c114 >= 0,
+   out_trav_c114*V86_l_87,
+   out_trav_c114*V86_u_88) +
+If(out_trav_c115 >= 0,
+   out_trav_c115*V92_l_93,
+   out_trav_c115*V92_u_94) +
+If(out_trav_c116 >= 0,
+   out_trav_c116*V98_l_99,
+   out_trav_c116*V98_u_100) -
+bias_curr25 <=
+curr_prime0]
+gen 1688858976.939172
+end 1688858976.942719
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 295, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 291, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 212, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 260, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 2.59
+user 2.57
+sys 0.02

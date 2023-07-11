@@ -1,4 +1,4 @@
-def Shape as (Float l, Float u, ZonoExp z){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z])]};
+def Shape as (Float l, Float u, ZonoExp z){[(curr[u]>=curr),(curr[u]>=curr),(curr In curr[z]),(curr[l]<=curr)]};
 
 func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
 func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);

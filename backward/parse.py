@@ -1,6 +1,6 @@
 import os
 
-folder = "times_full_incorrect/"
+folder = "new_final/"
 names = []
 for filename in os.listdir(folder):
 	names.append(filename)

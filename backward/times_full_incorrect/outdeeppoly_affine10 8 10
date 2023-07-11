@@ -1,42 +1,40 @@
-start 1688735268.366284
+start 1688839018.1247241
+lexer 1688839018.124941
+tokens 1688839018.1249466
+parser 1688839018.124968
+visit 1688839018.231555
+type check 1688839018.231901
+start 1688839018.2319553
+gen 1688839018.2491255
+end 1688839018.2491317
+gen 1688839018.2643206
+end 1688839018.2643254
+gen 1688839018.2748992
+end 1688839018.2749057
+gen 1688839018.285046
+end 1688839018.2850513
+gen 1688839018.3271952
+end 1688839018.3327258
 Traceback (most recent call last):
-  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 38, in <module>
     genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
-  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 34, in genAST
     v.visit(ast)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
     return self.visitProg(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
     self.visit(node.stmt)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
     return self.visitSeq(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
     self.visit(node.stmt2)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
     return self.visitFlow(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 191, in visitFlow
-    s.visit(op.ret)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 65, in visit
-    return self.visitTransRetBasic(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 398, in visitTransRetBasic
-    self.visit(node.exprlist)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 13, in visit
-    return self.visitExprList(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 164, in visitExprList
-    self.visit(e)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 61, in visit
-    return self.visitFuncCall(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 235, in visitFuncCall
-    self.visit(func.expr)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 51, in visit
-    return self.visitMap(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 187, in visitMap
-    self.visit(node.expr)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 49, in visit
-    return self.visitTraverse(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 379, in visitTraverse
-    raise Exception("Invariant is not true on input")
-Exception: Invariant is not true on input
-real 0.23
-user 0.21
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.34
+user 0.32
 sys 0.02

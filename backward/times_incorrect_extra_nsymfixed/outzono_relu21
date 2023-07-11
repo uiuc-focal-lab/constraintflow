@@ -1,0 +1,52 @@
+start 1688843136.8669126
+lexer 1688843136.8671012
+tokens 1688843136.8671062
+parser 1688843136.8671277
+visit 1688843136.9450653
+type check 1688843136.9452682
+start 1688843136.9452953
+gen 1688843136.9586635
+end 1688843136.9618402
+gen 1688843136.9679396
+end 1688843136.970847
+gen 1688843136.97683
+end 1688843136.9796655
+gen 1688843136.9849954
+end 1688843136.9878306
+gen 1688843136.993236
+end 1688843136.9961207
+gen 1688843137.0017045
+end 1688843137.0045834
+gen 1688843137.0097792
+end 1688843137.0126562
+gen 1688843137.018021
+end 1688843137.0209057
+gen 1688843137.0265841
+end 1688843137.0294838
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.29
+user 0.27
+sys 0.02

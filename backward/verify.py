@@ -78,6 +78,7 @@ class Verify(astVisitor.ASTVisitor):
 		for op_i in range(len(node.oplist.olist)):
 			self.E.clear()
 
+			hasE = node.oplist.opsE[op_i]
 			op = node.oplist.olist[op_i]
 			store = self.store
 			if(op.op.op_name == "Relu"):
@@ -85,6 +86,7 @@ class Verify(astVisitor.ASTVisitor):
 			else:
 				nprev = self.Nprev
 			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons)
+			s.os.hasE = hasE
 			#node = self.theta[node.trans.name]
 			if("curr" in node.arglist):
 				curr = Vertex('Curr')
@@ -128,7 +130,7 @@ class Verify(astVisitor.ASTVisitor):
 				s.currop = (curr.name == exptemp)
 			elif(op.op.op_name == "rev_Affine"):
 				if(not "equations" in curr.symmap.keys()):
-					curr.symmap["equations"] = [(Real('equations_' + str(op_i) + "_" + str(self.number.nextn())), "PolyExp") for i in range(self.Ncurr)]
+					curr.symmap["equations"] = [(Real('equations_' + str(op_i) + "_" + str(self.number.nextn())), "PolyExp") for i in range(nprev)]
 				exptemp = (True, "Bool")
 				for t in curr.symmap["equations"]:
 					exptemp = AND(exptemp, EQQ(curr.name, t))
@@ -187,26 +189,30 @@ class Verify(astVisitor.ASTVisitor):
 			
 			
 			# computation = (curr_prime.name == curr.name)
-			computation = [s.currop, (curr_prime.name == curr.name)]
-
+			computation = [s.currop, (curr_prime.name == curr.name)] + s.os.tempC
+			s.os.tempC = []
+			s.flag = True
 			s.visit(op.ret)
+			print("graph expansion done", time.time())
 			vallist = None
+			#s.os.flag = True
 			if(isinstance(op.ret, AST.TransRetIfNode)):
 				vallist = self.visitTransRetIf(op.ret, s)
 			else:
+				#print('here')
 				vallist = self.visitTransRetBasic(op.ret, s)
-				
+			print("symbolic output", time.time())
 			# print(computation)
 			# print(s.currop)
 			# print()
 			# print(s.os.C)
 			# print()
 			# print(s.os.C)
-			leftC = s.os.C + computation
+			leftC = computation + s.os.C 
 			# print(vallist)
 			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
-			self.applyTrans([], vallist, s, curr_prime, computation)
+			self.applyTrans(leftC, vallist, s, curr_prime, computation)
 			print("Proved ", op.op.op_name)
 
 	def applyTrans(self, leftC, vallist, s, curr_prime, computation):
@@ -223,12 +229,15 @@ class Verify(astVisitor.ASTVisitor):
 			conslist = [self.constraint]
 			if isinstance(self.constraint, AST.ExprListNode):
 				conslist = self.constraint.exprlist
-
+			set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
 			for one_cons in conslist:
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
+				# print('sjdhfgkhujasdgfjhasgdf')
+				# print(c)
 			# print(c)
 			#for c in clist:
 				z3constraint = s.os.convertToZ3(c)
+				#print("time", time.time())
 				if len(self.E) > 0:
 					conds_eps = [z3constraint]
 					for e in self.E:
@@ -237,25 +246,34 @@ class Verify(astVisitor.ASTVisitor):
 					z3constraint = Exists(self.E, And(conds_eps))
 				solver = Solver()
 				#solver.set(timeout=30)
-				leftC += s.os.C + computation
+				# leftC += s.os.C 
 				# print(leftC)
+				newLeftC = leftC + s.os.tempC
+				#print(computation)
 
-				p = Not(Implies(And(leftC), z3constraint))
+				p = Not(Implies(And(newLeftC), z3constraint))
+				#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
+				#print("final query")
 				#print(p)
 				#print("------------------------------------------------------------------------------")
 				solver.add(p)
 				print("gen",time.time())
-				
+				#print(solver)
 				#Printing stats about Z3 Queries:
 				#print(len(get_vars(p)) )
 				if(not (solver.check() == unsat)):
 					print("end",time.time())
+					#print(solver)
+					#print(solver.model())
 					raise Exception("Transformer"+ " " + " not true")
 				print("end",time.time())
+				s.os.tempC = []
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
-			self.applyTrans(leftC + [condz3], vallist.left, s, curr_prime, computation)
-			self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+			preC = leftC + s.os.tempC
+			s.os.tempC = []
+			self.applyTrans(preC + [condz3], vallist.left, s, curr_prime, computation)
+			self.applyTrans(preC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)

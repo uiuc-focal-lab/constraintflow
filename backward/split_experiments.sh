@@ -2,15 +2,15 @@
 
 python_script="experiments.py"
 
-folder="test_cases_correct/"
-times="times_full_correct/"
+folder="test_cases_incorrect/"
+times="times_full_incorrect/"
 #folder="test_cases_incorrect/"
 #files=( "deeppoly_relu" "deeppoly_affine" "deeppoly_maxpool" "zono_relu" "zono_affine" "zono_maxpool" "refinezono_relu" "refinezono_affine" "refinezono_maxpool" "ibp_relu" "ibp_affine" "ibp_maxpool" "polyzono_relu" "polyzono_affine" "polyzono_maxpool" "fb_relu" "fb_affine" "fb_maxpool" )
 #combinations=("1 1 2" "1 4 2" "1 7 2" "1 10 2" "3 4 2" "3 7 2" "3 10 2" "4 7 2" "4 10 2" "5 7 2" "5 10 2" "7 7 2" "7 10 2" "8 10 2" "10 10 2")
 #combinations=("1 3 1" "3 3 3" "5 3 5" "7 3 7" "9 3 9")
 files=( "deeppoly_affine" "polyzono_affine" )
 nprev=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
-nsymb=("1" "2" "3" "4" "5" "6" "7" )
+nsymb=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10")
 
 timeout_value=320
 
