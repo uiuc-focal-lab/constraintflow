@@ -15,7 +15,7 @@ func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
 transformer deeppoly(curr, prev){
-    Maxpool -> (max(prev[l]), max(prev[u]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[l]), len(argmax(prev, f)) > 0 ? avg(argmax(prev, f)) : max(prev[u]));
+    Maxpool -> len(argmax(prev, f)) > 0 ? (max(prev[l]), max(prev[u]),  avg(argmax(prev, f)), avg(argmax(prev, f))) : (max(prev[l]), max(prev[u]), max(prev[l]), max(prev[u]));
 }
 
 flow(forward, priority, true, deeppoly);

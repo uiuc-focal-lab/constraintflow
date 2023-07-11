@@ -6,6 +6,7 @@ from value import *
 from symbolicos import *
 import copy
 import time
+import astPrinter
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
@@ -16,6 +17,9 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 				v.symmap[var] = (Bool(vname + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == "Int"):
 				v.symmap[var] = (Int(vname + "_" + var + "_" + str(number.nextn())), vars[var])
+			else:
+				v.symmap[var] = (Real(vname + "_" + var + "_" + str(number.nextn())), vars[var])
+			'''
 			elif(vars[var] == 'ZonoExp'):
 				sum = (Real(vname + "_const_" + str(number.nextn())), 'Float')
 				for i in range(os.Nzono):
@@ -28,15 +32,21 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 					noise = os.old_eps[i]
 					sum = ADD(sum, MULT(coeff, (noise, 'Noise')))
 				v.symmap[var] = sum 
-			else:
-				v.symmap[var] = (Real(vname + "_" + var + "_" + str(number.nextn())), vars[var])
+			'''
+
 
 	store["curr_new"] = (v.name, "Neuron")
 	Ctemp = []
 	if(not isinstance(constraint, list)):
 		constraint = [constraint]
 	for cons in constraint:
-		Ctemp.append(os.convertToZ3(os.visit(cons)))
+		visitedc = os.visit(cons)
+		if(not flag):
+			os.flag = True
+
+		Ctemp.append(os.convertToZ3(visitedc))
+		if(not flag):
+			os.flag = False
 		
 	del store["curr_new"]
 	if flag:
@@ -64,6 +74,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		g = getVars(self.constraint, self.shape)
 		g.visit(self.constraint)
 		self.vars = g.vars
+		self.flag = False
 		#set_param("timeout", 30)
 
 	def visitInt(self, node):
@@ -84,7 +95,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitBinOp(self, node):
 		self.visit(node.left)
 		self.visit(node.right)
-
+		
 	def visitUnOp(self, node):
 		self.visit(node.expr)
 
@@ -164,17 +175,24 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitExprList(self, node):
 		for e in node.exprlist:
 			self.visit(e)
-
+			
 	def get_map(self, val, node):
+		#print('jhsgdjfhakjshdgfkjhaskdhfg')
+		#print(time.time())
 		if isinstance(val, IF):
 			self.get_map(val.left, node)
 			self.get_map(val.right, node)
 		else:
-			if self.os.get_type(val)=='PolyExp' or self.os.get_type(val)=='Neuron':
+			#print(time.time())
+			uiuiui = self.os.get_type(val)
+			#print(uiuiui)
+			if uiuiui=='PolyExp' or uiuiui=='Neuron':
 				expr = self.os.convertToPoly(val)
-
 			else:
 				expr = self.os.convertToZono(val)
+			# print('jhsgdjfhakjshdgfkjhaskdhfg')
+			#print(time.time())
+
 			for n in expr.coeffs.keys():
 				if isinstance(node.func, AST.VarNode):
 					elist = []
@@ -182,7 +200,15 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					elist = self.os.visit(node.func)
 				elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
 				fcall = AST.FuncCallNode(node.func, elist)
+				# if i==0: 
+				# 	print('jhsdgjhfgjhsdgf')
+				# 	print(time.time())
 				self.visitFuncCall(fcall, True)
+				# if i==0:
+			#print(time.time())
+
+
+				# i = i+1
 
 	def visitMap(self, node):
 		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
@@ -205,7 +231,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				self.visitFuncCall(fcall, True)
 
 	def visitMapList(self, node):
-		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
+		#checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		self.visit(node.expr)
 		p = self.os.visit(node.expr)
 		self.get_maplist(p, node)
@@ -328,7 +354,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		
 		# self.os.store[node.expr.name] = old_val
 
-		p = Not(Implies(And(self.os.C + [p_input]), p_output))
+		p = Not(Implies(And(self.os.C + [p_input]+ self.os.tempC), p_output))
 		s.add(p)
 		print("gen",time.time())
 		#set_param('timeout', 30)
@@ -336,7 +362,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		#s.set("timeout",10000)
 		#print(p)
 		#z3.set_option(timeout=30)
-		'''
+		
 		if(not (s.check() == unsat)):
 			print(p)
 			print(s.model())
@@ -344,7 +370,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			raise Exception("Induction step is not true")
 		else:
 			print("Induction step proved")
-		'''
+		
 		print("end",time.time())
 		
 		# self.os.M = oldM
@@ -384,18 +410,20 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		p = self.os.visit(node.p)
 		
 		pz3 = self.os.convertToZ3(p)
-		prop = Not(Implies(And(self.os.C + [self.currop]), pz3))
+		prop = Not(Implies(And(self.os.C + [self.currop]+self.os.tempC), pz3))
 		s = Solver()
 		#s.set("timeout",3000)
 		s.add(prop)
+		#print("induction query:")
+		#print(prop)
 		print("gen",time.time())
-		'''
+		
 		if(not (s.check() == unsat)):
 			print("end",time.time())
 			raise Exception("Invariant is not true on input")
 		else:
 			print("Invariant true on input")
-		'''
+		
 		print("end",time.time())
 
 		output, prop_output = self.check_invariant(node)

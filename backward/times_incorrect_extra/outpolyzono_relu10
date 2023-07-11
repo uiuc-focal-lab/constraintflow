@@ -1,0 +1,62 @@
+start 1688840094.3633652
+lexer 1688840094.3635657
+tokens 1688840094.36357
+parser 1688840094.363588
+visit 1688840094.4999938
+type check 1688840094.5003927
+start 1688840094.5004447
+gen 1688840094.5157466
+end 1688840094.519247
+gen 1688840094.5260022
+end 1688840094.5292282
+gen 1688840094.5356586
+end 1688840094.5387902
+gen 1688840094.5454285
+end 1688840094.5485358
+gen 1688840094.5560825
+end 1688840094.5592263
+gen 1688840094.564987
+end 1688840094.5681581
+gen 1688840094.5741153
+end 1688840094.5772388
+gen 1688840094.5834937
+end 1688840094.586613
+gen 1688840094.5932138
+end 1688840094.5963469
+gen 1688840094.6032434
+end 1688840094.60632
+gen 1688840094.6121516
+end 1688840094.6152606
+gen 1688840094.6211693
+end 1688840094.6242843
+gen 1688840094.6304953
+end 1688840094.6335998
+gen 1688840094.640355
+end 1688840094.6438892
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.41
+user 0.39
+sys 0.02

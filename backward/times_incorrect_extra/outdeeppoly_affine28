@@ -1,0 +1,36 @@
+start 1688851762.4562654
+lexer 1688851762.4564552
+tokens 1688851762.4564595
+parser 1688851762.4564764
+visit 1688851762.5563252
+type check 1688851762.5566554
+start 1688851762.5567055
+{Curr: <symbolicos.Vertex object at 0x7f89a084b9a0>, Prev0: <symbolicos.Vertex object at 0x7f89a084b700>, Prev1: <symbolicos.Vertex object at 0x7f89a084be20>, Prev2: <symbolicos.Vertex object at 0x7f89a084bfa0>, Prev3: <symbolicos.Vertex object at 0x7f89a0878280>, Prev4: <symbolicos.Vertex object at 0x7f89a0878520>, curr_prime0: <symbolicos.Vertex object at 0x7f89a084ba30>, V32: <symbolicos.Vertex object at 0x7f89a0879180>, V38: <symbolicos.Vertex object at 0x7f89a0879810>, V44: <symbolicos.Vertex object at 0x7f89a0879e70>, V50: <symbolicos.Vertex object at 0x7f89a087a4d0>, V56: <symbolicos.Vertex object at 0x7f89a087ab30>, V62: <symbolicos.Vertex object at 0x7f89a087b190>, V68: <symbolicos.Vertex object at 0x7f89a087b7f0>, V74: <symbolicos.Vertex object at 0x7f89a087be50>, V80: <symbolicos.Vertex object at 0x7f89a08844f0>, V86: <symbolicos.Vertex object at 0x7f89a0884b50>, V92: <symbolicos.Vertex object at 0x7f89a08851b0>, V98: <symbolicos.Vertex object at 0x7f89a0885810>, V104: <symbolicos.Vertex object at 0x7f89a0885e70>, V110: <symbolicos.Vertex object at 0x7f89a0886500>, V116: <symbolicos.Vertex object at 0x7f89a0886b60>, V122: <symbolicos.Vertex object at 0x7f89a08871c0>, V128: <symbolicos.Vertex object at 0x7f89a0887820>, V134: <symbolicos.Vertex object at 0x7f89a0887e80>, V140: <symbolicos.Vertex object at 0x7f89a0888520>, V146: <symbolicos.Vertex object at 0x7f89a0888b80>, V152: <symbolicos.Vertex object at 0x7f89a08891e0>, V158: <symbolicos.Vertex object at 0x7f89a0889840>, V164: <symbolicos.Vertex object at 0x7f89a0889ea0>, V170: <symbolicos.Vertex object at 0x7f89a088a500>, V176: <symbolicos.Vertex object at 0x7f89a088ab60>, V182: <symbolicos.Vertex object at 0x7f89a088b1c0>, V188: <symbolicos.Vertex object at 0x7f89a088b820>, V194: <symbolicos.Vertex object at 0x7f89a088be80>}
+35
+graph expansion done 1688852070.1057565
+symbolic output 1688852070.1075091
+gen 1688852070.1234832
+end 1688852070.1344147
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 294, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 290, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 213, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 259, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 307.81
+user 307.77
+sys 0.02

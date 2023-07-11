@@ -1,0 +1,412 @@
+start 1689012819.761896
+lexer 1689012819.7621384
+tokens 1689012819.7621443
+parser 1689012819.7621686
+visit 1689012819.9192603
+type check 1689012819.9197254
+start 1689012819.9197936
+gen 1689012819.9369347
+Invariant true on input
+end 1689012819.940591
+gen 1689012819.9533648
+Induction step proved
+end 1689012819.960722
+gen 1689012819.9710224
+Invariant true on input
+end 1689012819.9746337
+gen 1689012819.982288
+Induction step proved
+end 1689012819.9895995
+graph expansion done 1689012819.991817
+symbolic output 1689012819.9924226
+Not(Implies(And(Curr ==
+                bias_curr16 +
+                weight_curr0_17*Prev0 +
+                weight_curr0_18*Prev1,
+                curr_prime0 == Curr,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr == Curr_z_5, True))))),
+                And(Prev0_l_6 <= Prev0,
+                    And(Prev0_u_7 >= Prev0,
+                        And(Prev0_L_8 <= Prev0,
+                            And(Prev0_U_9 >= Prev0,
+                                And(Prev0 == Prev0_z_10,
+                                    True))))),
+                And(Prev1_l_11 <= Prev1,
+                    And(Prev1_u_12 >= Prev1,
+                        And(Prev1_L_13 <= Prev1,
+                            And(Prev1_U_14 >= Prev1,
+                                And(Prev1 == Prev1_z_15,
+                                    True))))),
+                And(V20_l_21 <= V20,
+                    And(V20_u_22 >= V20,
+                        And(V20_L_23 <= V20,
+                            And(V20_U_24 >= V20,
+                                And(V20 == V20_z_25, True))))),
+                And(V27_l_28 <= V27,
+                    And(V27_u_29 >= V27,
+                        And(V27_L_30 <= V27,
+                            And(V27_U_31 >= V27,
+                                And(V27 == V27_z_32, True))))),
+                And(V34_l_35 <= V34,
+                    And(V34_u_36 >= V34,
+                        And(V34_L_37 <= V34,
+                            And(V34_U_38 >= V34,
+                                And(V34 == V34_z_39, True))))),
+                And(V41_l_42 <= V41,
+                    And(V41_u_43 >= V41,
+                        And(V41_L_44 <= V41,
+                            And(V41_U_45 >= V41,
+                                And(V41 == V41_z_46, True))))),
+                out_trav_X48 +
+                out_trav_c49*V20 +
+                out_trav_c50*V27 +
+                out_trav_c51*V34 +
+                out_trav_c52*V41 <=
+                Curr,
+                out_trav_X58 +
+                out_trav_c59*V20 +
+                out_trav_c60*V27 +
+                out_trav_c61*V34 +
+                out_trav_c62*V41 >=
+                Curr),
+            And(If(If(weight_curr0_18 >= 0,
+                      weight_curr0_18*Prev1_l_11,
+                      weight_curr0_18*Prev1_u_12) +
+                   If(weight_curr0_17 >= 0,
+                      weight_curr0_17*Prev0_l_6,
+                      weight_curr0_17*Prev0_u_7) +
+                   0 +
+                   bias_curr16 >=
+                   out_trav_X48 +
+                   If(out_trav_c49 >= 0,
+                      out_trav_c49*V20_l_21,
+                      out_trav_c49*V20_u_22) +
+                   If(out_trav_c50 >= 0,
+                      out_trav_c50*V27_l_28,
+                      out_trav_c50*V27_u_29) +
+                   If(out_trav_c51 >= 0,
+                      out_trav_c51*V34_l_35,
+                      out_trav_c51*V34_u_36) +
+                   If(out_trav_c52 >= 0,
+                      out_trav_c52*V41_l_42,
+                      out_trav_c52*V41_u_43),
+                   If(weight_curr0_18 >= 0,
+                      weight_curr0_18*Prev1_l_11,
+                      weight_curr0_18*Prev1_u_12) +
+                   If(weight_curr0_17 >= 0,
+                      weight_curr0_17*Prev0_l_6,
+                      weight_curr0_17*Prev0_u_7) +
+                   0 +
+                   bias_curr16,
+                   out_trav_X48 +
+                   If(out_trav_c49 >= 0,
+                      out_trav_c49*V20_l_21,
+                      out_trav_c49*V20_u_22) +
+                   If(out_trav_c50 >= 0,
+                      out_trav_c50*V27_l_28,
+                      out_trav_c50*V27_u_29) +
+                   If(out_trav_c51 >= 0,
+                      out_trav_c51*V34_l_35,
+                      out_trav_c51*V34_u_36) +
+                   If(out_trav_c52 >= 0,
+                      out_trav_c52*V41_l_42,
+                      out_trav_c52*V41_u_43)) <=
+                curr_prime0,
+                True)))
+gen 1689012820.0564077
+end 1689012820.084394
+Not(Implies(And(Curr ==
+                bias_curr16 +
+                weight_curr0_17*Prev0 +
+                weight_curr0_18*Prev1,
+                curr_prime0 == Curr,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr == Curr_z_5, True))))),
+                And(Prev0_l_6 <= Prev0,
+                    And(Prev0_u_7 >= Prev0,
+                        And(Prev0_L_8 <= Prev0,
+                            And(Prev0_U_9 >= Prev0,
+                                And(Prev0 == Prev0_z_10,
+                                    True))))),
+                And(Prev1_l_11 <= Prev1,
+                    And(Prev1_u_12 >= Prev1,
+                        And(Prev1_L_13 <= Prev1,
+                            And(Prev1_U_14 >= Prev1,
+                                And(Prev1 == Prev1_z_15,
+                                    True))))),
+                And(V20_l_21 <= V20,
+                    And(V20_u_22 >= V20,
+                        And(V20_L_23 <= V20,
+                            And(V20_U_24 >= V20,
+                                And(V20 == V20_z_25, True))))),
+                And(V27_l_28 <= V27,
+                    And(V27_u_29 >= V27,
+                        And(V27_L_30 <= V27,
+                            And(V27_U_31 >= V27,
+                                And(V27 == V27_z_32, True))))),
+                And(V34_l_35 <= V34,
+                    And(V34_u_36 >= V34,
+                        And(V34_L_37 <= V34,
+                            And(V34_U_38 >= V34,
+                                And(V34 == V34_z_39, True))))),
+                And(V41_l_42 <= V41,
+                    And(V41_u_43 >= V41,
+                        And(V41_L_44 <= V41,
+                            And(V41_U_45 >= V41,
+                                And(V41 == V41_z_46, True))))),
+                out_trav_X48 +
+                out_trav_c49*V20 +
+                out_trav_c50*V27 +
+                out_trav_c51*V34 +
+                out_trav_c52*V41 <=
+                Curr,
+                out_trav_X58 +
+                out_trav_c59*V20 +
+                out_trav_c60*V27 +
+                out_trav_c61*V34 +
+                out_trav_c62*V41 >=
+                Curr),
+            And(If(If(weight_curr0_18 >= 0,
+                      weight_curr0_18*Prev1_u_12,
+                      weight_curr0_18*Prev1_l_11) +
+                   If(weight_curr0_17 >= 0,
+                      weight_curr0_17*Prev0_u_7,
+                      weight_curr0_17*Prev0_l_6) +
+                   0 +
+                   bias_curr16 <=
+                   out_trav_X58 +
+                   If(out_trav_c59 >= 0,
+                      out_trav_c59*V20_u_22,
+                      out_trav_c59*V20_l_21) +
+                   If(out_trav_c60 >= 0,
+                      out_trav_c60*V27_u_29,
+                      out_trav_c60*V27_l_28) +
+                   If(out_trav_c61 >= 0,
+                      out_trav_c61*V34_u_36,
+                      out_trav_c61*V34_l_35) +
+                   If(out_trav_c62 >= 0,
+                      out_trav_c62*V41_u_43,
+                      out_trav_c62*V41_l_42),
+                   If(weight_curr0_18 >= 0,
+                      weight_curr0_18*Prev1_u_12,
+                      weight_curr0_18*Prev1_l_11) +
+                   If(weight_curr0_17 >= 0,
+                      weight_curr0_17*Prev0_u_7,
+                      weight_curr0_17*Prev0_l_6) +
+                   0 +
+                   bias_curr16,
+                   out_trav_X58 +
+                   If(out_trav_c59 >= 0,
+                      out_trav_c59*V20_u_22,
+                      out_trav_c59*V20_l_21) +
+                   If(out_trav_c60 >= 0,
+                      out_trav_c60*V27_u_29,
+                      out_trav_c60*V27_l_28) +
+                   If(out_trav_c61 >= 0,
+                      out_trav_c61*V34_u_36,
+                      out_trav_c61*V34_l_35) +
+                   If(out_trav_c62 >= 0,
+                      out_trav_c62*V41_u_43,
+                      out_trav_c62*V41_l_42)) >=
+                curr_prime0,
+                True)))
+gen 1689012820.1584983
+end 1689012820.1878963
+Not(Implies(And(Curr ==
+                bias_curr16 +
+                weight_curr0_17*Prev0 +
+                weight_curr0_18*Prev1,
+                curr_prime0 == Curr,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr == Curr_z_5, True))))),
+                And(Prev0_l_6 <= Prev0,
+                    And(Prev0_u_7 >= Prev0,
+                        And(Prev0_L_8 <= Prev0,
+                            And(Prev0_U_9 >= Prev0,
+                                And(Prev0 == Prev0_z_10,
+                                    True))))),
+                And(Prev1_l_11 <= Prev1,
+                    And(Prev1_u_12 >= Prev1,
+                        And(Prev1_L_13 <= Prev1,
+                            And(Prev1_U_14 >= Prev1,
+                                And(Prev1 == Prev1_z_15,
+                                    True))))),
+                And(V20_l_21 <= V20,
+                    And(V20_u_22 >= V20,
+                        And(V20_L_23 <= V20,
+                            And(V20_U_24 >= V20,
+                                And(V20 == V20_z_25, True))))),
+                And(V27_l_28 <= V27,
+                    And(V27_u_29 >= V27,
+                        And(V27_L_30 <= V27,
+                            And(V27_U_31 >= V27,
+                                And(V27 == V27_z_32, True))))),
+                And(V34_l_35 <= V34,
+                    And(V34_u_36 >= V34,
+                        And(V34_L_37 <= V34,
+                            And(V34_U_38 >= V34,
+                                And(V34 == V34_z_39, True))))),
+                And(V41_l_42 <= V41,
+                    And(V41_u_43 >= V41,
+                        And(V41_L_44 <= V41,
+                            And(V41_U_45 >= V41,
+                                And(V41 == V41_z_46, True))))),
+                out_trav_X48 +
+                out_trav_c49*V20 +
+                out_trav_c50*V27 +
+                out_trav_c51*V34 +
+                out_trav_c52*V41 <=
+                Curr,
+                out_trav_X58 +
+                out_trav_c59*V20 +
+                out_trav_c60*V27 +
+                out_trav_c61*V34 +
+                out_trav_c62*V41 >=
+                Curr),
+            And(Prev1*weight_curr0_18 +
+                Prev0*weight_curr0_17 +
+                0 +
+                bias_curr16 <=
+                curr_prime0,
+                True)))
+gen 1689012820.218056
+end 1689012820.221836
+Not(Implies(And(Curr ==
+                bias_curr16 +
+                weight_curr0_17*Prev0 +
+                weight_curr0_18*Prev1,
+                curr_prime0 == Curr,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr == Curr_z_5, True))))),
+                And(Prev0_l_6 <= Prev0,
+                    And(Prev0_u_7 >= Prev0,
+                        And(Prev0_L_8 <= Prev0,
+                            And(Prev0_U_9 >= Prev0,
+                                And(Prev0 == Prev0_z_10,
+                                    True))))),
+                And(Prev1_l_11 <= Prev1,
+                    And(Prev1_u_12 >= Prev1,
+                        And(Prev1_L_13 <= Prev1,
+                            And(Prev1_U_14 >= Prev1,
+                                And(Prev1 == Prev1_z_15,
+                                    True))))),
+                And(V20_l_21 <= V20,
+                    And(V20_u_22 >= V20,
+                        And(V20_L_23 <= V20,
+                            And(V20_U_24 >= V20,
+                                And(V20 == V20_z_25, True))))),
+                And(V27_l_28 <= V27,
+                    And(V27_u_29 >= V27,
+                        And(V27_L_30 <= V27,
+                            And(V27_U_31 >= V27,
+                                And(V27 == V27_z_32, True))))),
+                And(V34_l_35 <= V34,
+                    And(V34_u_36 >= V34,
+                        And(V34_L_37 <= V34,
+                            And(V34_U_38 >= V34,
+                                And(V34 == V34_z_39, True))))),
+                And(V41_l_42 <= V41,
+                    And(V41_u_43 >= V41,
+                        And(V41_L_44 <= V41,
+                            And(V41_U_45 >= V41,
+                                And(V41 == V41_z_46, True))))),
+                out_trav_X48 +
+                out_trav_c49*V20 +
+                out_trav_c50*V27 +
+                out_trav_c51*V34 +
+                out_trav_c52*V41 <=
+                Curr,
+                out_trav_X58 +
+                out_trav_c59*V20 +
+                out_trav_c60*V27 +
+                out_trav_c61*V34 +
+                out_trav_c62*V41 >=
+                Curr),
+            And(Prev1*weight_curr0_18 +
+                Prev0*weight_curr0_17 +
+                0 +
+                bias_curr16 >=
+                curr_prime0,
+                True)))
+gen 1689012820.2522087
+end 1689012820.2559426
+Not(Implies(And(Curr ==
+                bias_curr16 +
+                weight_curr0_17*Prev0 +
+                weight_curr0_18*Prev1,
+                curr_prime0 == Curr,
+                And(Curr_l_1 <= Curr,
+                    And(Curr_u_2 >= Curr,
+                        And(Curr_L_3 <= Curr,
+                            And(Curr_U_4 >= Curr,
+                                And(Curr == Curr_z_5, True))))),
+                And(Prev0_l_6 <= Prev0,
+                    And(Prev0_u_7 >= Prev0,
+                        And(Prev0_L_8 <= Prev0,
+                            And(Prev0_U_9 >= Prev0,
+                                And(Prev0 == Prev0_z_10,
+                                    True))))),
+                And(Prev1_l_11 <= Prev1,
+                    And(Prev1_u_12 >= Prev1,
+                        And(Prev1_L_13 <= Prev1,
+                            And(Prev1_U_14 >= Prev1,
+                                And(Prev1 == Prev1_z_15,
+                                    True))))),
+                And(V20_l_21 <= V20,
+                    And(V20_u_22 >= V20,
+                        And(V20_L_23 <= V20,
+                            And(V20_U_24 >= V20,
+                                And(V20 == V20_z_25, True))))),
+                And(V27_l_28 <= V27,
+                    And(V27_u_29 >= V27,
+                        And(V27_L_30 <= V27,
+                            And(V27_U_31 >= V27,
+                                And(V27 == V27_z_32, True))))),
+                And(V34_l_35 <= V34,
+                    And(V34_u_36 >= V34,
+                        And(V34_L_37 <= V34,
+                            And(V34_U_38 >= V34,
+                                And(V34 == V34_z_39, True))))),
+                And(V41_l_42 <= V41,
+                    And(V41_u_43 >= V41,
+                        And(V41_L_44 <= V41,
+                            And(V41_U_45 >= V41,
+                                And(V41 == V41_z_46, True))))),
+                out_trav_X48 +
+                out_trav_c49*V20 +
+                out_trav_c50*V27 +
+                out_trav_c51*V34 +
+                out_trav_c52*V41 <=
+                Curr,
+                out_trav_X58 +
+                out_trav_c59*V20 +
+                out_trav_c60*V27 +
+                out_trav_c61*V34 +
+                out_trav_c62*V41 >=
+                Curr),
+            And(curr_prime0 ==
+                Prev1_z_15*weight_curr0_18 +
+                Prev0_z_10*weight_curr0_17 +
+                0 +
+                bias_curr16,
+                True)))
+gen 1689012820.2868693
+end 1689012820.2903934
+Proved  Affine
+verify 1689012820.2904115
+real 0.68
+user 0.64
+sys 0.04

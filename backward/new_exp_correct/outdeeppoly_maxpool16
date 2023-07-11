@@ -1,0 +1,24 @@
+start 1688866710.4386795
+lexer 1688866710.4388783
+tokens 1688866710.4388838
+parser 1688866710.4389012
+visit 1688866710.5336914
+type check 1688866710.5340047
+start 1688866710.5340624
+graph expansion done 1688866710.557503
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/symbolicos.py", line 699, in get_listOp
+    return IF(elist.cond, self.get_listOp(elist.left, node), self.get_listOp(elist.right, node))
+  File "/home/yasmin/constraintflow/backward/symbolicos.py", line 699, in get_listOp
+    return IF(elist.cond, self.get_listOp(elist.left, node), self.get_listOp(elist.right, node))
+  File "/home/yasmin/constraintflow/backward/symbolicos.py", line 699, in get_listOp
+    return IF(elist.cond, self.get_listOp(elist.left, node), self.get_listOp(elist.right, node))
+  [Previous line repeated 995 more times]
+  File "/home/yasmin/constraintflow/backward/symbolicos.py", line 706, in get_listOp
+    sum = self.get_binop(sum, elist[e], ADD)
+  File "/home/yasmin/constraintflow/backward/symbolicos.py", line 509, in get_binop
+    return f(left, right)
+RecursionError: maximum recursion depth exceeded
+real 45.85
+user 45.49
+sys 0.36

@@ -54,7 +54,7 @@ with open(ifile)as f:
 		igen[n] = gensum / count
 		iverify[n] = versum / count
 		icount[n] = count
-'''
+
 print("correct gen")
 for k in cgen:
 	print(k, cgen[k])
@@ -63,6 +63,10 @@ print("correct verify")
 for k in cverify:
 	print(k, cverify[k])
 
+
+for k in ccount:
+	print(k, ccount[k])
+
 print("incorrect gen")
 for k in igen:
 	print(k, igen[k])
@@ -70,7 +74,7 @@ for k in igen:
 print("incorrect verify")
 for k in iverify:
 	print(k, iverify[k])
-'''
+
 
 for k in icount:
 	print(k, icount[k])

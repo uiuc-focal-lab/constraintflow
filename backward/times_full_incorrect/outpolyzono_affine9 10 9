@@ -1,275 +1,40 @@
-start 1688739741.5852654
-Invariant true on input
-Not(Implies(And(noise_7 <= 1,
-                noise_7 >= -1,
-                noise_9 <= 1,
-                noise_9 >= -1,
-                noise_11 <= 1,
-                noise_11 >= -1,
-                noise_13 <= 1,
-                noise_13 >= -1,
-                noise_15 <= 1,
-                noise_15 >= -1,
-                noise_17 <= 1,
-                noise_17 >= -1,
-                noise_19 <= 1,
-                noise_19 >= -1,
-                noise_21 <= 1,
-                noise_21 >= -1,
-                noise_23 <= 1,
-                noise_23 >= -1,
-                noise_25 <= 1,
-                noise_25 >= -1,
-                And(Curr_l_1 <= Curr,
-                    And(Curr_u_2 >= Curr,
-                        And(Curr_L_3 <= Curr,
-                            And(Curr_U_4 >= Curr,
-                                And(Curr ==
-                                    Curr_const_5 +
-                                    Curr_coeff_6*noise_7 +
-                                    Curr_coeff_8*noise_9 +
-                                    Curr_coeff_10*noise_11 +
-                                    Curr_coeff_12*noise_13 +
-                                    Curr_coeff_14*noise_15 +
-                                    Curr_coeff_16*noise_17 +
-                                    Curr_coeff_18*noise_19 +
-                                    Curr_coeff_20*noise_21 +
-                                    Curr_coeff_22*noise_23 +
-                                    Curr_coeff_24*noise_25,
-                                    True))))),
-                And(Prev0_l_26 <= Prev0,
-                    And(Prev0_u_27 >= Prev0,
-                        And(Prev0_L_28 <= Prev0,
-                            And(Prev0_U_29 >= Prev0,
-                                And(Prev0 ==
-                                    Prev0_const_30 +
-                                    Prev0_coeff_31*noise_7 +
-                                    Prev0_coeff_32*noise_9 +
-                                    Prev0_coeff_33*noise_11 +
-                                    Prev0_coeff_34*noise_13 +
-                                    Prev0_coeff_35*noise_15 +
-                                    Prev0_coeff_36*noise_17 +
-                                    Prev0_coeff_37*noise_19 +
-                                    Prev0_coeff_38*noise_21 +
-                                    Prev0_coeff_39*noise_23 +
-                                    Prev0_coeff_40*noise_25,
-                                    True))))),
-                And(Prev1_l_41 <= Prev1,
-                    And(Prev1_u_42 >= Prev1,
-                        And(Prev1_L_43 <= Prev1,
-                            And(Prev1_U_44 >= Prev1,
-                                And(Prev1 ==
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ... +
-                                    ...,
-                                    ...))))),
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...,
-                ...),
-            ...))
-[V206 = 1,
- V240 = 2,
- V206_L_209 = -1/2,
- inv_X222 = -1,
- V325 = 0,
- Curr = -2,
- V325_L_328 = -1,
- inv_X307 = -1/2,
- inv_X273 = 1/8,
- V189 = 2,
- noise_17 = 0,
- V189_L_192 = 1/2,
- inv_X239 = -1/4,
- V308 = 1,
- inv_X188 = -1/4,
- noise_21 = 0,
- noise_15 = 0,
- V291 = 1,
- V274_L_277 = 1/2,
- inv_X290 = -1/2,
- V308_L_311 = -1/2,
- V257 = 0,
- V274 = 2,
- noise_9 = 0,
- V223 = 1,
- V223_L_226 = -1/2,
- V291_L_294 = -1/2,
- inv_X324 = 1/8,
- noise_11 = 0,
- noise_13 = 0,
- inv_X171 = 1/8,
- inv_X341 = -1/4,
- V172_L_175 = 1/8,
- inv_X205 = -1/8,
- noise_7 = 0,
- noise_23 = 0,
- noise_25 = 0,
- V172 = 2,
- noise_19 = 0,
- V240_L_243 = 1,
- V257_L_260 = -1,
- inv_X256 = 1/4,
- Prev6_L_118 = 0,
- V189_u_191 = 2,
- V274_l_275 = 2,
- Curr_u_2 = -2,
- Prev2_U_59 = 0,
- Prev6_u_117 = 0,
- V189_l_190 = 2,
- V257_U_261 = 0,
- Curr_l_1 = -2,
- Prev2_L_58 = 0,
- Prev6_l_116 = 0,
- V172_U_176 = 2,
- V257_u_259 = 0,
- Prev2_u_57 = 0,
- Prev5_U_104 = 0,
- V172_u_174 = 2,
- V257_l_258 = 0,
- V325_U_329 = 0,
- Prev2_l_56 = 0,
- Prev5_L_103 = 0,
- V172_l_173 = 2,
- V240_U_244 = 2,
- V325_u_327 = 0,
- Prev1_U_44 = 0,
- Prev5_u_102 = 0,
- Prev8_U_149 = 0,
- V240_u_242 = 2,
- V325_l_326 = 0,
- Prev1_L_43 = 0,
- Prev5_l_101 = 0,
- Prev8_L_148 = 0,
- V240_l_241 = 2,
- V308_U_312 = 1,
- Prev1_u_42 = 0,
- Prev4_U_89 = 0,
- Prev8_u_147 = 0,
- V223_U_227 = 1,
- V308_u_310 = 1,
- Prev1_l_41 = 0,
- Prev4_L_88 = 0,
- Prev8_l_146 = 0,
- V223_u_225 = 1,
- V308_l_309 = 1,
- Prev0_U_29 = 0,
- Prev4_u_87 = 0,
- Prev7_U_134 = 0,
- V223_l_224 = 1,
- V291_U_295 = 1,
- Prev0_L_28 = 0,
- Prev4_l_86 = 0,
- Prev7_L_133 = 0,
- V206_U_210 = 1,
- V291_u_293 = 1,
- Prev0_u_27 = 0,
- Prev3_U_74 = 0,
- Prev7_u_132 = 0,
- V206_u_208 = 1,
- V291_l_292 = 1,
- Prev0_l_26 = 0,
- Prev3_L_73 = 0,
- Prev7_l_131 = 0,
- V206_l_207 = 1,
- V274_U_278 = 2,
- Curr_U_4 = -2,
- Prev3_u_72 = 0,
- Prev6_U_119 = 0,
- V189_U_193 = 2,
- V274_u_276 = 2,
- Curr_L_3 = -2,
- Prev3_l_71 = 0,
- Prev8 = 0,
- Prev7 = 0,
- Prev6 = 0,
- Prev5 = 0,
- Prev4 = 0,
- Prev3 = 0,
- Prev2 = 0,
- Prev1 = 0,
- Prev0 = 0,
- Prev3_coeff_76 = 0,
- Prev3_coeff_77 = 0,
- Prev3_coeff_78 = 0,
- Prev3_coeff_79 = 0,
- Prev3_coeff_80 = 0,
- Prev3_coeff_81 = 0,
- Prev3_coeff_82 = 0,
- Prev3_coeff_83 = 0,
- ...]
+start 1688839047.156358
+lexer 1688839047.1565773
+tokens 1688839047.1565833
+parser 1688839047.156607
+visit 1688839047.2595181
+type check 1688839047.259866
+start 1688839047.2599206
+gen 1688839047.2845123
+end 1688839047.2845182
+gen 1688839047.3091457
+end 1688839047.3091502
+gen 1688839047.3204749
+end 1688839047.32048
+gen 1688839047.3320768
+end 1688839047.332081
+gen 1688839047.4290051
+end 1688839047.4352694
 Traceback (most recent call last):
-  File "/home/yasmin/constraintflow/backward/experiments.py", line 33, in <module>
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 38, in <module>
     genAST(sys.argv[1],int(a[0]), int(a[1]), int(a[2]))
-  File "/home/yasmin/constraintflow/backward/experiments.py", line 30, in genAST
+  File "/home/yasmin/constraintflow/backward/experiments.py", line 34, in genAST
     v.visit(ast)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
     return self.visitProg(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 286, in visitProg
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
     self.visit(node.stmt)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
     return self.visitSeq(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 282, in visitSeq
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
     self.visit(node.stmt2)
   File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
     return self.visitFlow(node)
-  File "/home/yasmin/constraintflow/backward/verify.py", line 191, in visitFlow
-    s.visit(op.ret)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 65, in visit
-    return self.visitTransRetBasic(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 398, in visitTransRetBasic
-    self.visit(node.exprlist)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 13, in visit
-    return self.visitExprList(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 164, in visitExprList
-    self.visit(e)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 61, in visit
-    return self.visitFuncCall(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 235, in visitFuncCall
-    self.visit(func.expr)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 51, in visit
-    return self.visitMap(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 187, in visitMap
-    self.visit(node.expr)
-  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 49, in visit
-    return self.visitTraverse(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 383, in visitTraverse
-    output, prop_output = self.check_invariant(node)
-  File "/home/yasmin/constraintflow/backward/symbolicgraph.py", line 334, in check_invariant
-    raise Exception("Induction step is not true")
-Exception: Induction step is not true
-real 0.88
-user 0.85
-sys 0.03
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.42
+user 0.38
+sys 0.04

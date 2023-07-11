@@ -1,0 +1,36 @@
+start 1688851469.2868276
+lexer 1688851469.287032
+tokens 1688851469.2870374
+parser 1688851469.2870576
+visit 1688851469.3870485
+type check 1688851469.3874018
+start 1688851469.38746
+{Curr: <symbolicos.Vertex object at 0x7f5e56847a00>, Prev0: <symbolicos.Vertex object at 0x7f5e56847760>, Prev1: <symbolicos.Vertex object at 0x7f5e56847e80>, Prev2: <symbolicos.Vertex object at 0x7f5e56874040>, Prev3: <symbolicos.Vertex object at 0x7f5e568742e0>, Prev4: <symbolicos.Vertex object at 0x7f5e56874580>, curr_prime0: <symbolicos.Vertex object at 0x7f5e56847a90>, V32: <symbolicos.Vertex object at 0x7f5e568751e0>, V38: <symbolicos.Vertex object at 0x7f5e56875870>, V44: <symbolicos.Vertex object at 0x7f5e56875ed0>, V50: <symbolicos.Vertex object at 0x7f5e56876530>, V56: <symbolicos.Vertex object at 0x7f5e56876b90>, V62: <symbolicos.Vertex object at 0x7f5e568771f0>, V68: <symbolicos.Vertex object at 0x7f5e56877850>, V74: <symbolicos.Vertex object at 0x7f5e56877eb0>, V80: <symbolicos.Vertex object at 0x7f5e56880550>, V86: <symbolicos.Vertex object at 0x7f5e56880bb0>, V92: <symbolicos.Vertex object at 0x7f5e56881210>, V98: <symbolicos.Vertex object at 0x7f5e56881870>, V104: <symbolicos.Vertex object at 0x7f5e56881ed0>, V110: <symbolicos.Vertex object at 0x7f5e56882560>, V116: <symbolicos.Vertex object at 0x7f5e56882bc0>, V122: <symbolicos.Vertex object at 0x7f5e56883220>, V128: <symbolicos.Vertex object at 0x7f5e56883880>, V134: <symbolicos.Vertex object at 0x7f5e56883f40>, V140: <symbolicos.Vertex object at 0x7f5e56884580>, V146: <symbolicos.Vertex object at 0x7f5e56884be0>, V152: <symbolicos.Vertex object at 0x7f5e56885240>, V158: <symbolicos.Vertex object at 0x7f5e568858a0>, V164: <symbolicos.Vertex object at 0x7f5e56885f00>}
+30
+graph expansion done 1688851478.8939013
+symbolic output 1688851478.8953795
+gen 1688851478.9096317
+end 1688851478.9186895
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 294, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 290, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 213, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 259, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 9.76
+user 9.74
+sys 0.01

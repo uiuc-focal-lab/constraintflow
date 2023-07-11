@@ -7,8 +7,9 @@ import astPrinter
 import copy
 import itertools
 import sys
+import time
 
-sys.setrecursionlimit(1500) 
+sys.setrecursionlimit(5000) 
 
 class Number:
 
@@ -72,6 +73,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.symb = True
 		self.Nprev = Nprev
 		self.Nzono = Nzono
+		self.flag = False
+		self.tempC = []
+		self.hasE = False
 
 	def getVname(self):
 		self.vname = self.vname + 1
@@ -492,13 +496,14 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					return l  
 			return Or(l,r)
 		elif(isinstance(node, IF)):
-			y = Real('new_'+str(self.number.nextn()))
 			c = self.convertToZ3(node.cond)
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			self.C.append(Or([And(c, y == l), And(Not(c), y == r)]))
-			return y
-			#return If(c, l, r)
+			if(self.hasE):
+				y = Real('new_'+str(self.number.nextn()))
+				self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
+				return y
+			return If(c, l, r)
 		else:
 			return node
 
@@ -530,6 +535,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return self.store[pt.name]
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
+		self.hasE = True
 		eps = Real('Eps_'+str(self.number.nextn()))
 		# self.C.append(eps <= 1)
 		# self.C.append(eps >= -1)
@@ -544,8 +550,18 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return exps
 
 	def visitBinOp(self, node: AST.BinOpNode):
+		#if self.flag and (node.op=='-'):
+			#print('here1')
+			#print(time.time())
+			# self.flag = False
 		left = self.visit(node.left)
+		#if self.flag and (node.op=='-'):
+			#print('here2')
+			#print(time.time())
 		right = self.visit(node.right)
+		#if self.flag and (node.op=='-'):
+			#print('here3')
+			#print(time.time())
 		if(node.op == "+"):
 			return self.get_binop(left, right, ADD)
 		elif(node.op == "-"):
@@ -782,6 +798,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 		if(not preeval):
 			elist = self.visit(node.arglist)
+			#if self.flag:
+				#print('here4')
+				#print(time.time())
 		else:
 			elist = node.arglist.exprlist
 
@@ -796,6 +815,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				self.store[arg.name] = exp
 
 			val = self.visit(func.expr)
+			# if self.flag:
+			# 	print('here5')
+			# 	print(time.time())
 			
 			for v in newvars:
 				del self.store[v]
@@ -813,6 +835,30 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			assert False 
 
 	def get_type(self, e):
+		if(isinstance(e, tuple)):
+			return e[1]
+		else:
+			l = self.get_type(e.left)
+			if isinstance(e, ADD) or isinstance(e, SUB) or isinstance(e, MULT) or isinstance(e, DIV):
+				if l=='Neuron' or l=='PolyExp':
+					return 'PolyExp'
+				elif l=='Noise' or l=='ZonoExp':
+					return 'ZonoExp'
+				else:
+					return self.get_type(e.right)
+			if isinstance(e, IF):
+				r = self.get_type(e.right)
+				if l=='Float' and r=='Float':
+					return 'Float'
+				if l=='Int' and r=='Int':
+					return 'Int'
+				if l=='Bool' and r=='Bool':
+					return 'Bool'
+				if l=='ZonoExp' or r=='ZonoExp' or l=='Noise' or r=='Noise':
+					return 'ZonoExp'
+				if l=='PolyExp' or r=='PolyExp' or l=='Neuron' or r=='Neuron':
+					return 'PolyExp'
+		'''
 		if isinstance(e, ADD) or isinstance(e, SUB) or isinstance(e, MULT) or isinstance(e, DIV):
 			if self.get_type(e.left)=='Neuron' or self.get_type(e.left)=='PolyExp':
 				return 'PolyExp'
@@ -835,6 +881,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				if left=='PolyExp' or right=='PolyExp' or left=='Neuron' or right=='Neuron':
 					return 'PolyExp'
 			return e[1]
+			'''
 
 
 	def get_map(self, e, node):
@@ -848,8 +895,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			# else:
 			# 	expr = self.convertToZono(e)
 			if isinstance(e, ADD):
-				l = self.get_map(e.left, node)
-				r = self.get_map(e.right, node)
+				# l = self.get_map(e.left, node)
+				# r = self.get_map(e.right, node)
 				# print(self.convertToZ3(l))
 				# print(self.convertToZ3(e))
 				return self.get_binop(self.get_map(e.left, node), self.get_map(e.right, node), ADD)
@@ -950,8 +997,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitMap(self, node: AST.MapNode):
 		e = self.visit(node.expr)
+		output = self.get_map(e, node)
+		#if self.flag:
+			#print('here6')
+			#print(time.time())
 		# print(self.convertToZ3(e))
-		return self.get_map(e, node)
+		return output 
 
 	def get_get_mapList(self, e, node):
 		if isinstance(e, IF):

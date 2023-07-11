@@ -1,0 +1,52 @@
+start 1688840075.870859
+lexer 1688840075.871044
+tokens 1688840075.871049
+parser 1688840075.8710694
+visit 1688840075.9524431
+type check 1688840075.952661
+start 1688840075.9526923
+gen 1688840075.9753876
+end 1688840075.979587
+gen 1688840075.9882753
+end 1688840075.9923
+gen 1688840076.0046563
+end 1688840076.0085607
+gen 1688840076.0153987
+end 1688840076.0193164
+gen 1688840076.027442
+end 1688840076.031543
+gen 1688840076.0411637
+end 1688840076.045176
+gen 1688840076.052053
+end 1688840076.0559354
+gen 1688840076.0641818
+end 1688840076.0680382
+gen 1688840076.077582
+end 1688840076.0816767
+Traceback (most recent call last):
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 37, in <module>
+    genAST(sys.argv[1],int(sys.argv[2]), int(sys.argv[3]), 3)
+  File "/home/yasmin/constraintflow/backward/experiments_int.py", line 34, in genAST
+    v.visit(ast)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 91, in visit
+    return self.visitProg(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 288, in visitProg
+    self.visit(node.stmt)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 87, in visit
+    return self.visitSeq(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 284, in visitSeq
+    self.visit(node.stmt2)
+  File "/home/yasmin/constraintflow/backward/astVisitor.py", line 89, in visit
+    return self.visitFlow(node)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 209, in visitFlow
+    self.applyTrans([], vallist, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 258, in applyTrans
+    self.applyTrans(leftC + [Not(condz3)], vallist.right, s, curr_prime, computation)
+  File "/home/yasmin/constraintflow/backward/verify.py", line 253, in applyTrans
+    raise Exception("Transformer"+ " " + " not true")
+Exception: Transformer  not true
+real 0.34
+user 0.32
+sys 0.02
