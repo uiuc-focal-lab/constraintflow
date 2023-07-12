@@ -184,9 +184,9 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.get_map(val.right, node)
 		else:
 			#print(time.time())
-			uiuiui = self.os.get_type(val)
+			u_type = self.os.get_type(val)
 			#print(uiuiui)
-			if uiuiui=='PolyExp' or uiuiui=='Neuron':
+			if u_type=='PolyExp' or u_type=='Neuron':
 				expr = self.os.convertToPoly(val)
 			else:
 				expr = self.os.convertToZono(val)
