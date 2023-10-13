@@ -26,7 +26,9 @@ in_folder = "test_cases_correct/"
 for test in params.keys():
 	(nprev,nsym) = params[test]
 	cmd = "python experiments.py " + in_folder + test + " \"" + str(nprev) + " " + str(nsym) + " " + "1\"" + " > " + out_folder + test  
-	#print(cmd)
+	print(cmd)
+	df
 	os.system(cmd)
 	cmd = "python paper_parse.py " + test + " " + out_folder + test 
 	os.system(cmd) 
+	df

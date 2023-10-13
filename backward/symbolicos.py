@@ -389,6 +389,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if(isinstance(node, tuple)):
 			return node[0]
 		if(isinstance(node, list)):
+			if(len(node) == 1):
+				return self.convertToZ3(node[0])
 			if(len(node) == 0):
 				return True
 			else:
@@ -396,32 +398,32 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, ADD)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			if isinstance(l, float):
+			if isinstance(l, int) or isinstance(l, float):
 				if l==0:
 					return r 
-			if isinstance(r, float):
+			if isinstance(r, int) or isinstance(r, float):
 				if r==0:
 					return l 
 			return l + r
 		elif(isinstance(node, SUB)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			if isinstance(l, float):
+			if isinstance(l, int) or isinstance(l, float):
 				if l==0:
 					return -r 
-			if isinstance(r, float):
+			if isinstance(r, int) or isinstance(r, float):
 				if r==0:
 					return l 
 			return l - r
 		elif(isinstance(node, MULT)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			if isinstance(l, float):
+			if isinstance(l, int) or isinstance(l, float):
 				if l==0:
 					return 0 
 				if l==1:
 					return r 
-			if isinstance(r, float):
+			if isinstance(r, int) or isinstance(r, float):
 				if r==0:
 					return 0 
 				if r==1:
@@ -470,6 +472,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, AND)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
+			# print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1')
+			# print(type(r))
 			if isinstance(l, bool):
 				if l:
 					return r 
@@ -730,10 +734,14 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif isinstance(right, IF):
 			return IF(right.cond, self.get_dot(left, right.left), self.get_dot(left, right.right))
 		else:
-			sum = (0, 'Float')
 			n = min(len(left), len(right))
+			# if n==0:
+			# 	sum = (0, 'Float')
+			# 	return sum 
+			sum = (0, 'Float')
+			# sum = self.get_binop(left[0], right[0], MULT)
 			for i in range(n):
-				sum = self.get_binop(self.get_binop(left[i], right[i], MULT), sum, ADD)
+				sum = self.get_binop(sum, self.get_binop(left[i], right[i], MULT), ADD)
 			return sum
 	
 	def get_concat(self, left, right):

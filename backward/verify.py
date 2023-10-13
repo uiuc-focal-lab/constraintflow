@@ -8,31 +8,43 @@ from symbolicgraph import *
 import time
 set_param('parallel.enable', True) #uncomment when using Z3
 
-class AstRefKey:
-    def __init__(self, n):
-        self.n = n
-    def __hash__(self):
-        return self.n.hash()
-    def __eq__(self, other):
-        return self.n.eq(other.n)
-    def __repr__(self):
-        return str(self.n)
+exptemp = None
 
-def askey(n):
-    assert isinstance(n, AstRef)
-    return AstRefKey(n)
+# class AstRefKey:
+#     def __init__(self, n):
+#         self.n = n
+#     def __hash__(self):
+#         return self.n.hash()
+#     def __eq__(self, other):
+#         return self.n.eq(other.n)
+#     def __repr__(self):
+#         return str(self.n)
 
-def get_vars(f):
-    r = set()
-    def collect(f):
-      if is_const(f): 
-          if f.decl().kind() == Z3_OP_UNINTERPRETED and not askey(f) in r:
-              r.add(askey(f))
-      else:
-          for c in f.children():
-              collect(c)
-    collect(f)
-    return r
+# def askey(n):
+#     assert isinstance(n, AstRef)
+#     return AstRefKey(n)
+
+# def get_vars(f):
+#     r = set()
+#     def collect(f):
+#       if is_const(f): 
+#           if f.decl().kind() == Z3_OP_UNINTERPRETED and not askey(f) in r:
+#               r.add(askey(f))
+#       else:
+#           for c in f.children():
+#               collect(c)
+#     collect(f)
+#     return r
+
+x = Real('x')
+y = Real('y')
+plus = (x + y).decl()
+lt = (x<y).decl()
+le = (x<=y).decl()
+gt = (x>y).decl()
+ge = (x>=y).decl()
+eq = (x==y).decl()
+comparison = [lt, le, gt, ge, eq]
 
 class Verify(astVisitor.ASTVisitor):
 
@@ -73,7 +85,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.theta[node.name.name] = node
 
 	def visitFlow(self, node):
-		print("start",time.time())
+		global exptemp
+		print()
+		print("start !!!!!!!!!!!!!",time.time())
 		node = self.theta[node.trans.name]
 		for op_i in range(len(node.oplist.olist)):
 			self.E.clear()
@@ -118,13 +132,14 @@ class Verify(astVisitor.ASTVisitor):
 
 			#Define relationship between curr and prev
 			if(op.op.op_name == "Affine"):
-				if(not "bias" in curr.symmap.keys()):
-					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				if(not "weight" in curr.symmap.keys()):
 					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(nprev)]
-				exptemp = curr.symmap["bias"]
+				if(not "bias" in curr.symmap.keys()):
+					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
+				exptemp = (0, 'Float')
 				for i in range(len(prev)):
-					exptemp = ADD(exptemp, MULT(curr.symmap["weight"][i], prev[i]))
+					exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
+				exptemp = ADD(exptemp, curr.symmap["bias"])
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
@@ -189,7 +204,9 @@ class Verify(astVisitor.ASTVisitor):
 			
 			
 			# computation = (curr_prime.name == curr.name)
-			computation = [s.currop, (curr_prime.name == curr.name)] + s.os.tempC
+			# computation = s.os.tempC
+			computation = [s.currop] + s.os.tempC
+			print(computation)
 			s.os.tempC = []
 			s.flag = True
 			s.visit(op.ret)
@@ -209,7 +226,8 @@ class Verify(astVisitor.ASTVisitor):
 			# print()
 			# print(s.os.C)
 			leftC = computation + s.os.C 
-			# print(vallist)
+			# print(s.os.C)
+			
 			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
 
 			self.applyTrans(leftC, vallist, s, curr_prime, computation)
@@ -232,11 +250,12 @@ class Verify(astVisitor.ASTVisitor):
 			set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
 			for one_cons in conslist:
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
-				# print('sjdhfgkhujasdgfjhasgdf')
-				# print(c)
-			# print(c)
-			#for c in clist:
+				# print('here')
 				z3constraint = s.os.convertToZ3(c)
+				# print('here')
+				# print(exptemp)
+				# print('here')
+				z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
 				#print("time", time.time())
 				if len(self.E) > 0:
 					conds_eps = [z3constraint]
@@ -244,29 +263,58 @@ class Verify(astVisitor.ASTVisitor):
 						conds_eps.append(e <= 1)
 						conds_eps.append(e >= -1)
 					z3constraint = Exists(self.E, And(conds_eps))
-				solver = Solver()
 				#solver.set(timeout=30)
 				# leftC += s.os.C 
 				# print(leftC)
 				newLeftC = leftC + s.os.tempC
-				#print(computation)
+				print(computation)
+				print()
+				print("@@@@@@@@@@@@@@@@@@@@@@@@")
+				for i in newLeftC:
+					print(i)
+				print()
+				print("@@@@@@@@@@@@@@@@@@@@@@@@")
+				print(z3constraint)
+				print("@@@@@@@@@@@@@@@@@@@@@@@@")
 
-				p = Not(Implies(And(newLeftC), z3constraint))
-				#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
-				#print("final query")
-				#print(p)
-				#print("------------------------------------------------------------------------------")
-				solver.add(p)
-				print("gen",time.time())
-				#print(solver)
-				#Printing stats about Z3 Queries:
-				#print(len(get_vars(p)) )
-				if(not (solver.check() == unsat)):
-					print("end",time.time())
+				opt = self.optimization(z3constraint)
+				flag = True 
+				opt = None
+				if opt:
+					d = z3constraint.decl()
+					flag = True 
+					for i in range(len(opt)):
+						solver = Solver()
+						p = Not(Implies(And(newLeftC), d(opt[i][0], opt[i][1])))
+						print(p)
+						solver.add(p)
+						if(not (solver.check() == unsat)):
+							flag = False 
+							dhgdhgfd
+							break 
+						else:
+							print('proved ', i)
+				else:
+					flag = False 
+				print(flag)
+				if not flag:
+					solver = Solver()
+					p = Not(Implies(And(newLeftC), z3constraint))
+					#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
+					#print("final query")
+					#print(p)
+					#print("------------------------------------------------------------------------------")
+					solver.add(p)
+					print("gen",time.time())
 					#print(solver)
-					#print(solver.model())
-					raise Exception("Transformer"+ " " + " not true")
-				print("end",time.time())
+					#Printing stats about Z3 Queries:
+					#print(len(get_vars(p)) )
+					if(not (solver.check() == unsat)):
+						print("end",time.time())
+						#print(solver)
+						#print(solver.model())
+						raise Exception("Transformer"+ " " + " not true")
+					print("end",time.time())
 				s.os.tempC = []
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
@@ -275,6 +323,51 @@ class Verify(astVisitor.ASTVisitor):
 			self.applyTrans(preC + [condz3], vallist.left, s, curr_prime, computation)
 			self.applyTrans(preC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
+	def vars(self, x):
+		if x.children() == []:
+			if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
+				return set()
+			return {x}
+		s = set()
+		for i in x.children():
+			s = s.union(self.vars(i))
+		return s
+
+	def get_summands(self, x):
+		top_level = x.decl()
+		if top_level != plus:
+			return [x]
+		else:
+			left = x.children()[0]
+			right = x.children()[1]
+			return self.get_summands(left) + self.get_summands(right)
+			
+	def optimization(self, z3constraint):
+		top_level = z3constraint.decl()
+		if top_level not in comparison:
+			return None 
+		left = self.get_summands(z3constraint.children()[0])
+		right = self.get_summands(z3constraint.children()[1])
+		if len(left)!=len(right):
+			return None 
+		m = []
+		print(left)
+		print(right)
+		for i in range(len(left)):
+			flag = False
+			v1 = self.vars(left[i])
+			for j in range(len(right)):
+				v2 = self.vars(right[j])
+				if len(v1.intersection(v2)) > 0:
+					m.append((left[i], right[j]))
+					del right[j]
+					flag = True 
+					break 
+			if not flag:
+				return None 
+		print(m)
+		return m 
+	
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)
 
@@ -304,3 +397,4 @@ class Verify(astVisitor.ASTVisitor):
 	def visitProg(self, node):
 		self.visit(node.shape)
 		self.visit(node.stmt)
+
