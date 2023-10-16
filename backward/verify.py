@@ -256,9 +256,6 @@ class Verify(astVisitor.ASTVisitor):
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
 				# print('here')
 				z3constraint = s.os.convertToZ3(c)
-				# print('here')
-				# print(exptemp)
-				# print('here')
 				z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
 				#print("time", time.time())
 				if len(self.E) > 0:
@@ -349,50 +346,6 @@ class Verify(astVisitor.ASTVisitor):
 			self.applyTrans(preC + [condz3], vallist.left, s, curr_prime, computation)
 			self.applyTrans(preC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
-	# def vars(self, x):
-	# 	if x.children() == []:
-	# 		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
-	# 			return set()
-	# 		return {x}
-	# 	s = set()
-	# 	for i in x.children():
-	# 		s = s.union(self.vars(i))
-	# 	return s
-
-	# def get_summands(self, x):
-	# 	top_level = x.decl()
-	# 	if top_level != plus:
-	# 		return [x]
-	# 	else:
-	# 		left = x.children()[0]
-	# 		right = x.children()[1]
-	# 		return self.get_summands(left) + self.get_summands(right)
-			
-	# def optimization(self, z3constraint):
-	# 	top_level = z3constraint.decl()
-	# 	if top_level not in comparison:
-	# 		return None 
-	# 	left = self.get_summands(z3constraint.children()[0])
-	# 	right = self.get_summands(z3constraint.children()[1])
-	# 	if len(left)!=len(right):
-	# 		return None 
-	# 	m = []
-	# 	print(left)
-	# 	print(right)
-	# 	for i in range(len(left)):
-	# 		flag = False
-	# 		v1 = self.vars(left[i])
-	# 		for j in range(len(right)):
-	# 			v2 = self.vars(right[j])
-	# 			if len(v1.intersection(v2)) > 0:
-	# 				m.append((left[i], right[j]))
-	# 				del right[j]
-	# 				flag = True 
-	# 				break 
-	# 		if not flag:
-	# 			return None 
-	# 	print(m)
-	# 	return m 
 	
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)
@@ -412,9 +365,6 @@ class Verify(astVisitor.ASTVisitor):
 			right = self.visitTransRetBasic(node.fret, s)
 
 		return IF(cond, left, right)
-
-	# def visitFlow(self, node):
-	# 	pass
 
 	def visitSeq(self, node: AST.SeqNode):
 		self.visit(node.stmt1)
