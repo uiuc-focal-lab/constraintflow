@@ -82,12 +82,6 @@ class Opt_solver:
             if not m2:
                 m2 = [(left.children()[2], right)]
             m = m1 + m2
-            # print('start printing!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            # for i in m:
-            #     print(type(i))
-            #     print(i)
-            #     print()
-            # jsdhgj
             return m 
         left = self.get_summands(left)
         right = self.get_summands(right)
@@ -109,15 +103,8 @@ class Opt_solver:
         return m 
     
     def solve_sub_lemma(self, lhs, m, top_level):
-        # print(len(m))
-        # if len(m)==5:
-        #     print(m[-1])
-        #     jhsdg
-        # i=1
         for r in m:
             res = self.check(lhs, top_level(*r))
-            # print(i)
-            # i+=1
             if not res:
                 return False  
         return True 
@@ -131,32 +118,19 @@ class Opt_solver:
 
     def check_if(self, lhs, rhs):
         top_level1 = rhs.decl()
-        # print(top_level)
         if top_level1 in comparison:
             rhs_l, rhs_r = rhs.children()
             top_level2 = rhs_l.decl()
             if top_level2 == if_:
                 lhs1 = And(lhs, rhs_l.children()[0])
                 rhs1 = top_level1(rhs_l.children()[1], rhs_r)
-                # m1 = self.check_if(lhs1, rhs1)
 
-                # lhs2 = And(lhs, Not(rhs.children()[0]))
-                # rhs2 = rhs.children()[2]
                 lhs2 = And(lhs, Not(rhs_l.children()[0]))
                 rhs2 = top_level1(rhs_l.children()[2], rhs_r)
-                # m2 = self.check_if(lhs2, rhs2)
                 return [(lhs1, rhs1), (lhs2, rhs2)]
-                return m1 + m2 
         return [(lhs, rhs)]
     
     def solve_temp(self, lhs, rhs):
-        # print()
-        # print('!!!!!!!!!!!!!!!!!!!!!!!!!')
-        # print(lhs)
-        # print()
-        # print(rhs)
-        # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        # print()
         m = self.get_sufficient_formulae(lhs, rhs)
         if m:
             for r in m:
@@ -165,15 +139,7 @@ class Opt_solver:
         return self.opt_solve(lhs, rhs)
     
     def solve(self, lhs, rhs):
-        # print()
-        # print(lhs)
-        # print()
-        # print(rhs)
-        # print()
         m_if = self.check_if(lhs, rhs)
-        print(len(m_if))
-        # sjdh
-        # print(m_if)
         for i in m_if:
             ret = self.solve_temp(*i)
             if not ret:
