@@ -383,7 +383,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		else:
 			print(node)
 			assert False
-
+	
 	def convertToZ3(self, node):
 
 		if(isinstance(node, tuple)):
@@ -700,6 +700,15 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return IF(self.get_binop(e1, e2, GEQ), e1, e2)
 		else:
 			return IF(self.get_binop(e1, e2, LEQ), e1, e2)
+		y = Real('new_'+str(self.number.nextn()))
+		if(node.op == "max"):
+			self.tempC.append(y>=self.convertToZ3(e1))
+			self.tempC.append(y>=self.convertToZ3(e2))
+		else:
+			self.tempC.append(y<=self.convertToZ3(e1))
+			self.tempC.append(y<=self.convertToZ3(e2))
+		self.tempC.append(Or([y==self.convertToZ3(e1), y==self.convertToZ3(e2)]))
+		return (y, 'Float')
 
 	def get_listOp(self, elist, node):
 		if isinstance(elist, IF):

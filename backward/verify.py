@@ -5,6 +5,7 @@ from z3 import *
 from value import *
 from symbolicos import *
 from symbolicgraph import *
+from solver import Opt_solver
 import time
 set_param('parallel.enable', True) #uncomment when using Z3
 
@@ -36,15 +37,15 @@ exptemp = None
 #     collect(f)
 #     return r
 
-x = Real('x')
-y = Real('y')
-plus = (x + y).decl()
-lt = (x<y).decl()
-le = (x<=y).decl()
-gt = (x>y).decl()
-ge = (x>=y).decl()
-eq = (x==y).decl()
-comparison = [lt, le, gt, ge, eq]
+# x = Real('x')
+# y = Real('y')
+# plus = (x + y).decl()
+# lt = (x<y).decl()
+# le = (x<=y).decl()
+# gt = (x>y).decl()
+# ge = (x>=y).decl()
+# eq = (x==y).decl()
+# comparison = [lt, le, gt, ge, eq]
 
 class Verify(astVisitor.ASTVisitor):
 
@@ -206,7 +207,7 @@ class Verify(astVisitor.ASTVisitor):
 			# computation = (curr_prime.name == curr.name)
 			# computation = s.os.tempC
 			computation = [s.currop] + s.os.tempC
-			print(computation)
+			# print(computation)
 			s.os.tempC = []
 			s.flag = True
 			s.visit(op.ret)
@@ -234,12 +235,15 @@ class Verify(astVisitor.ASTVisitor):
 			print("Proved ", op.op.op_name)
 
 	def applyTrans(self, leftC, vallist, s, curr_prime, computation):
-		# print(vallist)
 		# print(leftC)
 		if(isinstance(vallist, list)):
 			# print(leftC)
 			for (elem, val) in zip(self.shape.keys(), vallist):
 				curr_prime.symmap[elem] = val
+				# print(elem)
+				# print(s.os.convertToZ3(val))
+				# jshdfkj
+		
 
 			# print(self.store)
 			# print(s.os.store)
@@ -267,55 +271,77 @@ class Verify(astVisitor.ASTVisitor):
 				# leftC += s.os.C 
 				# print(leftC)
 				newLeftC = leftC + s.os.tempC
-				print(computation)
-				print()
-				print("@@@@@@@@@@@@@@@@@@@@@@@@")
-				for i in newLeftC:
-					print(i)
-				print()
-				print("@@@@@@@@@@@@@@@@@@@@@@@@")
-				print(z3constraint)
-				print("@@@@@@@@@@@@@@@@@@@@@@@@")
-
-				opt = self.optimization(z3constraint)
-				flag = True 
-				opt = None
-				if opt:
-					d = z3constraint.decl()
-					flag = True 
-					for i in range(len(opt)):
-						solver = Solver()
-						p = Not(Implies(And(newLeftC), d(opt[i][0], opt[i][1])))
-						print(p)
-						solver.add(p)
-						if(not (solver.check() == unsat)):
-							flag = False 
-							dhgdhgfd
-							break 
-						else:
-							print('proved ', i)
-				else:
-					flag = False 
-				print(flag)
-				if not flag:
-					solver = Solver()
-					p = Not(Implies(And(newLeftC), z3constraint))
-					#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
-					#print("final query")
-					#print(p)
-					#print("------------------------------------------------------------------------------")
-					solver.add(p)
-					print("gen",time.time())
-					#print(solver)
-					#Printing stats about Z3 Queries:
-					#print(len(get_vars(p)) )
-					if(not (solver.check() == unsat)):
-						print("end",time.time())
-						#print(solver)
-						#print(solver.model())
-						raise Exception("Transformer"+ " " + " not true")
+				# print(computation)
+				# print()
+				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
+				# for i in newLeftC:
+				# 	print(i)
+				# print()
+				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
+				# print(z3constraint)
+				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
+				opt = Opt_solver()
+				solver = Opt_solver()
+				print("gen",time.time())
+				lhs = And(newLeftC)
+				rhs = z3constraint
+				# print()
+				# print(lhs)
+				# print()
+				# print(rhs)
+				# print()
+				# fc
+				w = solver.solve(lhs, rhs)
+				if(not w):
 					print("end",time.time())
+					#print(solver)
+					#print(solver.model())
+					raise Exception("Transformer"+ " " + " not true")
+				print("end",time.time())
 				s.os.tempC = []
+				# print(newLeftC)
+				# print(z3constraint)
+				# print(w)
+				# kjsdh
+				# opt = optimization(z3constraint)
+				# flag = True 
+				# opt = None
+				# if opt:
+				# 	d = z3constraint.decl()
+				# 	flag = True 
+				# 	for i in range(len(opt)):
+				# 		solver = Solver()
+				# 		p = Not(Implies(And(newLeftC), d(opt[i][0], opt[i][1])))
+				# 		print(p)
+				# 		solver.add(p)
+				# 		if(not (solver.check() == unsat)):
+				# 			flag = False 
+				# 			dhgdhgfd
+				# 			break 
+				# 		else:
+				# 			print('proved ', i)
+				# else:
+				# 	flag = False 
+				# print(flag)
+				# if not flag:
+				# 	solver = Solver()
+				# 	p = Not(Implies(And(newLeftC), z3constraint))
+				# 	#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
+				# 	#print("final query")
+				# 	#print(p)
+				# 	#print("------------------------------------------------------------------------------")
+				# 	solver.add(p)
+				# 	print("gen",time.time())
+				# 	#print(solver)
+				# 	#Printing stats about Z3 Queries:
+				# 	#print(len(get_vars(p)) )
+				# 	if(not (solver.check() == unsat)):
+				# 		print("end",time.time())
+				# 		#print(solver)
+				# 		#print(solver.model())
+				# 		raise Exception("Transformer"+ " " + " not true")
+				# 	print("end",time.time())
+				# s.os.tempC = []
 		else:
 			condz3 = s.os.convertToZ3(vallist.cond)
 			preC = leftC + s.os.tempC
@@ -323,50 +349,50 @@ class Verify(astVisitor.ASTVisitor):
 			self.applyTrans(preC + [condz3], vallist.left, s, curr_prime, computation)
 			self.applyTrans(preC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
-	def vars(self, x):
-		if x.children() == []:
-			if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
-				return set()
-			return {x}
-		s = set()
-		for i in x.children():
-			s = s.union(self.vars(i))
-		return s
+	# def vars(self, x):
+	# 	if x.children() == []:
+	# 		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
+	# 			return set()
+	# 		return {x}
+	# 	s = set()
+	# 	for i in x.children():
+	# 		s = s.union(self.vars(i))
+	# 	return s
 
-	def get_summands(self, x):
-		top_level = x.decl()
-		if top_level != plus:
-			return [x]
-		else:
-			left = x.children()[0]
-			right = x.children()[1]
-			return self.get_summands(left) + self.get_summands(right)
+	# def get_summands(self, x):
+	# 	top_level = x.decl()
+	# 	if top_level != plus:
+	# 		return [x]
+	# 	else:
+	# 		left = x.children()[0]
+	# 		right = x.children()[1]
+	# 		return self.get_summands(left) + self.get_summands(right)
 			
-	def optimization(self, z3constraint):
-		top_level = z3constraint.decl()
-		if top_level not in comparison:
-			return None 
-		left = self.get_summands(z3constraint.children()[0])
-		right = self.get_summands(z3constraint.children()[1])
-		if len(left)!=len(right):
-			return None 
-		m = []
-		print(left)
-		print(right)
-		for i in range(len(left)):
-			flag = False
-			v1 = self.vars(left[i])
-			for j in range(len(right)):
-				v2 = self.vars(right[j])
-				if len(v1.intersection(v2)) > 0:
-					m.append((left[i], right[j]))
-					del right[j]
-					flag = True 
-					break 
-			if not flag:
-				return None 
-		print(m)
-		return m 
+	# def optimization(self, z3constraint):
+	# 	top_level = z3constraint.decl()
+	# 	if top_level not in comparison:
+	# 		return None 
+	# 	left = self.get_summands(z3constraint.children()[0])
+	# 	right = self.get_summands(z3constraint.children()[1])
+	# 	if len(left)!=len(right):
+	# 		return None 
+	# 	m = []
+	# 	print(left)
+	# 	print(right)
+	# 	for i in range(len(left)):
+	# 		flag = False
+	# 		v1 = self.vars(left[i])
+	# 		for j in range(len(right)):
+	# 			v2 = self.vars(right[j])
+	# 			if len(v1.intersection(v2)) > 0:
+	# 				m.append((left[i], right[j]))
+	# 				del right[j]
+	# 				flag = True 
+	# 				break 
+	# 		if not flag:
+	# 			return None 
+	# 	print(m)
+	# 	return m 
 	
 	def visitTransRetBasic(self, node, s):
 		return s.os.visit(node.exprlist)

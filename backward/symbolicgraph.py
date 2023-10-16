@@ -4,9 +4,12 @@ from z3 import *
 #from cvc5.pythonic import * 
 from value import *
 from symbolicos import *
+from optimization import *
 import copy
 import time
 import astPrinter
+from solver import Opt_solver
+
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
@@ -343,35 +346,66 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 			input = ADD(input, MULT(coeff, (neuron.name, "Neuron")))
 			output = self.os.get_binop(output, IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron'))), ADD)
-
-		s = Solver()
+		# s = Solver()
 		old_val = self.os.store[node.expr.name]
 		self.os.store[node.expr.name] = input 
 		p_input = self.os.convertToZ3(self.os.visit(node.p))
 
 		self.os.store[node.expr.name] = output  
 		p_output = self.os.convertToZ3(self.os.visit(node.p))
-		
+		# print((p_output))
+		# dfhg
 		# self.os.store[node.expr.name] = old_val
-
-		p = Not(Implies(And(self.os.C + [p_input]+ self.os.tempC), p_output))
-		s.add(p)
-		print("gen",time.time())
-		#set_param('timeout', 30)
-		#print("timeout place")
-		#s.set("timeout",10000)
-		#print(p)
-		#z3.set_option(timeout=30)
-		
-		if(not (s.check() == unsat)):
-			print(p)
-			print(s.model())
-			print("end",time.time())
-			raise Exception("Induction step is not true")
-		else:
-			print("Induction step proved")
-		
+		lhs = And(self.os.C + [p_input]+ self.os.tempC)
+		rhs = p_output
+		# print(lhs)
+		# print(rhs.children()[1])
+		solver = Opt_solver()
+		w = solver.solve(lhs, rhs)
 		print("end",time.time())
+		if w:
+			print('Induction step proved')
+		else:
+			raise Exception("Induction step is not true")
+		# p = Not(Implies(lhs, p_output))
+		# flag = True 
+		# opt = None
+		# if opt:
+		# 	d = p_output.decl()
+		# 	flag = True 
+		# 	for i in range(len(opt)):
+		# 		solver = Solver()
+		# 		p = Not(Implies(And(lhs), d(opt[i][0], opt[i][1])))
+		# 		print(p)
+		# 		solver.add(p)
+		# 		if(not (solver.check() == unsat)):
+		# 			flag = False 
+		# 			dhgdhgfd
+		# 			break 
+		# 		else:
+		# 			print('proved ', i)
+		# else:
+		# 	flag = False 
+		# print(flag)
+
+		# s.add(p)
+		# print("gen",time.time())
+		# #set_param('timeout', 30)
+		# #print("timeout place")
+		# #s.set("timeout",10000)
+		# #print(p)
+		# #z3.set_option(timeout=30)
+		# print(p)
+		# jhdsg
+		# if(not (s.check() == unsat)):
+		# 	print(p)
+		# 	print(s.model())
+		# 	print("end",time.time())
+		# 	raise Exception("Induction step is not true")
+		# else:
+		# 	print("Induction step proved")
+		
+		# print("end",time.time())
 		
 		# self.os.M = oldM
 		# self.os.V = oldV
