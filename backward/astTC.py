@@ -38,6 +38,11 @@ class ArrayType():
 
 	def __str__(self):
 		return str(self.base) + " list"
+	
+	def __eq__(self, obj):
+		if not isinstance(obj, ArrayType):
+			return False
+		return self.base == obj.base
 
 class TransformerType():
 
@@ -136,10 +141,58 @@ class ASTTC(astVisitor.ASTVisitor):
 
 		return listtype
 
+	def get_binop(self, op, ltype, rtype):
+		accepted = ["Int", "Float", "Neuron", "PolyExp", "ZonoExp", "Noise"]
+		if (isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType)):
+			raise Exception('Not possible')
+		if(op == "+" or op == "-"):
+			if(ltype in accepted and rtype in accepted):
+				if(self.lub_type(ltype, rtype) != "Top"):
+					return self.lub_type(ltype, rtype)
+				else:
+					raise TypeMismatchException(str(ltype) + " and " + str(rtype) + " are not comparable")
+			else:
+				raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+
+		elif(op == "*"):
+			if(self.isSubType(ltype, "Float") or self.isSubType(rtype, "Float")):
+				if(self.lub_type(ltype, rtype) != "Top"):
+					return self.lub_type(ltype, rtype)
+			raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+
+		elif(op == "/"):
+			if(self.isSubType(rtype, "Float")):
+				if(self.lub_type(ltype, rtype) != "Top"):
+					return self.lub_type(ltype, rtype)
+			raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+
+		elif(op == "and" or op == "or"):
+			if(self.isSubType(ltype, "Ct") and self.isSubType(rtype, "Ct")):
+				return self.lub_type(ltype, rtype)
+			else:
+				raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+		elif(op == "In"):
+			if(self.isSubType(ltype, "PolyExp") and self.isSubType(rtype, "ZonoExp")):
+				return "Ct"
+			else:
+				raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+		else: #<=, >=, ==
+			if(self.isSubType(ltype, "Float") and self.isSubType(rtype, "Float")):
+				return "Bool"
+			if(self.isSubType(ltype, "PolyExp") and self.isSubType(rtype, "PolyExp")):
+				return "Ct"
+			else:
+				raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
+
 	def visitBinOp(self, node: AST.BinOpNode):
 		ltype = self.visit(node.left)
 		rtype = self.visit(node.right)
+		if (isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType)):
+			ttype = self.get_binop(node.op, ltype.base, rtype.base)
+			return ArrayType(ttype)
+		return self.get_binop(node.op, ltype, rtype)
 		accepted = ["Int", "Float", "Neuron", "PolyExp", "ZonoExp", "Noise"]
+		
 		if(node.op == "+" or node.op == "-"):
 			if(ltype in accepted and rtype in accepted):
 				if(self.lub_type(ltype, rtype) != "Top"):
@@ -212,7 +265,14 @@ class ASTTC(astVisitor.ASTVisitor):
 				raise Exception('list empty')
 			else:
 				type = exptype[0]
-				if type != 'Float' and type != 'Int':
+				flag = False 
+				if type == 'Float' or type == 'Int':
+					flag = True 
+				if isinstance(type, ArrayType):
+					if type.base == 'Float' or type.base == 'Int':
+						flag = True 
+				if not flag:
+					print(type)
 					raise Exception('each element must be float or int')
 			for e in exptype:
 				if e != type:
@@ -359,7 +419,6 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitListOp(self, node: AST.ListOpNode):
 		exptype = self.visit(node.expr)
-
 		if(not isinstance(exptype, ArrayType)):
 			raise TypeMismatchException("Expression passed to listOp must be a list")
 
@@ -511,7 +570,31 @@ class ASTTC(astVisitor.ASTVisitor):
 		self.visit(node.fret)
 
 	def visitOpStmt(self, node: AST.OpStmtNode):
+		self.Gamma['curr'] = 'Neuron'
+		if node.op.op_name == 'Affine':
+			self.Gamma['prev'] = ArrayType('Neuron')
+		elif node.op.op_name == 'Relu':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'Maxpool':
+			self.Gamma['prev'] = ArrayType('Neuron')
+		elif node.op.op_name == 'Neuron_mult':
+			self.Gamma['prev_0'] = 'Neuron'
+			self.Gamma['prev_1'] = 'Neuron'
+		elif node.op.op_name == 'Neuron_list_mult':
+			self.Gamma['prev_0'] = ArrayType('Neuron')
+			self.Gamma['prev_1'] = ArrayType('Neuron')
+		# dshg
 		self.visit(node.ret)
+		if("curr_list" in self.Gamma):
+			del self.Gamma["curr_list"]
+		if("curr" in self.Gamma):
+			del self.Gamma["curr"]
+		if("prev" in self.Gamma):
+			del self.Gamma["prev"]
+		if("prev_0" in self.Gamma):
+			del self.Gamma["prev_0"]
+		if("prev_1" in self.Gamma):
+			del self.Gamma["prev_1"]
 		
 	def visitOpList(self, node: AST.OpListNode):
 		node.opsE = []
@@ -525,23 +608,23 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(tname in self.Gamma.keys()):
 			raise DuplicateVarException(tname + " is already defined")
 
-		for expr in node.arglist:
-			if(expr == "curr"):
-				self.Gamma["curr"] = "Neuron"
-			elif(expr == "prev"):
-				self.Gamma["prev"] = ArrayType("Neuron")
-			elif(expr == "curr_list"):
-				self.Gamma["curr_list"] = ArrayType("Neuron")
-			else:
-				raise TypeMismatchException("Arguments to transformer have to be prev, curr or curr_list")	
+		# for expr in node.arglist:
+		# 	if(expr == "curr"):
+		# 		self.Gamma["curr"] = "Neuron"
+		# 	elif(expr == "prev"):
+		# 		self.Gamma["prev"] = ArrayType("Neuron")
+		# 	elif(expr == "curr_list"):
+		# 		self.Gamma["curr_list"] = ArrayType("Neuron")
+		# 	else:
+		# 		raise TypeMismatchException("Arguments to transformer have to be prev, curr or curr_list")	
 
 		self.visit(node.oplist)
-		if("curr_list" in self.Gamma):
-			del self.Gamma["curr_list"]
-		if("curr" in self.Gamma):
-			del self.Gamma["curr"]
-		if("prev" in self.Gamma):
-			del self.Gamma["prev"]
+		# if("curr_list" in self.Gamma):
+		# 	del self.Gamma["curr_list"]
+		# if("curr" in self.Gamma):
+		# 	del self.Gamma["curr"]
+		# if("prev" in self.Gamma):
+		# 	del self.Gamma["prev"]
 		self.Gamma[tname] = TransformerType()
 
 	# def visitPropTermBasic(self, node: AST.PropTermBasicNode):

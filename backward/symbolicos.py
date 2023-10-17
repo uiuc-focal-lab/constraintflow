@@ -512,6 +512,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return node
 
 	def get_binop(self, left, right, f):
+		if isinstance(left, list):
+			l = min(len(left), len(right))
+			return [self.get_binop(left[i], right[i], f) for i in range(l)]
 		return f(left, right)
 		if isinstance(left, IF):
 			return IF(left.cond, self.get_binop(left.left, right, f), self.get_binop(left.right, right, f))
@@ -660,9 +663,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elist = self.visit(node.expr)
 		return self.get_argmax(elist, node)
 
-	def get_max(self, elist, node):
+	def get_max(self, elist, op):
 		if isinstance(elist, IF):
-			return IF(elist.cond, self.get_max(elist.left, node), self.get_max(elist.right, node))
+			return IF(elist.cond, self.get_max(elist.left, op), self.get_max(elist.right, op))
 		else:
 			n = len(elist)
 			temp_array = []
@@ -676,7 +679,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					if i == j:
 						temp_array[i][j] = (True, 'Bool')
 					else:
-						if(node.op == "max"):
+						if(op == "max"):
 							temp_array[i][j] = self.get_binop(elist[i], elist[j], GEQ)
 						else:
 							temp_array[i][j] = self.get_binop(elist[i], elist[j], LEQ)
@@ -690,8 +693,17 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitMaxOpList(self, node: AST.MaxOpListNode):
 		elist = self.visit(node.expr)
-		return self.get_max(elist, node)
-
+		if not isinstance(elist, list):
+			raise Exception('This is not possible. Somethung must be wrong with type checking')
+		if isinstance(elist[0], list):
+			l = min([len(i) for i in elist])
+			ret = []
+			for i in range(l):
+				e = [j[i] for j in elist]
+				ret.append(self.get_max(e, node.op))
+			return ret 
+		ret =  self.get_max(elist, node.op)
+		return ret
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
 		e1 = self.visit(node.expr1)
@@ -700,15 +712,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return IF(self.get_binop(e1, e2, GEQ), e1, e2)
 		else:
 			return IF(self.get_binop(e1, e2, LEQ), e1, e2)
-		y = Real('new_'+str(self.number.nextn()))
-		if(node.op == "max"):
-			self.tempC.append(y>=self.convertToZ3(e1))
-			self.tempC.append(y>=self.convertToZ3(e2))
-		else:
-			self.tempC.append(y<=self.convertToZ3(e1))
-			self.tempC.append(y<=self.convertToZ3(e2))
-		self.tempC.append(Or([y==self.convertToZ3(e1), y==self.convertToZ3(e2)]))
-		return (y, 'Float')
 
 	def get_listOp(self, elist, node):
 		if isinstance(elist, IF):

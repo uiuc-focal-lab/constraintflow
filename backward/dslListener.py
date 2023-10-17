@@ -386,6 +386,24 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#prev_0.
+    def enterPrev_0(self, ctx:dslParser.Prev_0Context):
+        pass
+
+    # Exit a parse tree produced by dslParser#prev_0.
+    def exitPrev_0(self, ctx:dslParser.Prev_0Context):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#prev_1.
+    def enterPrev_1(self, ctx:dslParser.Prev_1Context):
+        pass
+
+    # Exit a parse tree produced by dslParser#prev_1.
+    def exitPrev_1(self, ctx:dslParser.Prev_1Context):
+        pass
+
+
     # Enter a parse tree produced by dslParser#traverse.
     def enterTraverse(self, ctx:dslParser.TraverseContext):
         pass
