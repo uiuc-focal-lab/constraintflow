@@ -32,6 +32,7 @@ operator :
     AFFINE    
     | RELU     
     | MAXPOOL   
+    | NEURON_MULT
     | REVAFFINE   
     | REVRELU      
     | REVMAXPOOL      
@@ -75,6 +76,7 @@ expr: FALSE					                        #false
     | LSQR expr_list RSQR                           #exprarray
     | expr LSQR metadata RSQR                       #getMetadata
     | expr LSQR VAR RSQR                            #getElement
+    | expr LSQR IntConst RSQR                       #getElementAtIndex
     | expr binop expr         			            #binopExp
     | NOT expr       				                #not
     | MINUS expr				                    #neg
@@ -188,6 +190,7 @@ AFFINE: 'Affine' ;
 RELU: 'Relu' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
+NEURON_MULT: 'Neuron_mult' ;
 REVRELU: 'rev_Relu' ;
 REVMAXPOOL: 'rev_Maxpool' ;
 SIGMOID: 'Sigmoid' ;

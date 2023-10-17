@@ -146,15 +146,15 @@ class ASTBuilder(dslVisitor):
         return AST.LpNode(op, e, c)
 
 
-    def visitGetElement(self, ctx:dslParser.GetElementContext):
-        op = ctx.list_op().getText()
-        expr = self.visit(ctx.expr())
-        if(op == "sum"):
-            return AST.SumNode(expr)
-        elif(op == "avg"):
-            return AST.AvgNode(expr)
-        elif(op == "len"):
-            return AST.LenNode(expr)
+    # def visitGetElement(self, ctx:dslParser.GetElementContext):
+    #     op = ctx.list_op().getText()
+    #     expr = self.visit(ctx.expr())
+    #     if(op == "sum"):
+    #         return AST.SumNode(expr)
+    #     elif(op == "avg"):
+    #         return AST.AvgNode(expr)
+    #     elif(op == "len"):
+    #         return AST.LenNode(expr)
 
     #def visitSum(self, ctx:dslParser.SumContext):
     #    expr = self.visit(ctx.expr())
@@ -215,6 +215,11 @@ class ASTBuilder(dslVisitor):
         expr = self.visit(ctx.expr())
         data = self.visit(ctx.metadata())
         return AST.GetMetadataNode(expr, data)
+    
+    def visitGetElementAtIndex(self, ctx:dslParser.GetElementAtIndexContext):
+        expr = self.visit(ctx.expr())
+        index = int(ctx.IntConst().getText())
+        return AST.GetElementAtIndexNode(expr, index)
 
     def visitVarExp(self, ctx:dslParser.VarExpContext):
         name = ctx.VAR().getText()

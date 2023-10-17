@@ -45,6 +45,8 @@ class ASTVisitor:
 			return self.visitGetMetadata(node)
 		elif isinstance(node, AST.GetElementNode):
 			return self.visitGetElement(node)
+		elif isinstance(node, AST.GetElementAtIndexNode):
+			return self.visitGetElementAtIndex(node)
 		elif isinstance(node, AST.TraverseNode):
 			return self.visitTraverse(node)
 		elif isinstance(node, AST.MapNode):
