@@ -59,6 +59,9 @@ class Opt_solver:
 
     def priority(self, q):
         lhs, rhs = q.children()
+        if lhs.decl()==plus and rhs.decl()==plus:
+            if len(self.get_summands(lhs)) == len(self.get_summands(rhs)):
+                return 100
         lhs = self.vars(lhs)
         rhs = self.vars(rhs)
         return len(lhs.intersection(rhs))
@@ -83,24 +86,33 @@ class Opt_solver:
                 m2 = [(left.children()[2], right)]
             m = m1 + m2
             return m 
-        left = self.get_summands(left)
-        right = self.get_summands(right)
-        if len(left)!=len(right):
+        left_ = self.get_summands(left)
+        right_ = self.get_summands(right)
+        if len(left_)!=len(right_):
             return None 
         m = []
-        for i in range(len(left)):
+        for i in range(len(left_)):
             flag = False
-            v1 = self.vars(left[i])
-            for j in range(len(right)):
-                v2 = self.vars(right[j])
+            v1 = self.vars(left_[i])
+            for j in range(len(right_)):
+                v2 = self.vars(right_[j])
                 if len(v1.intersection(v2)) > 0:
-                    m.append((left[i], right[j]))
-                    del right[j]
+                    m.append((left_[i], right_[j]))
+                    del right_[j]
                     flag = True 
                     break 
             if not flag:
-                return None 
-        return m 
+                m = []
+                break
+                # return None 
+        if flag:
+            return m 
+        else:
+            left_ = self.get_summands(left)
+            right_ = self.get_summands(right)
+            for i in range(len(left_)):
+                m.append((left_[i], right_[i]))
+            return m
     
     def solve_sub_lemma(self, lhs, m, top_level):
         for r in m:
@@ -131,14 +143,31 @@ class Opt_solver:
         return [(lhs, rhs)]
     
     def solve_temp(self, lhs, rhs):
+        # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+        # print('printing solve temp')
+        # print(lhs)
+        # print()
+        # print(rhs)
+        # print()
         m = self.get_sufficient_formulae(lhs, rhs)
+        # print(len(m))
+        # for i in range(len(m)):
+        #     print('printing m ', i)
+        #     print(m[i])
+        #     print()
+        # jzhsdgf
         if m:
             for r in m:
+                # print(r)
                 if self.opt_solve(lhs, r):
                     return True 
         return self.opt_solve(lhs, rhs)
     
     def solve(self, lhs, rhs):
+        # print(lhs)
+        # print()
+        # print(rhs)
+        # jhsgd
         m_if = self.check_if(lhs, rhs)
         for i in m_if:
             ret = self.solve_temp(*i)

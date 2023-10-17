@@ -54,9 +54,9 @@ class ASTBuilder(dslVisitor):
     def visitTransformer(self, ctx:dslParser.TransformerContext):
         op_list = self.visit(ctx.op_list())
         name = AST.VarNode(ctx.trans_decl().VAR().getText())
-        l = self.visit(ctx.trans_decl().expr_list())
-        expr_list = [v.name for v in l.exprlist]
-        return AST.TransformerNode(name, expr_list, op_list)
+        # l = self.visit(ctx.trans_decl().expr_list())
+        # expr_list = [v.name for v in l.exprlist]
+        return AST.TransformerNode(name, op_list)
 
     #this O(n^2) to retain the order of the expressions
     def visitOp_list(self, ctx:dslParser.Op_listContext):
@@ -191,6 +191,12 @@ class ASTBuilder(dslVisitor):
     def visitPrev(self, ctx:dslParser.PrevContext):
         return AST.VarNode("prev")
     
+    def visitPrev_0(self, ctx:dslParser.Prev_0Context):
+        return AST.VarNode("prev_0")
+    
+    def visitPrev_1(self, ctx:dslParser.Prev_1Context):
+        return AST.VarNode("prev_1")
+    
     def visitCurr_list(self, ctx:dslParser.Curr_listContext):
         return AST.VarNode("curr_list")
     
@@ -216,10 +222,10 @@ class ASTBuilder(dslVisitor):
         data = self.visit(ctx.metadata())
         return AST.GetMetadataNode(expr, data)
     
-    def visitGetElementAtIndex(self, ctx:dslParser.GetElementAtIndexContext):
-        expr = self.visit(ctx.expr())
-        index = int(ctx.IntConst().getText())
-        return AST.GetElementAtIndexNode(expr, index)
+    # def visitGetElementAtIndex(self, ctx:dslParser.GetElementAtIndexContext):
+    #     expr = self.visit(ctx.expr())
+    #     index = int(ctx.IntConst().getText())
+    #     return AST.GetElementAtIndexNode(expr, index)
 
     def visitVarExp(self, ctx:dslParser.VarExpContext):
         name = ctx.VAR().getText()

@@ -178,13 +178,13 @@ class GetElementNode(ExprNode):
         self.expr = expr
         self.elem = elem
 
-class GetElementAtIndexNode(ExprNode):
+# class GetElementAtIndexNode(ExprNode):
 
-    def __init__(self, expr, index):
-        super().__init__()
-        self.node_name = "Access Element at Index"
-        self.expr = expr
-        self.index = index 
+#     def __init__(self, expr, index):
+#         super().__init__()
+#         self.node_name = "Access Element at Index"
+#         self.expr = expr
+#         self.index = index 
 
 class TraverseNode(ExprNode):
 
@@ -334,11 +334,11 @@ class StatementNode(ASTNode):
 
 class TransformerNode(StatementNode):
     #can have a seperate TransDeclNode class but it's not necessary
-    def __init__(self, name, arglist, oplist):
+    def __init__(self, name, oplist):
         super().__init__()
         self.node_name = "Transformer"
         self.name = name
-        self.arglist = arglist
+        # self.arglist = arglist
         self.oplist = oplist
 
 # class PropTermNode(ASTNode):

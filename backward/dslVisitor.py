@@ -219,6 +219,16 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#prev_0.
+    def visitPrev_0(self, ctx:dslParser.Prev_0Context):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#prev_1.
+    def visitPrev_1(self, ctx:dslParser.Prev_1Context):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#traverse.
     def visitTraverse(self, ctx:dslParser.TraverseContext):
         return self.visitChildren(ctx)

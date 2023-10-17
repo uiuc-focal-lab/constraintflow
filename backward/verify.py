@@ -87,8 +87,7 @@ class Verify(astVisitor.ASTVisitor):
 
 	def visitFlow(self, node):
 		global exptemp
-		print()
-		print("start !!!!!!!!!!!!!",time.time())
+		print("start ",time.time())
 		node = self.theta[node.trans.name]
 		for op_i in range(len(node.oplist.olist)):
 			self.E.clear()
@@ -105,12 +104,24 @@ class Verify(astVisitor.ASTVisitor):
 			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons)
 			s.os.hasE = hasE
 			#node = self.theta[node.trans.name]
-			if("curr" in node.arglist):
+			required_neurons = []
+			op_ = node.oplist.olist[op_i].op.op_name
+			if op_ == 'Affine':
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'Relu':
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'Maxpool':
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'Neuron_mult':
+				required_neurons = ['curr', 'prev_0', 'prev_1']
+			elif op_ == 'Neuron_list_mult':
+				required_neurons = ['curr', 'prev_0', 'prev_1']
+			if("curr" in required_neurons):
 				curr = Vertex('Curr')
 				self.V[curr.name] =  curr 
 				populate_vars(s.vars, curr, self.C, self.store, s.os, self.constraint, self.number)
 				store["curr"] = (curr.name, "Neuron")
-			if("prev" in node.arglist):
+			if("prev" in required_neurons):
 				prev = []
 				for i in range(nprev):
 					p = Vertex('Prev'+str(i))
@@ -118,7 +129,39 @@ class Verify(astVisitor.ASTVisitor):
 					self.V[p.name] = p
 					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
 				store["prev"] = prev 
-			if("curr_list" in node.arglist):
+			if(op_ == 'Neuron_list_mult'):
+				prev_0 = []
+				prev_1 = []
+				for i in range(nprev):
+					p = Vertex('Prev0_'+str(i))
+					prev_0.append((p.name, "Neuron"))
+					self.V[p.name] = p
+					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+
+					p = Vertex('Prev1_'+str(i))
+					prev_1.append((p.name, "Neuron"))
+					self.V[p.name] = p
+					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+				store["prev_0"] = prev_0 
+				store["prev_1"] = prev_1 
+			elif("prev_1" in required_neurons):
+				prev = []
+				for i in range(nprev):
+					p = Vertex('Prev'+str(i))
+					prev.append((p.name, "Neuron"))
+					self.V[p.name] = p
+					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+				store["prev_0"] = prev[0] 
+				store["prev_1"] = prev[1] 
+			elif("prev_0" in required_neurons):
+				prev = []
+				for i in range(nprev):
+					p = Vertex('Prev'+str(i))
+					prev.append((p.name, "Neuron"))
+					self.V[p.name] = p
+					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+				store["prev_0"] = prev[0] 
+			if("curr_list" in required_neurons):
 				curr_list = []
 				for i in range(self.Ncurr):
 					p = Vertex('curr_list'+str(i))
@@ -143,6 +186,18 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
 				exptemp = ADD(exptemp, curr.symmap["bias"])
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+			elif(op.op.op_name == "Neuron_list_mult"):
+				# if(not "weight" in curr.symmap.keys()):
+				# 	curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(nprev)]
+				# if(not "bias" in curr.symmap.keys()):
+				# 	curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
+				exptemp = (0, 'Float')
+				for i in range(nprev):
+					exptemp = ADD(exptemp, MULT(prev_0[i], prev_1[i]))
+				# exptemp = ADD(exptemp, curr.symmap["bias"])
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
@@ -212,9 +267,9 @@ class Verify(astVisitor.ASTVisitor):
 				curr_prime.symmap[m] = curr.symmap[m]
 			
 			
-			# computation = (curr_prime.name == curr.name)
+			computation = (curr_prime.name == curr.name)
 			# computation = s.os.tempC
-			computation = [s.currop] + s.os.tempC
+			computation = [s.currop, computation] + s.os.tempC
 			# print(computation)
 			s.os.tempC = []
 			s.flag = True
@@ -264,7 +319,8 @@ class Verify(astVisitor.ASTVisitor):
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
 				# print('here')
 				z3constraint = s.os.convertToZ3(c)
-				z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
+				if isinstance(exptemp, z3.z3.ArithRef):
+					z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
 				#print("time", time.time())
 				if len(self.E) > 0:
 					conds_eps = [z3constraint]
@@ -304,10 +360,7 @@ class Verify(astVisitor.ASTVisitor):
 					raise Exception("Transformer"+ " " + " not true")
 				print("end",time.time())
 				s.os.tempC = []
-				# print(newLeftC)
-				# print(z3constraint)
-				# print(w)
-				# kjsdh
+
 				# opt = optimization(z3constraint)
 				# flag = True 
 				# opt = None
@@ -331,19 +384,10 @@ class Verify(astVisitor.ASTVisitor):
 				# if not flag:
 				# 	solver = Solver()
 				# 	p = Not(Implies(And(newLeftC), z3constraint))
-				# 	#set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
-				# 	#print("final query")
-				# 	#print(p)
-				# 	#print("------------------------------------------------------------------------------")
 				# 	solver.add(p)
 				# 	print("gen",time.time())
-				# 	#print(solver)
-				# 	#Printing stats about Z3 Queries:
-				# 	#print(len(get_vars(p)) )
 				# 	if(not (solver.check() == unsat)):
 				# 		print("end",time.time())
-				# 		#print(solver)
-				# 		#print(solver.model())
 				# 		raise Exception("Transformer"+ " " + " not true")
 				# 	print("end",time.time())
 				# s.os.tempC = []

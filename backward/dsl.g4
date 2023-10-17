@@ -26,13 +26,14 @@ op_list: op_stmt SEMI
 
 op_stmt: operator ARROW trans_ret ;
 
-trans_decl : TRANSFORMER VAR LPAREN expr_list RPAREN;     
+trans_decl : TRANSFORMER VAR;     
 
 operator :
     AFFINE    
     | RELU     
     | MAXPOOL   
     | NEURON_MULT
+    | NEURON_LIST_MULT
     | REVAFFINE   
     | REVRELU      
     | REVMAXPOOL      
@@ -71,12 +72,13 @@ expr: FALSE					                        #false
     | EPSILON 					                    #epsilon
     | CURR					                        #curr
     | PREV					                        #prev
+    | PREV_0					                        #prev_0
+    | PREV_1					                        #prev_1
     | CURRLIST					                    #curr_list
     | LPAREN expr RPAREN      			            #parenExp
     | LSQR expr_list RSQR                           #exprarray
     | expr LSQR metadata RSQR                       #getMetadata
     | expr LSQR VAR RSQR                            #getElement
-    | expr LSQR IntConst RSQR                       #getElementAtIndex
     | expr binop expr         			            #binopExp
     | NOT expr       				                #not
     | MINUS expr				                    #neg
@@ -191,6 +193,7 @@ RELU: 'Relu' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
+NEURON_LIST_MULT: 'Neuron_list_mult' ;
 REVRELU: 'rev_Relu' ;
 REVMAXPOOL: 'rev_Maxpool' ;
 SIGMOID: 'Sigmoid' ;
@@ -202,6 +205,8 @@ TRUE: 'true' ;
 FALSE: 'false' ;
 CURR: 'curr' ;
 PREV: 'prev' ;
+PREV_0: 'prev_0' ;
+PREV_1: 'prev_1' ;
 CURRLIST: 'curr_list' ;
 LP: 'lp' ;
 CONCAT: 'concat' ;

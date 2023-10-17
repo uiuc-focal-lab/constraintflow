@@ -15,7 +15,7 @@ func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true
 
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
-transformer deeppoly(curr, prev){
+transformer deeppoly{
     Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
 }
 

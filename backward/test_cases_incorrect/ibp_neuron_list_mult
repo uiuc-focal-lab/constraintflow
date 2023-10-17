@@ -7,7 +7,7 @@ func priority(Neuron n) = n[layer];
 
 
 transformer ibp{
-    Neuron_mult -> (min([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]]), max([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]]));
+    Neuron_list_mult -> (sum(max([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]])), sum(max([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]])));
 }
 
 flow(forward, priority, true, ibp);
