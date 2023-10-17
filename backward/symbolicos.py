@@ -788,13 +788,25 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return self.get_getElement(expr, node.elem.name)
 		# if isinstance(elist, IF):
 		# 	return IF(elist.cond, self.visitGetElement(elist.left, node.elem.name))
-		# n = self.visit(node.expr)
+		# n = self.visit(node.expr)python experiments.py test_cases_correct/deeppoly_affine "1000 1000 1"
 		# if(isinstance(n, LIST)):
 		# 	return self.M[GETELEMENT(n, node.elem.name)]
 		# 	# return LIST([self.V[i[0]].symmap[node.elem.name] for i in n.elist])
 		# else:
 		# 	return self.V[n[0]].symmap[node.elem.name]
 
+	def get_getElementAtIndex(self, expr, index):
+		if isinstance(expr, IF):
+			return IF(expr.cond, self.get_getElementAtIndex(expr.left, index), self.get_getElementAtIndex(expr.right, index))
+		elif isinstance(expr, list):
+			return expr[index] 
+		else:
+			raise Exception('Not possible')
+
+	def visitGetElementAtIndex(self, node):
+		expr = self.visit(node.expr)
+		return self.get_getElementAtIndex(expr, node.index)
+	
 	def visitGetMetadata(self, node):
 		expr = self.visit(node.expr)
 		return self.get_getElement(expr, node.metadata.name)

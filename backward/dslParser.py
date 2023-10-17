@@ -1,129 +1,153 @@
-# Generated from dsl.g4 by ANTLR 4.12.0
+# Generated from dsl.g4 by ANTLR 4.7.2
 # encoding: utf-8
 from antlr4 import *
 from io import StringIO
+from typing.io import TextIO
 import sys
-if sys.version_info[1] > 5:
-	from typing import TextIO
-else:
-	from typing.io import TextIO
 
 def serializedATN():
-    return [
-        4,1,82,317,2,0,7,0,2,1,7,1,2,2,7,2,2,3,7,3,2,4,7,4,2,5,7,5,2,6,7,
-        6,2,7,7,7,2,8,7,8,2,9,7,9,2,10,7,10,2,11,7,11,2,12,7,12,2,13,7,13,
-        2,14,7,14,2,15,7,15,2,16,7,16,2,17,7,17,2,18,7,18,2,19,7,19,2,20,
-        7,20,2,21,7,21,1,0,1,0,1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-        1,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,2,1,
-        2,1,2,1,2,1,2,1,2,3,2,78,8,2,1,2,1,2,5,2,82,8,2,10,2,12,2,85,9,2,
-        1,3,1,3,1,3,1,3,1,3,1,4,1,4,1,4,1,4,1,4,1,5,1,5,1,5,1,5,1,5,1,5,
-        1,5,3,5,104,8,5,1,6,1,6,1,6,1,6,1,7,1,7,1,7,1,7,1,7,1,7,1,8,1,8,
-        1,9,1,9,1,9,1,9,1,9,1,9,1,9,1,9,1,9,1,9,1,9,3,9,129,8,9,1,10,1,10,
-        1,10,1,10,1,10,1,10,1,10,1,10,3,10,139,8,10,1,10,1,10,5,10,143,8,
-        10,10,10,12,10,146,9,10,1,11,1,11,1,11,1,11,1,11,1,11,1,11,1,11,
-        3,11,156,8,11,1,12,1,12,1,12,1,12,1,12,3,12,163,8,12,1,13,1,13,1,
-        13,1,13,3,13,169,8,13,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,3,14,233,8,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,14,1,
-        14,1,14,1,14,5,14,298,8,14,10,14,12,14,301,9,14,1,15,1,15,1,16,1,
-        16,1,17,1,17,1,18,1,18,1,19,1,19,1,20,1,20,1,21,1,21,1,21,0,3,4,
-        20,28,22,0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,
-        40,42,0,8,1,0,59,64,1,0,52,53,1,0,1,2,1,0,54,55,1,0,45,47,4,0,6,
-        6,20,26,28,28,30,32,2,0,56,58,77,77,1,0,8,9,338,0,44,1,0,0,0,2,48,
-        1,0,0,0,4,77,1,0,0,0,6,86,1,0,0,0,8,91,1,0,0,0,10,103,1,0,0,0,12,
-        105,1,0,0,0,14,109,1,0,0,0,16,115,1,0,0,0,18,128,1,0,0,0,20,138,
-        1,0,0,0,22,155,1,0,0,0,24,162,1,0,0,0,26,168,1,0,0,0,28,232,1,0,
-        0,0,30,302,1,0,0,0,32,304,1,0,0,0,34,306,1,0,0,0,36,308,1,0,0,0,
-        38,310,1,0,0,0,40,312,1,0,0,0,42,314,1,0,0,0,44,45,3,2,1,0,45,46,
-        3,4,2,0,46,47,5,0,0,1,47,1,1,0,0,0,48,49,5,67,0,0,49,50,5,34,0,0,
-        50,51,3,22,11,0,51,52,5,35,0,0,52,53,5,38,0,0,53,54,3,28,14,0,54,
-        55,5,39,0,0,55,56,5,40,0,0,56,3,1,0,0,0,57,58,6,2,-1,0,58,59,5,3,
-        0,0,59,60,5,34,0,0,60,61,3,42,21,0,61,62,5,19,0,0,62,63,3,28,14,
-        0,63,64,5,19,0,0,64,65,3,28,14,0,65,66,5,19,0,0,66,67,5,80,0,0,67,
-        68,5,35,0,0,68,69,5,40,0,0,69,78,1,0,0,0,70,71,5,68,0,0,71,72,3,
-        6,3,0,72,73,5,27,0,0,73,74,3,28,14,0,74,75,5,40,0,0,75,78,1,0,0,
-        0,76,78,3,8,4,0,77,57,1,0,0,0,77,70,1,0,0,0,77,76,1,0,0,0,78,83,
-        1,0,0,0,79,80,10,1,0,0,80,82,3,4,2,2,81,79,1,0,0,0,82,85,1,0,0,0,
-        83,81,1,0,0,0,83,84,1,0,0,0,84,5,1,0,0,0,85,83,1,0,0,0,86,87,5,80,
-        0,0,87,88,5,34,0,0,88,89,3,22,11,0,89,90,5,35,0,0,90,7,1,0,0,0,91,
-        92,3,14,7,0,92,93,5,38,0,0,93,94,3,10,5,0,94,95,5,39,0,0,95,9,1,
-        0,0,0,96,97,3,12,6,0,97,98,5,40,0,0,98,104,1,0,0,0,99,100,3,12,6,
-        0,100,101,5,40,0,0,101,102,3,10,5,0,102,104,1,0,0,0,103,96,1,0,0,
-        0,103,99,1,0,0,0,104,11,1,0,0,0,105,106,3,16,8,0,106,107,5,4,0,0,
-        107,108,3,18,9,0,108,13,1,0,0,0,109,110,5,5,0,0,110,111,5,80,0,0,
-        111,112,5,34,0,0,112,113,3,24,12,0,113,114,5,35,0,0,114,15,1,0,0,
-        0,115,116,7,0,0,0,116,17,1,0,0,0,117,118,3,28,14,0,118,119,5,41,
-        0,0,119,120,3,18,9,0,120,121,5,42,0,0,121,122,3,18,9,0,122,129,1,
-        0,0,0,123,124,5,34,0,0,124,125,3,18,9,0,125,126,5,35,0,0,126,129,
-        1,0,0,0,127,129,3,24,12,0,128,117,1,0,0,0,128,123,1,0,0,0,128,127,
-        1,0,0,0,129,19,1,0,0,0,130,131,6,10,-1,0,131,139,5,10,0,0,132,139,
-        5,11,0,0,133,139,5,12,0,0,134,139,5,13,0,0,135,139,5,14,0,0,136,
-        139,5,15,0,0,137,139,5,16,0,0,138,130,1,0,0,0,138,132,1,0,0,0,138,
-        133,1,0,0,0,138,134,1,0,0,0,138,135,1,0,0,0,138,136,1,0,0,0,138,
-        137,1,0,0,0,139,144,1,0,0,0,140,141,10,1,0,0,141,143,5,17,0,0,142,
-        140,1,0,0,0,143,146,1,0,0,0,144,142,1,0,0,0,144,145,1,0,0,0,145,
-        21,1,0,0,0,146,144,1,0,0,0,147,148,3,20,10,0,148,149,5,80,0,0,149,
-        150,5,19,0,0,150,151,3,22,11,0,151,156,1,0,0,0,152,153,3,20,10,0,
-        153,154,5,80,0,0,154,156,1,0,0,0,155,147,1,0,0,0,155,152,1,0,0,0,
-        156,23,1,0,0,0,157,158,3,28,14,0,158,159,5,19,0,0,159,160,3,24,12,
-        0,160,163,1,0,0,0,161,163,3,28,14,0,162,157,1,0,0,0,162,161,1,0,
-        0,0,163,25,1,0,0,0,164,165,3,28,14,0,165,166,3,26,13,0,166,169,1,
-        0,0,0,167,169,3,28,14,0,168,164,1,0,0,0,168,167,1,0,0,0,169,27,1,
-        0,0,0,170,171,6,14,-1,0,171,233,5,71,0,0,172,233,5,70,0,0,173,233,
-        5,78,0,0,174,233,5,79,0,0,175,233,5,80,0,0,176,233,5,69,0,0,177,
-        233,5,72,0,0,178,233,5,73,0,0,179,233,5,74,0,0,180,181,5,34,0,0,
-        181,182,3,28,14,0,182,183,5,35,0,0,183,233,1,0,0,0,184,185,5,36,
-        0,0,185,186,3,24,12,0,186,187,5,37,0,0,187,233,1,0,0,0,188,189,5,
-        33,0,0,189,233,3,28,14,15,190,191,5,21,0,0,191,233,3,28,14,14,192,
-        193,3,30,15,0,193,194,5,34,0,0,194,195,3,28,14,0,195,196,5,19,0,
-        0,196,197,3,28,14,0,197,198,5,35,0,0,198,233,1,0,0,0,199,200,3,34,
-        17,0,200,201,5,34,0,0,201,202,3,28,14,0,202,203,5,35,0,0,203,233,
-        1,0,0,0,204,205,3,34,17,0,205,206,5,34,0,0,206,207,3,28,14,0,207,
-        208,5,19,0,0,208,209,3,28,14,0,209,210,5,35,0,0,210,233,1,0,0,0,
-        211,212,3,36,18,0,212,213,5,34,0,0,213,214,3,28,14,0,214,215,5,35,
-        0,0,215,233,1,0,0,0,216,217,5,75,0,0,217,218,5,34,0,0,218,219,3,
-        32,16,0,219,220,5,19,0,0,220,221,3,28,14,0,221,222,5,19,0,0,222,
-        223,3,28,14,0,223,224,5,35,0,0,224,233,1,0,0,0,225,226,5,80,0,0,
-        226,227,5,34,0,0,227,228,3,24,12,0,228,229,5,35,0,0,229,233,1,0,
-        0,0,230,231,5,80,0,0,231,233,3,26,13,0,232,170,1,0,0,0,232,172,1,
-        0,0,0,232,173,1,0,0,0,232,174,1,0,0,0,232,175,1,0,0,0,232,176,1,
-        0,0,0,232,177,1,0,0,0,232,178,1,0,0,0,232,179,1,0,0,0,232,180,1,
-        0,0,0,232,184,1,0,0,0,232,188,1,0,0,0,232,190,1,0,0,0,232,192,1,
-        0,0,0,232,199,1,0,0,0,232,204,1,0,0,0,232,211,1,0,0,0,232,216,1,
-        0,0,0,232,225,1,0,0,0,232,230,1,0,0,0,233,299,1,0,0,0,234,235,10,
-        16,0,0,235,236,3,38,19,0,236,237,3,28,14,17,237,298,1,0,0,0,238,
-        239,10,13,0,0,239,240,5,41,0,0,240,241,3,28,14,0,241,242,5,42,0,
-        0,242,243,3,28,14,14,243,298,1,0,0,0,244,245,10,18,0,0,245,246,5,
-        36,0,0,246,247,3,40,20,0,247,248,5,37,0,0,248,298,1,0,0,0,249,250,
-        10,17,0,0,250,251,5,36,0,0,251,252,5,80,0,0,252,298,5,37,0,0,253,
-        254,10,12,0,0,254,255,5,18,0,0,255,256,5,44,0,0,256,257,5,34,0,0,
-        257,258,3,42,21,0,258,259,5,19,0,0,259,260,3,28,14,0,260,261,5,19,
-        0,0,261,262,3,28,14,0,262,263,5,19,0,0,263,264,3,28,14,0,264,265,
-        5,35,0,0,265,266,5,38,0,0,266,267,3,28,14,0,267,268,5,39,0,0,268,
-        298,1,0,0,0,269,270,10,7,0,0,270,271,5,18,0,0,271,272,5,49,0,0,272,
-        273,5,34,0,0,273,274,3,28,14,0,274,275,5,35,0,0,275,298,1,0,0,0,
-        276,277,10,6,0,0,277,278,5,18,0,0,278,279,5,50,0,0,279,280,5,34,
-        0,0,280,281,3,28,14,0,281,282,5,35,0,0,282,298,1,0,0,0,283,284,10,
-        5,0,0,284,285,5,18,0,0,285,286,5,51,0,0,286,287,5,34,0,0,287,288,
-        3,28,14,0,288,289,5,35,0,0,289,298,1,0,0,0,290,291,10,4,0,0,291,
-        292,5,18,0,0,292,293,5,76,0,0,293,294,5,34,0,0,294,295,3,28,14,0,
-        295,296,5,35,0,0,296,298,1,0,0,0,297,234,1,0,0,0,297,238,1,0,0,0,
-        297,244,1,0,0,0,297,249,1,0,0,0,297,253,1,0,0,0,297,269,1,0,0,0,
-        297,276,1,0,0,0,297,283,1,0,0,0,297,290,1,0,0,0,298,301,1,0,0,0,
-        299,297,1,0,0,0,299,300,1,0,0,0,300,29,1,0,0,0,301,299,1,0,0,0,302,
-        303,7,1,0,0,303,31,1,0,0,0,304,305,7,2,0,0,305,33,1,0,0,0,306,307,
-        7,3,0,0,307,35,1,0,0,0,308,309,7,4,0,0,309,37,1,0,0,0,310,311,7,
-        5,0,0,311,39,1,0,0,0,312,313,7,6,0,0,313,41,1,0,0,0,314,315,7,7,
-        0,0,315,43,1,0,0,0,12,77,83,103,128,138,144,155,162,168,232,297,
-        299
-    ]
+    with StringIO() as buf:
+        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3U")
+        buf.write("\u013c\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
+        buf.write("\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16")
+        buf.write("\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22\4\23\t\23")
+        buf.write("\4\24\t\24\4\25\t\25\4\26\t\26\4\27\t\27\3\2\3\2\3\2\3")
+        buf.write("\2\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\3\4\3\4\3\4\3\4")
+        buf.write("\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3\4\3")
+        buf.write("\4\3\4\3\4\5\4P\n\4\3\4\3\4\7\4T\n\4\f\4\16\4W\13\4\3")
+        buf.write("\5\3\5\3\5\3\5\3\5\3\6\3\6\3\6\3\6\3\6\3\7\3\7\3\7\3\7")
+        buf.write("\3\7\3\7\3\7\5\7j\n\7\3\b\3\b\3\b\3\b\3\t\3\t\3\t\3\n")
+        buf.write("\3\n\3\13\3\13\3\13\3\13\3\13\3\13\3\13\3\13\3\13\3\13")
+        buf.write("\3\13\5\13\u0080\n\13\3\f\3\f\3\f\3\f\3\f\3\f\3\f\3\f")
+        buf.write("\5\f\u008a\n\f\3\f\3\f\7\f\u008e\n\f\f\f\16\f\u0091\13")
+        buf.write("\f\3\r\3\r\3\r\3\r\3\r\3\r\3\r\3\r\5\r\u009b\n\r\3\16")
+        buf.write("\3\16\3\16\3\16\3\16\5\16\u00a2\n\16\3\17\3\17\3\17\3")
+        buf.write("\17\5\17\u00a8\n\17\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\5\20\u00e8\n\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3")
+        buf.write("\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20\3\20")
+        buf.write("\3\20\7\20\u0129\n\20\f\20\16\20\u012c\13\20\3\21\3\21")
+        buf.write("\3\22\3\22\3\23\3\23\3\24\3\24\3\25\3\25\3\26\3\26\3\27")
+        buf.write("\3\27\3\27\2\5\6\26\36\30\2\4\6\b\n\f\16\20\22\24\26\30")
+        buf.write("\32\34\36 \"$&(*,\2\n\3\2=C\3\2\66\67\3\2\3\4\3\289\3")
+        buf.write("\2/\61\6\2\b\b\26\34\36\36 \"\4\2:<PP\3\2\n\13\2\u0151")
+        buf.write("\2.\3\2\2\2\4\62\3\2\2\2\6O\3\2\2\2\bX\3\2\2\2\n]\3\2")
+        buf.write("\2\2\fi\3\2\2\2\16k\3\2\2\2\20o\3\2\2\2\22r\3\2\2\2\24")
+        buf.write("\177\3\2\2\2\26\u0089\3\2\2\2\30\u009a\3\2\2\2\32\u00a1")
+        buf.write("\3\2\2\2\34\u00a7\3\2\2\2\36\u00e7\3\2\2\2 \u012d\3\2")
+        buf.write("\2\2\"\u012f\3\2\2\2$\u0131\3\2\2\2&\u0133\3\2\2\2(\u0135")
+        buf.write("\3\2\2\2*\u0137\3\2\2\2,\u0139\3\2\2\2./\5\4\3\2/\60\5")
+        buf.write("\6\4\2\60\61\7\2\2\3\61\3\3\2\2\2\62\63\7F\2\2\63\64\7")
+        buf.write("$\2\2\64\65\5\30\r\2\65\66\7%\2\2\66\67\7(\2\2\678\5\36")
+        buf.write("\20\289\7)\2\29:\7*\2\2:\5\3\2\2\2;<\b\4\1\2<=\7\5\2\2")
+        buf.write("=>\7$\2\2>?\5,\27\2?@\7\25\2\2@A\5\36\20\2AB\7\25\2\2")
+        buf.write("BC\5\36\20\2CD\7\25\2\2DE\7S\2\2EF\7%\2\2FG\7*\2\2GP\3")
+        buf.write("\2\2\2HI\7G\2\2IJ\5\b\5\2JK\7\35\2\2KL\5\36\20\2LM\7*")
+        buf.write("\2\2MP\3\2\2\2NP\5\n\6\2O;\3\2\2\2OH\3\2\2\2ON\3\2\2\2")
+        buf.write("PU\3\2\2\2QR\f\3\2\2RT\5\6\4\4SQ\3\2\2\2TW\3\2\2\2US\3")
+        buf.write("\2\2\2UV\3\2\2\2V\7\3\2\2\2WU\3\2\2\2XY\7S\2\2YZ\7$\2")
+        buf.write("\2Z[\5\30\r\2[\\\7%\2\2\\\t\3\2\2\2]^\5\20\t\2^_\7(\2")
+        buf.write("\2_`\5\f\7\2`a\7)\2\2a\13\3\2\2\2bc\5\16\b\2cd\7*\2\2")
+        buf.write("dj\3\2\2\2ef\5\16\b\2fg\7*\2\2gh\5\f\7\2hj\3\2\2\2ib\3")
+        buf.write("\2\2\2ie\3\2\2\2j\r\3\2\2\2kl\5\22\n\2lm\7\6\2\2mn\5\24")
+        buf.write("\13\2n\17\3\2\2\2op\7\7\2\2pq\7S\2\2q\21\3\2\2\2rs\t\2")
+        buf.write("\2\2s\23\3\2\2\2tu\5\36\20\2uv\7+\2\2vw\5\24\13\2wx\7")
+        buf.write(",\2\2xy\5\24\13\2y\u0080\3\2\2\2z{\7$\2\2{|\5\24\13\2")
+        buf.write("|}\7%\2\2}\u0080\3\2\2\2~\u0080\5\32\16\2\177t\3\2\2\2")
+        buf.write("\177z\3\2\2\2\177~\3\2\2\2\u0080\25\3\2\2\2\u0081\u0082")
+        buf.write("\b\f\1\2\u0082\u008a\7\f\2\2\u0083\u008a\7\r\2\2\u0084")
+        buf.write("\u008a\7\16\2\2\u0085\u008a\7\17\2\2\u0086\u008a\7\20")
+        buf.write("\2\2\u0087\u008a\7\21\2\2\u0088\u008a\7\22\2\2\u0089\u0081")
+        buf.write("\3\2\2\2\u0089\u0083\3\2\2\2\u0089\u0084\3\2\2\2\u0089")
+        buf.write("\u0085\3\2\2\2\u0089\u0086\3\2\2\2\u0089\u0087\3\2\2\2")
+        buf.write("\u0089\u0088\3\2\2\2\u008a\u008f\3\2\2\2\u008b\u008c\f")
+        buf.write("\3\2\2\u008c\u008e\7\23\2\2\u008d\u008b\3\2\2\2\u008e")
+        buf.write("\u0091\3\2\2\2\u008f\u008d\3\2\2\2\u008f\u0090\3\2\2\2")
+        buf.write("\u0090\27\3\2\2\2\u0091\u008f\3\2\2\2\u0092\u0093\5\26")
+        buf.write("\f\2\u0093\u0094\7S\2\2\u0094\u0095\7\25\2\2\u0095\u0096")
+        buf.write("\5\30\r\2\u0096\u009b\3\2\2\2\u0097\u0098\5\26\f\2\u0098")
+        buf.write("\u0099\7S\2\2\u0099\u009b\3\2\2\2\u009a\u0092\3\2\2\2")
+        buf.write("\u009a\u0097\3\2\2\2\u009b\31\3\2\2\2\u009c\u009d\5\36")
+        buf.write("\20\2\u009d\u009e\7\25\2\2\u009e\u009f\5\32\16\2\u009f")
+        buf.write("\u00a2\3\2\2\2\u00a0\u00a2\5\36\20\2\u00a1\u009c\3\2\2")
+        buf.write("\2\u00a1\u00a0\3\2\2\2\u00a2\33\3\2\2\2\u00a3\u00a4\5")
+        buf.write("\36\20\2\u00a4\u00a5\5\34\17\2\u00a5\u00a8\3\2\2\2\u00a6")
+        buf.write("\u00a8\5\36\20\2\u00a7\u00a3\3\2\2\2\u00a7\u00a6\3\2\2")
+        buf.write("\2\u00a8\35\3\2\2\2\u00a9\u00aa\b\20\1\2\u00aa\u00e8\7")
+        buf.write("J\2\2\u00ab\u00e8\7I\2\2\u00ac\u00e8\7Q\2\2\u00ad\u00e8")
+        buf.write("\7R\2\2\u00ae\u00e8\7S\2\2\u00af\u00e8\7H\2\2\u00b0\u00e8")
+        buf.write("\7K\2\2\u00b1\u00e8\7L\2\2\u00b2\u00e8\7M\2\2\u00b3\u00b4")
+        buf.write("\7$\2\2\u00b4\u00b5\5\36\20\2\u00b5\u00b6\7%\2\2\u00b6")
+        buf.write("\u00e8\3\2\2\2\u00b7\u00b8\7&\2\2\u00b8\u00b9\5\32\16")
+        buf.write("\2\u00b9\u00ba\7\'\2\2\u00ba\u00e8\3\2\2\2\u00bb\u00bc")
+        buf.write("\7#\2\2\u00bc\u00e8\5\36\20\21\u00bd\u00be\7\27\2\2\u00be")
+        buf.write("\u00e8\5\36\20\20\u00bf\u00c0\5 \21\2\u00c0\u00c1\7$\2")
+        buf.write("\2\u00c1\u00c2\5\36\20\2\u00c2\u00c3\7\25\2\2\u00c3\u00c4")
+        buf.write("\5\36\20\2\u00c4\u00c5\7%\2\2\u00c5\u00e8\3\2\2\2\u00c6")
+        buf.write("\u00c7\5$\23\2\u00c7\u00c8\7$\2\2\u00c8\u00c9\5\36\20")
+        buf.write("\2\u00c9\u00ca\7%\2\2\u00ca\u00e8\3\2\2\2\u00cb\u00cc")
+        buf.write("\5$\23\2\u00cc\u00cd\7$\2\2\u00cd\u00ce\5\36\20\2\u00ce")
+        buf.write("\u00cf\7\25\2\2\u00cf\u00d0\5\36\20\2\u00d0\u00d1\7%\2")
+        buf.write("\2\u00d1\u00e8\3\2\2\2\u00d2\u00d3\5&\24\2\u00d3\u00d4")
+        buf.write("\7$\2\2\u00d4\u00d5\5\36\20\2\u00d5\u00d6\7%\2\2\u00d6")
+        buf.write("\u00e8\3\2\2\2\u00d7\u00d8\7N\2\2\u00d8\u00d9\7$\2\2\u00d9")
+        buf.write("\u00da\5\"\22\2\u00da\u00db\7\25\2\2\u00db\u00dc\5\36")
+        buf.write("\20\2\u00dc\u00dd\7\25\2\2\u00dd\u00de\5\36\20\2\u00de")
+        buf.write("\u00df\7%\2\2\u00df\u00e8\3\2\2\2\u00e0\u00e1\7S\2\2\u00e1")
+        buf.write("\u00e2\7$\2\2\u00e2\u00e3\5\32\16\2\u00e3\u00e4\7%\2\2")
+        buf.write("\u00e4\u00e8\3\2\2\2\u00e5\u00e6\7S\2\2\u00e6\u00e8\5")
+        buf.write("\34\17\2\u00e7\u00a9\3\2\2\2\u00e7\u00ab\3\2\2\2\u00e7")
+        buf.write("\u00ac\3\2\2\2\u00e7\u00ad\3\2\2\2\u00e7\u00ae\3\2\2\2")
+        buf.write("\u00e7\u00af\3\2\2\2\u00e7\u00b0\3\2\2\2\u00e7\u00b1\3")
+        buf.write("\2\2\2\u00e7\u00b2\3\2\2\2\u00e7\u00b3\3\2\2\2\u00e7\u00b7")
+        buf.write("\3\2\2\2\u00e7\u00bb\3\2\2\2\u00e7\u00bd\3\2\2\2\u00e7")
+        buf.write("\u00bf\3\2\2\2\u00e7\u00c6\3\2\2\2\u00e7\u00cb\3\2\2\2")
+        buf.write("\u00e7\u00d2\3\2\2\2\u00e7\u00d7\3\2\2\2\u00e7\u00e0\3")
+        buf.write("\2\2\2\u00e7\u00e5\3\2\2\2\u00e8\u012a\3\2\2\2\u00e9\u00ea")
+        buf.write("\f\22\2\2\u00ea\u00eb\5(\25\2\u00eb\u00ec\5\36\20\23\u00ec")
+        buf.write("\u0129\3\2\2\2\u00ed\u00ee\f\17\2\2\u00ee\u00ef\7+\2\2")
+        buf.write("\u00ef\u00f0\5\36\20\2\u00f0\u00f1\7,\2\2\u00f1\u00f2")
+        buf.write("\5\36\20\20\u00f2\u0129\3\2\2\2\u00f3\u00f4\f\24\2\2\u00f4")
+        buf.write("\u00f5\7&\2\2\u00f5\u00f6\5*\26\2\u00f6\u00f7\7\'\2\2")
+        buf.write("\u00f7\u0129\3\2\2\2\u00f8\u00f9\f\23\2\2\u00f9\u00fa")
+        buf.write("\7&\2\2\u00fa\u00fb\7S\2\2\u00fb\u0129\7\'\2\2\u00fc\u00fd")
+        buf.write("\f\16\2\2\u00fd\u00fe\7\24\2\2\u00fe\u00ff\7.\2\2\u00ff")
+        buf.write("\u0100\7$\2\2\u0100\u0101\5,\27\2\u0101\u0102\7\25\2\2")
+        buf.write("\u0102\u0103\5\36\20\2\u0103\u0104\7\25\2\2\u0104\u0105")
+        buf.write("\5\36\20\2\u0105\u0106\7\25\2\2\u0106\u0107\5\36\20\2")
+        buf.write("\u0107\u0108\7%\2\2\u0108\u0109\7(\2\2\u0109\u010a\5\36")
+        buf.write("\20\2\u010a\u010b\7)\2\2\u010b\u0129\3\2\2\2\u010c\u010d")
+        buf.write("\f\t\2\2\u010d\u010e\7\24\2\2\u010e\u010f\7\63\2\2\u010f")
+        buf.write("\u0110\7$\2\2\u0110\u0111\5\36\20\2\u0111\u0112\7%\2\2")
+        buf.write("\u0112\u0129\3\2\2\2\u0113\u0114\f\b\2\2\u0114\u0115\7")
+        buf.write("\24\2\2\u0115\u0116\7\64\2\2\u0116\u0117\7$\2\2\u0117")
+        buf.write("\u0118\5\36\20\2\u0118\u0119\7%\2\2\u0119\u0129\3\2\2")
+        buf.write("\2\u011a\u011b\f\7\2\2\u011b\u011c\7\24\2\2\u011c\u011d")
+        buf.write("\7\65\2\2\u011d\u011e\7$\2\2\u011e\u011f\5\36\20\2\u011f")
+        buf.write("\u0120\7%\2\2\u0120\u0129\3\2\2\2\u0121\u0122\f\6\2\2")
+        buf.write("\u0122\u0123\7\24\2\2\u0123\u0124\7O\2\2\u0124\u0125\7")
+        buf.write("$\2\2\u0125\u0126\5\36\20\2\u0126\u0127\7%\2\2\u0127\u0129")
+        buf.write("\3\2\2\2\u0128\u00e9\3\2\2\2\u0128\u00ed\3\2\2\2\u0128")
+        buf.write("\u00f3\3\2\2\2\u0128\u00f8\3\2\2\2\u0128\u00fc\3\2\2\2")
+        buf.write("\u0128\u010c\3\2\2\2\u0128\u0113\3\2\2\2\u0128\u011a\3")
+        buf.write("\2\2\2\u0128\u0121\3\2\2\2\u0129\u012c\3\2\2\2\u012a\u0128")
+        buf.write("\3\2\2\2\u012a\u012b\3\2\2\2\u012b\37\3\2\2\2\u012c\u012a")
+        buf.write("\3\2\2\2\u012d\u012e\t\3\2\2\u012e!\3\2\2\2\u012f\u0130")
+        buf.write("\t\4\2\2\u0130#\3\2\2\2\u0131\u0132\t\5\2\2\u0132%\3\2")
+        buf.write("\2\2\u0133\u0134\t\6\2\2\u0134\'\3\2\2\2\u0135\u0136\t")
+        buf.write("\7\2\2\u0136)\3\2\2\2\u0137\u0138\t\b\2\2\u0138+\3\2\2")
+        buf.write("\2\u0139\u013a\t\t\2\2\u013a-\3\2\2\2\16OUi\177\u0089")
+        buf.write("\u008f\u009a\u00a1\u00a7\u00e7\u0128\u012a")
+        return buf.getvalue()
+
 
 class dslParser ( Parser ):
 
@@ -146,10 +170,10 @@ class dslParser ( Parser ):
                      "'sub'", "'map'", "'map_list'", "'dot'", "'argmin'", 
                      "'argmax'", "'min'", "'max'", "'weight'", "'bias'", 
                      "'layer'", "'Affine'", "'Relu'", "'Maxpool'", "'rev_Affine'", 
-                     "'rev_Relu'", "'rev_Maxpool'", "'Sigmoid'", "'Tanh'", 
-                     "'def Shape as'", "'func'", "'eps'", "'true'", "'false'", 
-                     "'curr'", "'prev'", "'curr_list'", "'lp'", "'concat'", 
-                     "'equations'" ]
+                     "'Neuron_mult'", "'rev_Relu'", "'rev_Maxpool'", "'Sigmoid'", 
+                     "'Tanh'", "'def Shape as'", "'func'", "'eps'", "'true'", 
+                     "'false'", "'curr'", "'prev'", "'curr_list'", "'lp'", 
+                     "'concat'", "'equations'" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "FLOW", "ARROW", 
                       "TRANSFORMER", "IN", "OUT", "BACKWARD", "FORWARD", 
@@ -161,10 +185,10 @@ class dslParser ( Parser ):
                       "TRAV", "SUM", "LEN", "AVG", "SUB", "MAP", "MAPLIST", 
                       "DOTT", "ARGMIN", "ARGMAX", "MIN", "MAX", "WEIGHT", 
                       "BIAS", "LAYER", "AFFINE", "RELU", "MAXPOOL", "REVAFFINE", 
-                      "REVRELU", "REVMAXPOOL", "SIGMOID", "TANH", "SHAPE", 
-                      "FUNC", "EPSILON", "TRUE", "FALSE", "CURR", "PREV", 
-                      "CURRLIST", "LP", "CONCAT", "EQUATIONS", "IntConst", 
-                      "FloatConst", "VAR", "WS", "LineComment" ]
+                      "NEURON_MULT", "REVRELU", "REVMAXPOOL", "SIGMOID", 
+                      "TANH", "SHAPE", "FUNC", "EPSILON", "TRUE", "FALSE", 
+                      "CURR", "PREV", "CURRLIST", "LP", "CONCAT", "EQUATIONS", 
+                      "IntConst", "FloatConst", "VAR", "WS", "LineComment" ]
 
     RULE_prog = 0
     RULE_shape_decl = 1
@@ -257,38 +281,37 @@ class dslParser ( Parser ):
     RELU=60
     MAXPOOL=61
     REVAFFINE=62
-    REVRELU=63
-    REVMAXPOOL=64
-    SIGMOID=65
-    TANH=66
-    SHAPE=67
-    FUNC=68
-    EPSILON=69
-    TRUE=70
-    FALSE=71
-    CURR=72
-    PREV=73
-    CURRLIST=74
-    LP=75
-    CONCAT=76
-    EQUATIONS=77
-    IntConst=78
-    FloatConst=79
-    VAR=80
-    WS=81
-    LineComment=82
+    NEURON_MULT=63
+    REVRELU=64
+    REVMAXPOOL=65
+    SIGMOID=66
+    TANH=67
+    SHAPE=68
+    FUNC=69
+    EPSILON=70
+    TRUE=71
+    FALSE=72
+    CURR=73
+    PREV=74
+    CURRLIST=75
+    LP=76
+    CONCAT=77
+    EQUATIONS=78
+    IntConst=79
+    FloatConst=80
+    VAR=81
+    WS=82
+    LineComment=83
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
-        self.checkVersion("4.12.0")
+        self.checkVersion("4.7.2")
         self._interp = ParserATNSimulator(self, self.atn, self.decisionsToDFA, self.sharedContextCache)
         self._predicates = None
 
 
 
-
     class ProgContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -345,9 +368,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Shape_declContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -429,9 +450,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class StatementContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -592,7 +611,7 @@ class dslParser ( Parser ):
             self.state = 77
             self._errHandler.sync(self)
             token = self._input.LA(1)
-            if token in [3]:
+            if token in [dslParser.FLOW]:
                 localctx = dslParser.FlowstmtContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
@@ -620,7 +639,7 @@ class dslParser ( Parser ):
                 self.state = 68
                 self.match(dslParser.SEMI)
                 pass
-            elif token in [68]:
+            elif token in [dslParser.FUNC]:
                 localctx = dslParser.FuncstmtContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
@@ -635,7 +654,7 @@ class dslParser ( Parser ):
                 self.state = 74
                 self.match(dslParser.SEMI)
                 pass
-            elif token in [5]:
+            elif token in [dslParser.TRANSFORMER]:
                 localctx = dslParser.TransstmtContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
@@ -674,9 +693,7 @@ class dslParser ( Parser ):
             self.unrollRecursionContexts(_parentctx)
         return localctx
 
-
     class Func_declContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -737,9 +754,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class TransformerContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -801,9 +816,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Op_listContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -875,9 +888,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Op_stmtContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -934,9 +945,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Trans_declContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -947,16 +956,6 @@ class dslParser ( Parser ):
 
         def VAR(self):
             return self.getToken(dslParser.VAR, 0)
-
-        def LPAREN(self):
-            return self.getToken(dslParser.LPAREN, 0)
-
-        def expr_list(self):
-            return self.getTypedRuleContext(dslParser.Expr_listContext,0)
-
-
-        def RPAREN(self):
-            return self.getToken(dslParser.RPAREN, 0)
 
         def getRuleIndex(self):
             return dslParser.RULE_trans_decl
@@ -988,12 +987,6 @@ class dslParser ( Parser ):
             self.match(dslParser.TRANSFORMER)
             self.state = 110
             self.match(dslParser.VAR)
-            self.state = 111
-            self.match(dslParser.LPAREN)
-            self.state = 112
-            self.expr_list()
-            self.state = 113
-            self.match(dslParser.RPAREN)
         except RecognitionException as re:
             localctx.exception = re
             self._errHandler.reportError(self, re)
@@ -1002,9 +995,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class OperatorContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1018,6 +1009,9 @@ class dslParser ( Parser ):
 
         def MAXPOOL(self):
             return self.getToken(dslParser.MAXPOOL, 0)
+
+        def NEURON_MULT(self):
+            return self.getToken(dslParser.NEURON_MULT, 0)
 
         def REVAFFINE(self):
             return self.getToken(dslParser.REVAFFINE, 0)
@@ -1055,9 +1049,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 115
+            self.state = 112
             _la = self._input.LA(1)
-            if not(((((_la - 59)) & ~0x3f) == 0 and ((1 << (_la - 59)) & 63) != 0)):
+            if not(((((_la - 59)) & ~0x3f) == 0 and ((1 << (_la - 59)) & ((1 << (dslParser.AFFINE - 59)) | (1 << (dslParser.RELU - 59)) | (1 << (dslParser.MAXPOOL - 59)) | (1 << (dslParser.REVAFFINE - 59)) | (1 << (dslParser.NEURON_MULT - 59)) | (1 << (dslParser.REVRELU - 59)) | (1 << (dslParser.REVMAXPOOL - 59)))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -1070,9 +1064,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Trans_retContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1183,39 +1175,39 @@ class dslParser ( Parser ):
         localctx = dslParser.Trans_retContext(self, self._ctx, self.state)
         self.enterRule(localctx, 18, self.RULE_trans_ret)
         try:
-            self.state = 128
+            self.state = 125
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,3,self._ctx)
             if la_ == 1:
                 localctx = dslParser.CondtransContext(self, localctx)
                 self.enterOuterAlt(localctx, 1)
-                self.state = 117
+                self.state = 114
                 self.expr(0)
-                self.state = 118
+                self.state = 115
                 self.match(dslParser.QUES)
-                self.state = 119
+                self.state = 116
                 self.trans_ret()
-                self.state = 120
+                self.state = 117
                 self.match(dslParser.COLON)
-                self.state = 121
+                self.state = 118
                 self.trans_ret()
                 pass
 
             elif la_ == 2:
                 localctx = dslParser.ParentransContext(self, localctx)
                 self.enterOuterAlt(localctx, 2)
-                self.state = 123
+                self.state = 120
                 self.match(dslParser.LPAREN)
-                self.state = 124
+                self.state = 121
                 self.trans_ret()
-                self.state = 125
+                self.state = 122
                 self.match(dslParser.RPAREN)
                 pass
 
             elif la_ == 3:
                 localctx = dslParser.TransContext(self, localctx)
                 self.enterOuterAlt(localctx, 3)
-                self.state = 127
+                self.state = 124
                 self.expr_list()
                 pass
 
@@ -1228,9 +1220,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class TypesContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1292,42 +1282,42 @@ class dslParser ( Parser ):
         self.enterRecursionRule(localctx, 20, self.RULE_types, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 138
+            self.state = 135
             self._errHandler.sync(self)
             token = self._input.LA(1)
-            if token in [10]:
-                self.state = 131
+            if token in [dslParser.INTT]:
+                self.state = 128
                 self.match(dslParser.INTT)
                 pass
-            elif token in [11]:
-                self.state = 132
+            elif token in [dslParser.FLOATT]:
+                self.state = 129
                 self.match(dslParser.FLOATT)
                 pass
-            elif token in [12]:
-                self.state = 133
+            elif token in [dslParser.BOOL]:
+                self.state = 130
                 self.match(dslParser.BOOL)
                 pass
-            elif token in [13]:
-                self.state = 134
+            elif token in [dslParser.POLYEXP]:
+                self.state = 131
                 self.match(dslParser.POLYEXP)
                 pass
-            elif token in [14]:
-                self.state = 135
+            elif token in [dslParser.ZONOEXP]:
+                self.state = 132
                 self.match(dslParser.ZONOEXP)
                 pass
-            elif token in [15]:
-                self.state = 136
+            elif token in [dslParser.NEURON]:
+                self.state = 133
                 self.match(dslParser.NEURON)
                 pass
-            elif token in [16]:
-                self.state = 137
+            elif token in [dslParser.CT]:
+                self.state = 134
                 self.match(dslParser.CT)
                 pass
             else:
                 raise NoViableAltException(self)
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 144
+            self.state = 141
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -1337,13 +1327,13 @@ class dslParser ( Parser ):
                     _prevctx = localctx
                     localctx = dslParser.TypesContext(self, _parentctx, _parentState)
                     self.pushNewRecursionContext(localctx, _startState, self.RULE_types)
-                    self.state = 140
+                    self.state = 137
                     if not self.precpred(self._ctx, 1):
                         from antlr4.error.Errors import FailedPredicateException
                         raise FailedPredicateException(self, "self.precpred(self._ctx, 1)")
-                    self.state = 141
+                    self.state = 138
                     self.match(dslParser.LIST) 
-                self.state = 146
+                self.state = 143
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,5,self._ctx)
 
@@ -1355,9 +1345,7 @@ class dslParser ( Parser ):
             self.unrollRecursionContexts(_parentctx)
         return localctx
 
-
     class ArglistContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1402,26 +1390,26 @@ class dslParser ( Parser ):
         localctx = dslParser.ArglistContext(self, self._ctx, self.state)
         self.enterRule(localctx, 22, self.RULE_arglist)
         try:
-            self.state = 155
+            self.state = 152
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,6,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 147
+                self.state = 144
                 self.types(0)
-                self.state = 148
+                self.state = 145
                 self.match(dslParser.VAR)
-                self.state = 149
+                self.state = 146
                 self.match(dslParser.COMMA)
-                self.state = 150
+                self.state = 147
                 self.arglist()
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 152
+                self.state = 149
                 self.types(0)
-                self.state = 153
+                self.state = 150
                 self.match(dslParser.VAR)
                 pass
 
@@ -1434,9 +1422,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Expr_listContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1478,22 +1464,22 @@ class dslParser ( Parser ):
         localctx = dslParser.Expr_listContext(self, self._ctx, self.state)
         self.enterRule(localctx, 24, self.RULE_expr_list)
         try:
-            self.state = 162
+            self.state = 159
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,7,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 157
+                self.state = 154
                 self.expr(0)
-                self.state = 158
+                self.state = 155
                 self.match(dslParser.COMMA)
-                self.state = 159
+                self.state = 156
                 self.expr_list()
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 161
+                self.state = 158
                 self.expr(0)
                 pass
 
@@ -1506,9 +1492,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class ExprsContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -1547,20 +1531,20 @@ class dslParser ( Parser ):
         localctx = dslParser.ExprsContext(self, self._ctx, self.state)
         self.enterRule(localctx, 26, self.RULE_exprs)
         try:
-            self.state = 168
+            self.state = 165
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,8,self._ctx)
             if la_ == 1:
                 self.enterOuterAlt(localctx, 1)
-                self.state = 164
+                self.state = 161
                 self.expr(0)
-                self.state = 165
+                self.state = 162
                 self.exprs()
                 pass
 
             elif la_ == 2:
                 self.enterOuterAlt(localctx, 2)
-                self.state = 167
+                self.state = 164
                 self.expr(0)
                 pass
 
@@ -1573,9 +1557,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class ExprContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2484,7 +2466,7 @@ class dslParser ( Parser ):
         self.enterRecursionRule(localctx, 28, self.RULE_expr, _p)
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 232
+            self.state = 229
             self._errHandler.sync(self)
             la_ = self._interp.adaptivePredict(self._input,9,self._ctx)
             if la_ == 1:
@@ -2492,7 +2474,7 @@ class dslParser ( Parser ):
                 self._ctx = localctx
                 _prevctx = localctx
 
-                self.state = 171
+                self.state = 168
                 self.match(dslParser.FALSE)
                 pass
 
@@ -2500,7 +2482,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.TrueContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 172
+                self.state = 169
                 self.match(dslParser.TRUE)
                 pass
 
@@ -2508,7 +2490,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.IntContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 173
+                self.state = 170
                 self.match(dslParser.IntConst)
                 pass
 
@@ -2516,7 +2498,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.FloatContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 174
+                self.state = 171
                 self.match(dslParser.FloatConst)
                 pass
 
@@ -2524,7 +2506,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.VarExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 175
+                self.state = 172
                 self.match(dslParser.VAR)
                 pass
 
@@ -2532,7 +2514,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.EpsilonContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 176
+                self.state = 173
                 self.match(dslParser.EPSILON)
                 pass
 
@@ -2540,7 +2522,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.CurrContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 177
+                self.state = 174
                 self.match(dslParser.CURR)
                 pass
 
@@ -2548,7 +2530,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.PrevContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 178
+                self.state = 175
                 self.match(dslParser.PREV)
                 pass
 
@@ -2556,7 +2538,7 @@ class dslParser ( Parser ):
                 localctx = dslParser.Curr_listContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 179
+                self.state = 176
                 self.match(dslParser.CURRLIST)
                 pass
 
@@ -2564,11 +2546,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.ParenExpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 180
+                self.state = 177
                 self.match(dslParser.LPAREN)
-                self.state = 181
+                self.state = 178
                 self.expr(0)
-                self.state = 182
+                self.state = 179
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2576,11 +2558,11 @@ class dslParser ( Parser ):
                 localctx = dslParser.ExprarrayContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 184
+                self.state = 181
                 self.match(dslParser.LSQR)
-                self.state = 185
+                self.state = 182
                 self.expr_list()
-                self.state = 186
+                self.state = 183
                 self.match(dslParser.RSQR)
                 pass
 
@@ -2588,9 +2570,9 @@ class dslParser ( Parser ):
                 localctx = dslParser.NotContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 188
+                self.state = 185
                 self.match(dslParser.NOT)
-                self.state = 189
+                self.state = 186
                 self.expr(15)
                 pass
 
@@ -2598,9 +2580,9 @@ class dslParser ( Parser ):
                 localctx = dslParser.NegContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 190
+                self.state = 187
                 self.match(dslParser.MINUS)
-                self.state = 191
+                self.state = 188
                 self.expr(14)
                 pass
 
@@ -2608,17 +2590,17 @@ class dslParser ( Parser ):
                 localctx = dslParser.ArgmaxOpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 192
+                self.state = 189
                 self.argmax_op()
-                self.state = 193
+                self.state = 190
                 self.match(dslParser.LPAREN)
-                self.state = 194
+                self.state = 191
                 self.expr(0)
-                self.state = 195
+                self.state = 192
                 self.match(dslParser.COMMA)
-                self.state = 196
+                self.state = 193
                 self.expr(0)
-                self.state = 197
+                self.state = 194
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2626,13 +2608,13 @@ class dslParser ( Parser ):
                 localctx = dslParser.MaxOpListContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 199
+                self.state = 196
                 self.max_op()
-                self.state = 200
+                self.state = 197
                 self.match(dslParser.LPAREN)
-                self.state = 201
+                self.state = 198
                 self.expr(0)
-                self.state = 202
+                self.state = 199
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2640,17 +2622,17 @@ class dslParser ( Parser ):
                 localctx = dslParser.MaxOpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 204
+                self.state = 201
                 self.max_op()
-                self.state = 205
+                self.state = 202
                 self.match(dslParser.LPAREN)
-                self.state = 206
+                self.state = 203
                 self.expr(0)
-                self.state = 207
+                self.state = 204
                 self.match(dslParser.COMMA)
-                self.state = 208
+                self.state = 205
                 self.expr(0)
-                self.state = 209
+                self.state = 206
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2658,13 +2640,13 @@ class dslParser ( Parser ):
                 localctx = dslParser.ListOpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 211
+                self.state = 208
                 self.list_op()
-                self.state = 212
+                self.state = 209
                 self.match(dslParser.LPAREN)
-                self.state = 213
+                self.state = 210
                 self.expr(0)
-                self.state = 214
+                self.state = 211
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2672,21 +2654,21 @@ class dslParser ( Parser ):
                 localctx = dslParser.LpContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 216
+                self.state = 213
                 self.match(dslParser.LP)
-                self.state = 217
+                self.state = 214
                 self.match(dslParser.LPAREN)
-                self.state = 218
+                self.state = 215
                 self.lp_op()
+                self.state = 216
+                self.match(dslParser.COMMA)
+                self.state = 217
+                self.expr(0)
+                self.state = 218
+                self.match(dslParser.COMMA)
                 self.state = 219
-                self.match(dslParser.COMMA)
+                self.expr(0)
                 self.state = 220
-                self.expr(0)
-                self.state = 221
-                self.match(dslParser.COMMA)
-                self.state = 222
-                self.expr(0)
-                self.state = 223
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2694,13 +2676,13 @@ class dslParser ( Parser ):
                 localctx = dslParser.FuncCallContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 225
+                self.state = 222
                 self.match(dslParser.VAR)
-                self.state = 226
+                self.state = 223
                 self.match(dslParser.LPAREN)
-                self.state = 227
+                self.state = 224
                 self.expr_list()
-                self.state = 228
+                self.state = 225
                 self.match(dslParser.RPAREN)
                 pass
 
@@ -2708,15 +2690,15 @@ class dslParser ( Parser ):
                 localctx = dslParser.CurryContext(self, localctx)
                 self._ctx = localctx
                 _prevctx = localctx
-                self.state = 230
+                self.state = 227
                 self.match(dslParser.VAR)
-                self.state = 231
+                self.state = 228
                 self.exprs()
                 pass
 
 
             self._ctx.stop = self._input.LT(-1)
-            self.state = 299
+            self.state = 296
             self._errHandler.sync(self)
             _alt = self._interp.adaptivePredict(self._input,11,self._ctx)
             while _alt!=2 and _alt!=ATN.INVALID_ALT_NUMBER:
@@ -2724,184 +2706,184 @@ class dslParser ( Parser ):
                     if self._parseListeners is not None:
                         self.triggerExitRuleEvent()
                     _prevctx = localctx
-                    self.state = 297
+                    self.state = 294
                     self._errHandler.sync(self)
                     la_ = self._interp.adaptivePredict(self._input,10,self._ctx)
                     if la_ == 1:
                         localctx = dslParser.BinopExpContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 234
+                        self.state = 231
                         if not self.precpred(self._ctx, 16):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 16)")
-                        self.state = 235
+                        self.state = 232
                         self.binop()
-                        self.state = 236
+                        self.state = 233
                         self.expr(17)
                         pass
 
                     elif la_ == 2:
                         localctx = dslParser.CondContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 238
+                        self.state = 235
                         if not self.precpred(self._ctx, 13):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 13)")
-                        self.state = 239
+                        self.state = 236
                         self.match(dslParser.QUES)
-                        self.state = 240
+                        self.state = 237
                         self.expr(0)
-                        self.state = 241
+                        self.state = 238
                         self.match(dslParser.COLON)
-                        self.state = 242
+                        self.state = 239
                         self.expr(14)
                         pass
 
                     elif la_ == 3:
                         localctx = dslParser.GetMetadataContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 244
+                        self.state = 241
                         if not self.precpred(self._ctx, 18):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 18)")
-                        self.state = 245
+                        self.state = 242
                         self.match(dslParser.LSQR)
-                        self.state = 246
+                        self.state = 243
                         self.metadata()
-                        self.state = 247
+                        self.state = 244
                         self.match(dslParser.RSQR)
                         pass
 
                     elif la_ == 4:
                         localctx = dslParser.GetElementContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 249
+                        self.state = 246
                         if not self.precpred(self._ctx, 17):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 17)")
-                        self.state = 250
+                        self.state = 247
                         self.match(dslParser.LSQR)
-                        self.state = 251
+                        self.state = 248
                         self.match(dslParser.VAR)
-                        self.state = 252
+                        self.state = 249
                         self.match(dslParser.RSQR)
                         pass
 
                     elif la_ == 5:
                         localctx = dslParser.TraverseContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 253
+                        self.state = 250
                         if not self.precpred(self._ctx, 12):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 12)")
-                        self.state = 254
+                        self.state = 251
                         self.match(dslParser.DOT)
-                        self.state = 255
+                        self.state = 252
                         self.match(dslParser.TRAV)
-                        self.state = 256
+                        self.state = 253
                         self.match(dslParser.LPAREN)
-                        self.state = 257
+                        self.state = 254
                         self.direction()
+                        self.state = 255
+                        self.match(dslParser.COMMA)
+                        self.state = 256
+                        self.expr(0)
+                        self.state = 257
+                        self.match(dslParser.COMMA)
                         self.state = 258
-                        self.match(dslParser.COMMA)
+                        self.expr(0)
                         self.state = 259
-                        self.expr(0)
+                        self.match(dslParser.COMMA)
                         self.state = 260
-                        self.match(dslParser.COMMA)
-                        self.state = 261
                         self.expr(0)
+                        self.state = 261
+                        self.match(dslParser.RPAREN)
                         self.state = 262
-                        self.match(dslParser.COMMA)
+                        self.match(dslParser.LBRACE)
                         self.state = 263
                         self.expr(0)
                         self.state = 264
-                        self.match(dslParser.RPAREN)
-                        self.state = 265
-                        self.match(dslParser.LBRACE)
-                        self.state = 266
-                        self.expr(0)
-                        self.state = 267
                         self.match(dslParser.RBRACE)
                         pass
 
                     elif la_ == 6:
                         localctx = dslParser.MapContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 269
+                        self.state = 266
                         if not self.precpred(self._ctx, 7):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 7)")
-                        self.state = 270
+                        self.state = 267
                         self.match(dslParser.DOT)
-                        self.state = 271
+                        self.state = 268
                         self.match(dslParser.MAP)
-                        self.state = 272
+                        self.state = 269
                         self.match(dslParser.LPAREN)
-                        self.state = 273
+                        self.state = 270
                         self.expr(0)
-                        self.state = 274
+                        self.state = 271
                         self.match(dslParser.RPAREN)
                         pass
 
                     elif la_ == 7:
                         localctx = dslParser.Map_listContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 276
+                        self.state = 273
                         if not self.precpred(self._ctx, 6):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 6)")
-                        self.state = 277
+                        self.state = 274
                         self.match(dslParser.DOT)
-                        self.state = 278
+                        self.state = 275
                         self.match(dslParser.MAPLIST)
-                        self.state = 279
+                        self.state = 276
                         self.match(dslParser.LPAREN)
-                        self.state = 280
+                        self.state = 277
                         self.expr(0)
-                        self.state = 281
+                        self.state = 278
                         self.match(dslParser.RPAREN)
                         pass
 
                     elif la_ == 8:
                         localctx = dslParser.DotContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 283
+                        self.state = 280
                         if not self.precpred(self._ctx, 5):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 5)")
-                        self.state = 284
+                        self.state = 281
                         self.match(dslParser.DOT)
-                        self.state = 285
+                        self.state = 282
                         self.match(dslParser.DOTT)
-                        self.state = 286
+                        self.state = 283
                         self.match(dslParser.LPAREN)
-                        self.state = 287
+                        self.state = 284
                         self.expr(0)
-                        self.state = 288
+                        self.state = 285
                         self.match(dslParser.RPAREN)
                         pass
 
                     elif la_ == 9:
                         localctx = dslParser.ConcatContext(self, dslParser.ExprContext(self, _parentctx, _parentState))
                         self.pushNewRecursionContext(localctx, _startState, self.RULE_expr)
-                        self.state = 290
+                        self.state = 287
                         if not self.precpred(self._ctx, 4):
                             from antlr4.error.Errors import FailedPredicateException
                             raise FailedPredicateException(self, "self.precpred(self._ctx, 4)")
-                        self.state = 291
+                        self.state = 288
                         self.match(dslParser.DOT)
-                        self.state = 292
+                        self.state = 289
                         self.match(dslParser.CONCAT)
-                        self.state = 293
+                        self.state = 290
                         self.match(dslParser.LPAREN)
-                        self.state = 294
+                        self.state = 291
                         self.expr(0)
-                        self.state = 295
+                        self.state = 292
                         self.match(dslParser.RPAREN)
                         pass
 
              
-                self.state = 301
+                self.state = 298
                 self._errHandler.sync(self)
                 _alt = self._interp.adaptivePredict(self._input,11,self._ctx)
 
@@ -2913,9 +2895,7 @@ class dslParser ( Parser ):
             self.unrollRecursionContexts(_parentctx)
         return localctx
 
-
     class Argmax_opContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -2954,9 +2934,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 302
+            self.state = 299
             _la = self._input.LA(1)
-            if not(_la==52 or _la==53):
+            if not(_la==dslParser.ARGMIN or _la==dslParser.ARGMAX):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -2969,9 +2949,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Lp_opContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3005,9 +2983,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 304
+            self.state = 301
             _la = self._input.LA(1)
-            if not(_la==1 or _la==2):
+            if not(_la==dslParser.T__0 or _la==dslParser.T__1):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -3020,9 +2998,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class Max_opContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3061,9 +3037,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 306
+            self.state = 303
             _la = self._input.LA(1)
-            if not(_la==54 or _la==55):
+            if not(_la==dslParser.MIN or _la==dslParser.MAX):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -3076,9 +3052,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class List_opContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3120,9 +3094,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 308
+            self.state = 305
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 246290604621824) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << dslParser.SUM) | (1 << dslParser.LEN) | (1 << dslParser.AVG))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -3135,9 +3109,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class BinopContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3206,9 +3178,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 310
+            self.state = 307
             _la = self._input.LA(1)
-            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & 7917797440) != 0)):
+            if not((((_la) & ~0x3f) == 0 and ((1 << _la) & ((1 << dslParser.IN) | (1 << dslParser.PLUS) | (1 << dslParser.MINUS) | (1 << dslParser.MULT) | (1 << dslParser.DIV) | (1 << dslParser.AND) | (1 << dslParser.OR) | (1 << dslParser.LT) | (1 << dslParser.EQQ) | (1 << dslParser.GT) | (1 << dslParser.LEQ) | (1 << dslParser.GEQ))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -3221,9 +3193,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class MetadataContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3268,9 +3238,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 312
+            self.state = 309
             _la = self._input.LA(1)
-            if not(((((_la - 56)) & ~0x3f) == 0 and ((1 << (_la - 56)) & 2097159) != 0)):
+            if not(((((_la - 56)) & ~0x3f) == 0 and ((1 << (_la - 56)) & ((1 << (dslParser.WEIGHT - 56)) | (1 << (dslParser.BIAS - 56)) | (1 << (dslParser.LAYER - 56)) | (1 << (dslParser.EQUATIONS - 56)))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)
@@ -3283,9 +3253,7 @@ class dslParser ( Parser ):
             self.exitRule()
         return localctx
 
-
     class DirectionContext(ParserRuleContext):
-        __slots__ = 'parser'
 
         def __init__(self, parser, parent:ParserRuleContext=None, invokingState:int=-1):
             super().__init__(parent, invokingState)
@@ -3324,9 +3292,9 @@ class dslParser ( Parser ):
         self._la = 0 # Token type
         try:
             self.enterOuterAlt(localctx, 1)
-            self.state = 314
+            self.state = 311
             _la = self._input.LA(1)
-            if not(_la==8 or _la==9):
+            if not(_la==dslParser.BACKWARD or _la==dslParser.FORWARD):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)

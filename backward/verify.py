@@ -98,6 +98,8 @@ class Verify(astVisitor.ASTVisitor):
 			store = self.store
 			if(op.op.op_name == "Relu"):
 				nprev= 1
+			elif op.op.op_name == 'Neuron_mult':
+				nprev = 2
 			else:
 				nprev = self.Nprev
 			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons)
@@ -157,6 +159,12 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op.op.op_name == "Neuron_mult"):
+				exptemp = MULT(prev[0], prev[1])
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)

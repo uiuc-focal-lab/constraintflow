@@ -108,3 +108,8 @@ class ASTPrinter(astVisitor.ASTVisitor):
 		print("Get element:")
 		self.visit(node.expr)
 		print(node.elem.name)		
+
+	def visitGetElementAtIndex(self, node):
+		print("Get element at index:")
+		self.visit(node.expr)
+		print(node.index)		

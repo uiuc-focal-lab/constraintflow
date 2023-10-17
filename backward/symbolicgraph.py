@@ -175,6 +175,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		n = self.os.visit(node.expr)
 		self.get_getElement(n, node)
 
+	def visitGetElementAtIndex(self, node):
+		self.visit(node.expr)
+		# n = self.os.visit(node.expr)
+		# self.get_getElement(n, node)
+
 	def visitExprList(self, node):
 		for e in node.exprlist:
 			self.visit(e)

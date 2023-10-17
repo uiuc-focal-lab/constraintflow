@@ -178,6 +178,14 @@ class GetElementNode(ExprNode):
         self.expr = expr
         self.elem = elem
 
+class GetElementAtIndexNode(ExprNode):
+
+    def __init__(self, expr, index):
+        super().__init__()
+        self.node_name = "Access Element at Index"
+        self.expr = expr
+        self.index = index 
+
 class TraverseNode(ExprNode):
 
     def __init__(self, expr, direction, priority, stop, func, p):

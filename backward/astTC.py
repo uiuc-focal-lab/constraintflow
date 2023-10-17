@@ -207,11 +207,19 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitMaxOpList(self, node: AST.MaxOpListNode):
 		exptype = self.visit(node.expr)
-		if(not isinstance(exptype, ArrayType)):
-			raise TypeMismatchException(node.op + " requires float or int list as first argument")
-		elif(not self.isSubType(exptype.base,"Float")):
-			raise TypeMismatchException(node.op + " requires Float or Int list as first argument")
-		return exptype.base
+		if isinstance(exptype, list):
+			if len(exptype)==0:
+				raise Exception('list empty')
+			else:
+				type = exptype[0]
+				if type != 'Float' and type != 'Int':
+					raise Exception('each element must be float or int')
+			for e in exptype:
+				if e != type:
+					raise Exception('all elements of the list must be of the same type')
+			return type
+		else:
+			raise Exception('the argument to min or max must be a list')
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
 		exp1type = self.visit(node.expr1)
@@ -296,6 +304,26 @@ class ASTTC(astVisitor.ASTVisitor):
 			return ArrayType(elemtype)
 		else:
 			raise TypeMismatchException("To access shape variables, expression must be Neuron or Neuron List")
+		
+	def visitGetElementAtIndex(self, node: AST.GetElementNode):
+		etype = self.visit(node.expr)
+		if isinstance(etype, ArrayType):
+			return etype.base
+		else:
+			raise TypeMismatchException("To access element at an index, expression must be a list")
+		# if(not node.elem.name in self.Gamma.keys()):
+		# 	raise UndefinedVarException(node.elem.name + " is undefined")
+
+		# elemtype = self.Gamma[node.elem.name]
+		# if(not (elemtype, node.elem.name) in self.shape):
+		# 	raise TypeMismatchException(node.elem.name + " is not part of the shape")
+
+		# if(etype == "Neuron"):
+		# 	return elemtype
+		# elif(isinstance(etype, ArrayType) and etype.base == "Neuron"):
+		# 	return ArrayType(elemtype)
+		# else:
+		# 	raise TypeMismatchException("To access shape variables, expression must be Neuron or Neuron List")
 
 
 	def visitTraverse(self, node: AST.TraverseNode):
@@ -471,7 +499,6 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitTransRetBasic(self, node: AST.TransRetBasicNode):
 		rettype = self.visit(node.exprlist)
 		if(not self.isSubType(rettype, [x[0] for x in self.shape])):
-			print(rettype)
 			raise TypeMismatchException("Expression in transformer is different from shape declaration")
 
 
