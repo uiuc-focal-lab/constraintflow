@@ -132,13 +132,21 @@ class ASTTC(astVisitor.ASTVisitor):
 		return ArrayType(node.base)
 
 	def visitArgList(self, node: AST.ArgListNode):
-		return [t[0].name for t in node.arglist]
+		l = []
+		for t in node.arglist:
+			if isinstance(t[0], AST.ArrayTypeNode):
+				l.append(ArrayType(t[0].base.name))
+			else:
+				l.append(t[0].name)
+		return l 
+		# l = [t[0].name for t in node.arglist]
+		# return l 
+		# return [t[0].name for t in node.arglist]
 
 	def visitExprList(self, node: AST.ExprListNode):
 		listtype = []
 		for e in node.exprlist:
 			listtype.append(self.visit(e))
-
 		return listtype
 
 	def get_binop(self, op, ltype, rtype):
@@ -272,7 +280,6 @@ class ASTTC(astVisitor.ASTVisitor):
 					if type.base == 'Float' or type.base == 'Int':
 						flag = True 
 				if not flag:
-					print(type)
 					raise Exception('each element must be float or int')
 			for e in exptype:
 				if e != type:
@@ -360,6 +367,8 @@ class ASTTC(astVisitor.ASTVisitor):
 
 		if(etype == "Neuron"):
 			return elemtype
+		if(etype == "Neuron List"):
+			return ArrayType(elemtype)
 		elif(isinstance(etype, ArrayType) and etype.base == "Neuron"):
 			return ArrayType(elemtype)
 		else:

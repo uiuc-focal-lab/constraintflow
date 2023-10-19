@@ -1,13 +1,12 @@
 def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
 
-func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
-func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+func compute_l(Neuron n1, Neuron n2) = min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+func compute_u(Neuron n1, Neuron n2) = max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
 
 func priority(Neuron n) = n[layer];
 
-
 transformer ibp{
-    Neuron_mult -> (min([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]]), max([prev_0[l]*prev_1[l], prev_0[l]*prev_1[u], prev_0[u]*prev_1[l], prev_0[u]*prev_1[u]]));
+    Neuron_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1));
 }
 
 flow(forward, priority, true, ibp);

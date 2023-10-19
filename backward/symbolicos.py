@@ -508,6 +508,22 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
 				return y
 			return If(c, l, r)
+		elif(isinstance(node, MAX)):
+			e = [self.convertToZ3(i) for i in node.e]
+			y = Real('new_'+str(self.number.nextn()))
+			ge = [(y>=i) for i in e]
+			eq = [(y==i) for i in e]
+			self.tempC.append(Or(eq))
+			self.tempC.append(And(ge))
+			return y
+		elif(isinstance(node, MIN)):
+			e = [self.convertToZ3(i) for i in node.e]
+			y = Real('new_'+str(self.number.nextn()))
+			le = [(y<=i) for i in e]
+			eq = [(y==i) for i in e]
+			self.tempC.append(Or(eq))
+			self.tempC.append(And(le))
+			return y
 		else:
 			return node
 
@@ -695,6 +711,27 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elist = self.visit(node.expr)
 		if not isinstance(elist, list):
 			raise Exception('This is not possible. Somethung must be wrong with type checking')
+		print((elist))
+		# ksdjg
+		
+		if node.op == 'max':
+			if elist !=[] and isinstance(elist[0], list):
+				l = min([len(e) for e in elist])
+				ll = []
+				for i in range(l):
+					ll.append(MAX([j[i] for j in elist]))
+				print((ll))
+				# xhdv
+				return ll 
+			return MAX(elist)
+		else:
+			if elist !=[] and isinstance(elist[0], list):
+				l = min([len(e) for e in elist])
+				ll = []
+				for i in range(l):
+					ll.append(MIN([j[i] for j in elist]))
+				return ll 
+			return MIN(elist)
 		if isinstance(elist[0], list):
 			l = min([len(i) for i in elist])
 			ret = []
