@@ -252,33 +252,33 @@ class IF(TerminalValue):
 # 	def __hash__(self):
 # 		return hash(("TERNARY", self.cond, self.left, self.right))
 
-# class MAX(NonTerminalValue):
+class MAX(NonTerminalValue):
 
-# 	def __init__(self, e):
-# 		self.e = e
+	def __init__(self, e):
+		self.e = e
 
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, MAX)):
-# 			return self.e == obj.e
-# 		else:
-# 			return False
+	def __eq__(self, obj):
+		if(isinstance(obj, MAX)):
+			return self.e == obj.e
+		else:
+			return False
 
-# 	def __hash__(self):
-# 		return hash(("MAX", str(self.e)))
+	def __hash__(self):
+		return hash(("MAX", str(self.e)))
 
-# class MIN(NonTerminalValue):
+class MIN(NonTerminalValue):
 
-# 	def __init__(self, e):
-# 		self.e = e
+	def __init__(self, e):
+		self.e = e
 
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, MIN)):
-# 			return self.e == obj.e
-# 		else:
-# 			return False
+	def __eq__(self, obj):
+		if(isinstance(obj, MIN)):
+			return self.e == obj.e
+		else:
+			return False
 
-# 	def __hash__(self):
-# 		return hash(("MIN", str(self.e)))
+	def __hash__(self):
+		return hash(("MIN", str(self.e)))
 
 # class ARGMAX(NonTerminalValue):
 

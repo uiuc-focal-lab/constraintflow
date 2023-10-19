@@ -21,7 +21,15 @@ class Opt_solver:
     def check(self, lhs, rhs):
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
-        return (s.check()==unsat)
+        ret = s.check()
+        # print(ret)
+        # if ret==sat:
+        #     # s = Solver()
+        #     # s.add(Implies(lhs, rhs))
+        #     # s.check()
+        #     print(s.model())
+        #     sd
+        return (ret==unsat)
     
     def common_vars(self, a, b):
         return len(a.intersection(b))>0
@@ -163,11 +171,22 @@ class Opt_solver:
                     return True 
         return self.opt_solve(lhs, rhs)
     
+    def check_quantifier(self, lhs, rhs):
+        return isinstance(rhs, z3.z3.QuantifierRef)
+
     def solve(self, lhs, rhs):
         # print(lhs)
         # print()
         # print(rhs)
         # jhsgd
+        if self.check_quantifier(lhs, rhs):
+            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+            print(lhs)
+            print()
+            print(rhs)
+            print()
+            # jhsd
+            return self.check(lhs, rhs)
         m_if = self.check_if(lhs, rhs)
         for i in m_if:
             ret = self.solve_temp(*i)

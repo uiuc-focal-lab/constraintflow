@@ -23,6 +23,7 @@ class ArrayTypeNode(TypeNode):
         super().__init__()
         self.node_name = "Array Type"
         self.base = base
+        self.name = self.base.name + ' List'
 
 class ArgListNode(ASTNode):
     #arglist is a list of (TypeNode, VarNode)
