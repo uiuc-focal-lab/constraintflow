@@ -1,5 +1,6 @@
 from z3 import *
 from graph import Opt_graph
+import time
 
 x = Real('x')
 y = Real('y')
@@ -16,19 +17,43 @@ comparison = [lt, le, gt, ge, eq]
 
 class Opt_solver:
     def __init__(self):
-        pass
+        self.solved = []
+        self.counter = -1
+
+    def clear(self):
+        self.solved = []
+        self.counter = -1
+
+
+    def reveal(self):
+        for l, r in self.solved:
+            print(l)
+            print(r)
+            print()
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 
     def check(self, lhs, rhs):
+        # for i in range(len(self.solved)):
+        #     clauses_l, r = self.solved[self.counter]
+        #     self.counter = (self.counter+1)%len(self.solved)
+        #     clauses_lhs = set(self.get_clauses(lhs))
+        #     if rhs==r:
+        #         if len(clauses_l - clauses_lhs)==0:
+        #             # print(i)
+        #             return True             
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
+        # print('reached here')
+        # print(time.time())
         ret = s.check()
-        # print(ret)
+        # print(time.time())
         # if ret==sat:
-        #     # s = Solver()
-        #     # s.add(Implies(lhs, rhs))
-        #     # s.check()
-        #     print(s.model())
-        #     sd
+        #     print(lhs)
+        #     print()
+        #     print(rhs)
+        #     mjh
+        # if ret==unsat:
+        #     self.solved.append((set(self.get_clauses(lhs)), rhs))
         return (ret==unsat)
     
     def common_vars(self, a, b):
@@ -67,20 +92,27 @@ class Opt_solver:
 
     def priority(self, q):
         lhs, rhs = q.children()
+        flag = 0
         if lhs.decl()==plus and rhs.decl()==plus:
             if len(self.get_summands(lhs)) == len(self.get_summands(rhs)):
-                return 100
+                flag = 1
+                # return 100
         lhs = self.vars(lhs)
         rhs = self.vars(rhs)
-        return len(lhs.intersection(rhs))
+        return (flag, len(lhs.intersection(rhs)))
 
     def get_sufficient_formulae(self, lhs, rhs):        
         g = Opt_graph(lhs)
         l = g.get_sufficient_queries(rhs)
+        # print('!!!!!!!!!!!!!!!!!!!!!!')
+        # print(l)
         l.sort(reverse=True, key=self.priority)
+        # print(l)
+        # for i in l:
+
         return l
 
-    def get_sub_lemmas(self, rhs):
+    def get_sub_lemmas(self, rhs, default_order = False):
         top_level = rhs.decl()
         if top_level not in comparison:
             return None 
@@ -96,9 +128,13 @@ class Opt_solver:
             return m 
         left_ = self.get_summands(left)
         right_ = self.get_summands(right)
+        m = []
+        if default_order:
+            for i in range(len(left_)):
+                m.append((left_[i], right_[i]))
+            return m
         if len(left_)!=len(right_):
             return None 
-        m = []
         for i in range(len(left_)):
             flag = False
             v1 = self.vars(left_[i])
@@ -112,7 +148,6 @@ class Opt_solver:
             if not flag:
                 m = []
                 break
-                # return None 
         if flag:
             return m 
         else:
@@ -126,7 +161,8 @@ class Opt_solver:
         for r in m:
             res = self.check(lhs, top_level(*r))
             if not res:
-                return False  
+                return False 
+            # print('done') 
         return True 
     
     def opt_solve(self, lhs, rhs):
@@ -134,6 +170,14 @@ class Opt_solver:
         if m:
             if self.solve_sub_lemma(lhs, m, rhs.decl()):
                 return True 
+            m = self.get_sub_lemmas(rhs, default_order=True)
+            if self.solve_sub_lemma(lhs, m, rhs.decl()):
+                return True 
+        # print(m)
+        # print(lhs)
+        # print()
+        # print(rhs)
+        # dsjg
         return self.check(lhs, rhs) 
 
     def check_if(self, lhs, rhs):
@@ -150,42 +194,61 @@ class Opt_solver:
                 return [(lhs1, rhs1), (lhs2, rhs2)]
         return [(lhs, rhs)]
     
-    def solve_temp(self, lhs, rhs):
-        # print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-        # print('printing solve temp')
+    def fast_solve(self, lhs, rhs):
+        top_level = rhs.decl()
+        rhs_left, rhs_right = rhs.children()
+        lhs_ = self.get_clauses(lhs)
+        if top_level in [le]:
+            if le(rhs_left, rhs_right) in lhs_:
+                return True 
+            if eq(rhs_left, rhs_right) in lhs_:
+                return True 
+        if top_level in [ge]:
+            if ge(rhs_left, rhs_right) in lhs_:
+                return True 
+            if eq(rhs_left, rhs_right) in lhs_:
+                return True 
         # print(lhs)
         # print()
         # print(rhs)
-        # print()
+        # dsj
+        return False
+    
+    def solve_temp(self, lhs, rhs):
         m = self.get_sufficient_formulae(lhs, rhs)
-        # print(len(m))
-        # for i in range(len(m)):
-        #     print('printing m ', i)
-        #     print(m[i])
+        # m.append(rhs)
+        # print(lhs)
+        # print()
+        # for r in m:
+        #     print(r)
         #     print()
-        # jzhsdgf
+        # jghsd
         if m:
             for r in m:
-                # print(r)
+                if self.fast_solve(lhs, r):
+                    return True 
+            for r in m:
                 if self.opt_solve(lhs, r):
                     return True 
+        # return False 
+        # print(lhs)
+        # print()
+        # print(rhs)
+        # dsh
         return self.opt_solve(lhs, rhs)
     
     def check_quantifier(self, lhs, rhs):
         return isinstance(rhs, z3.z3.QuantifierRef)
+    
+    # def handle_exists(self, lhs, rhs):
+        
 
     def solve(self, lhs, rhs):
-        # print(lhs)
-        # print()
-        # print(rhs)
-        # jhsgd
+        print(lhs)
+        print()
+        print(rhs)
+        print()
         if self.check_quantifier(lhs, rhs):
-            print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-            print(lhs)
-            print()
-            print(rhs)
-            print()
-            # jhsd
             return self.check(lhs, rhs)
         m_if = self.check_if(lhs, rhs)
         for i in m_if:

@@ -11,6 +11,67 @@ import time
 
 sys.setrecursionlimit(5000) 
 
+one = Real('one')
+minus_one = Real('minus_one')
+
+def z3_vars(x):
+	if x.children() == []:
+		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
+			return set()
+		return {x}
+	s = set()
+	for i in x.children():
+		s = s.union(z3_vars(i))
+	return s
+
+def z3min(a, b):
+	return If(a<b, a, b)
+
+def z3max(a, b):
+	return If(a>b, a, b)
+
+def z3max_list(l):
+	if len(l)==0:
+		return None 
+	if len(l)==1:
+		return l[0]
+	l_temp = z3max_list(l[1:])
+	return If(l[0]>l_temp, l[0], l_temp)
+
+def z3min_list(l):
+	if len(l)==0:
+		return None 
+	if len(l)==1:
+		return l[0]
+	l_temp = z3min_list(l[1:])
+	return If(l[0]<l_temp, l[0], l_temp)
+
+def get_all_combs(E, es, i):
+	if i>=len(E):
+		return es 
+	eps = E[i]
+	e_vars = z3_vars(es[0])
+	if not eps in e_vars:
+		return get_all_combs(E, es, i+1)
+	es_new = []
+	for e in es:
+		# print(eps)
+		# print(e)
+		temp_1 = substitute(e, (eps, one))
+		temp_2 = substitute(e, (eps, minus_one))
+		es_new.append(temp_1)
+		es_new.append(temp_2)
+	return es_new
+
+def get_z3max_eps(E, e):
+	es = get_all_combs(E, [e], 0)
+	return z3max_list(es)
+
+def get_z3min_eps(E, e):
+	es = get_all_combs(E, [e], 0)
+	return z3min_list(es)
+
+
 class Number:
 
 	def __init__(self):
@@ -405,6 +466,23 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				if r==0:
 					return l 
 			return l + r
+		elif(isinstance(node, IN)):
+			e1 = self.convertToZ3(node.left)
+			e2 = self.convertToZ3(node.right)
+			e2_max = get_z3max_eps(self.E, e2)
+			e2_min = get_z3min_eps(self.E, e2)
+			if e2.sexpr() == e2_max.sexpr():
+				return e1 == e2 
+			self.tempC.append(one==1)
+			self.tempC.append(minus_one==-1)
+			return And(e1 <= e2_max, e1 >= e2_min)
+			if isinstance(l, int) or isinstance(l, float):
+				if l==0:
+					return r 
+			if isinstance(r, int) or isinstance(r, float):
+				if r==0:
+					return l 
+			return l + r
 		elif(isinstance(node, SUB)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
@@ -503,10 +581,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			c = self.convertToZ3(node.cond)
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			if(self.hasE):
-				y = Real('new_'+str(self.number.nextn()))
-				self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
-				return y
+			# if(self.hasE):
+			# 	y = Real('new_'+str(self.number.nextn()))
+			# 	self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
+			# 	return y
 			return If(c, l, r)
 		elif(isinstance(node, MAX)):
 			e = [self.convertToZ3(i) for i in node.e]
@@ -555,6 +633,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return (node.value, "Bool")
 
 	def visitVar(self, pt):
+		if 'prev' in pt.name:
+			if isinstance(self.store[pt.name], list):
+				return self.store[pt.name][:self.Nprev]
 		return self.store[pt.name]
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
@@ -608,6 +689,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(node.op == "=="):
 			return self.get_binop(left, right, EQQ)
 		elif(node.op == "In"):
+			return self.get_binop(left, right, IN)
 			return self.get_binop(left, right, EQQ)
 
 
@@ -710,8 +792,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def visitMaxOpList(self, node: AST.MaxOpListNode):
 		elist = self.visit(node.expr)
 		if not isinstance(elist, list):
-			raise Exception('This is not possible. Somethung must be wrong with type checking')
-		print((elist))
+			raise Exception('This is not possible. Something must be wrong with type checking')
+		# print((elist))
 		# ksdjg
 		
 		if node.op == 'max':
@@ -720,8 +802,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				ll = []
 				for i in range(l):
 					ll.append(MAX([j[i] for j in elist]))
-				print((ll))
-				# xhdv
+				# print((ll))
 				return ll 
 			return MAX(elist)
 		else:
@@ -738,8 +819,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			for i in range(l):
 				e = [j[i] for j in elist]
 				ret.append(self.get_max(e, node.op))
+			# print(self.convertToZ3(ret))
+			# dsh
+			# print(ret)
 			return ret 
 		ret =  self.get_max(elist, node.op)
+		# print(ret)
+		# dsj
 		return ret
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
@@ -954,7 +1040,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 
 	def get_map(self, e, node):
-
+		# print(e)
 		if isinstance(e, IF):
 			return IF(e.cond, self.get_map(e.left, node), self.get_map(e.right, node))
 		else:
@@ -987,7 +1073,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					fcall = AST.FuncCallNode(node.func.name, elist)
 					exp = self.visitFuncCall(fcall, True)
 					# exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
-					return exp
+					cond = self.get_binop(e.right, (0, "Float"), EQQ)
+					exp_temp = IF(cond, (0, "Float"), exp)
+					# print(cond)
+					# skd
+					return exp_temp
 				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp' or rhstype == 'Neuron' or rhstype=='Noise'):
 					elist = AST.ExprListNode(elist + [e.right, e.left])
 					fcall = AST.FuncCallNode(fname, elist)
@@ -995,7 +1085,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					fcall = AST.FuncCallNode(node.func.name, elist)
 					exp = self.visitFuncCall(fcall, True)
 					# exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
-					return exp
+					cond = self.get_binop(e.left, (0, "Float"), EQQ)
+					exp_temp = IF(cond, (0, "Float"), exp)
+					# print(cond)
+					# skd
+					# print(self.convertToZ3(exp_temp))
+					# fdj
+					return exp_temp
 				else:
 					return e
 			elif isinstance(e, DIV):
@@ -1015,6 +1111,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				else:
 					return e
 			else: #tuple
+				# print(e)
+				# kjdsfh
 				if(e[1] == 'Neuron' or e[1] == 'Noise'):
 					if isinstance(node.func, AST.VarNode):
 						elist = []
@@ -1025,8 +1123,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 					elist = AST.ExprListNode(elist + [e, 1])
 					fcall = AST.FuncCallNode(fname, elist)
-
-					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
+					temp = self.visitFuncCall(fcall, True)
+					exp = self.get_binop(exp, temp, ADD)
 					return exp
 				else:
 					return e

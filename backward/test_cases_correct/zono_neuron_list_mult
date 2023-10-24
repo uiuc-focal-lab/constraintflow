@@ -1,12 +1,14 @@
-def Shape as (Float l, Float u, ZonoExp z){[(curr[u]>=curr),(curr[l]<=curr),(curr In curr[z])]};
+def Shape as (Float l, Float u, ZonoExp z){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z])]};
 
 func compute_l(Neuron List n1, Neuron List n2) = sum(min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]));
 func compute_u(Neuron List n1, Neuron List n2) = sum(max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]));
 
 func priority(Neuron n) = n[layer];
 
+func find_z(Float l, Float u) = ((u+l)*0.5) + (0.5*eps*(u-l));
+
 transformer ibp{
-    Neuron_list_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1), (compute_u(prev_0, prev_1) + compute_l(prev_0, prev_1))/2 + (((compute_u(prev_0, prev_1) - compute_l(prev_0, prev_1))/2)*eps));
+    Neuron_list_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1), find_z(compute_l(prev_0, prev_1), compute_u(prev_0, prev_1)));
 }
 
 flow(forward, priority, true, ibp);

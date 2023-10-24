@@ -6,7 +6,7 @@ func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (co
 func priority(Neuron n) = n[layer];
 
 
-transformer ibp(curr, prev){
+transformer ibp{
     Maxpool -> (max(prev[u]), max(prev[u]));
 }
 
