@@ -58,7 +58,7 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 
 class SymbolicGraph(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons):
+	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons, solver):
 		self.M = M
 		self.V = V 
 		self.C = C 
@@ -79,6 +79,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.vars = g.vars
 		self.flag = False
 		#set_param("timeout", 30)
+		self.solver = solver 
 
 	def visitInt(self, node):
 		pass
@@ -365,8 +366,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		rhs = p_output
 		# print(lhs)
 		# print(rhs.children()[1])
-		solver = Opt_solver()
-		w = solver.solve(lhs, rhs)
+		# solver = Opt_solver()
+		w = self.solver.solve(lhs, rhs)
 		print("end",time.time())
 		if w:
 			print('Induction step proved')
@@ -453,9 +454,12 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		s = Solver()
 		#s.set("timeout",3000)
 		s.add(prop)
+		print("gen",time.time())
+		# lhs = And(self.os.C + [self.currop]+self.os.tempC)
+		# rhs = pz3 
+
 		#print("induction query:")
 		#print(prop)
-		print("gen",time.time())
 		
 		if(not (s.check() == unsat)):
 			print("end",time.time())

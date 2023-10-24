@@ -268,6 +268,9 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitMaxOpList(self, node: AST.MaxOpListNode):
 		exptype = self.visit(node.expr)
+		if isinstance(exptype, ArrayType):
+			if self.isSubType(exptype.base,"Float"):
+				return exptype.base
 		if isinstance(exptype, list):
 			if len(exptype)==0:
 				raise Exception('list empty')
@@ -286,6 +289,7 @@ class ASTTC(astVisitor.ASTVisitor):
 					raise Exception('all elements of the list must be of the same type')
 			return type
 		else:
+			print(exptype)
 			raise Exception('the argument to min or max must be a list')
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
@@ -586,7 +590,7 @@ class ASTTC(astVisitor.ASTVisitor):
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'Maxpool':
 			self.Gamma['prev'] = ArrayType('Neuron')
-		elif node.op.op_name == 'Neuron_mult':
+		elif node.op.op_name == 'Neuron_mult' or node.op.op_name == 'Neuron_add' or node.op.op_name == 'Neuron_max' or node.op.op_name == 'Neuron_min':
 			self.Gamma['prev_0'] = 'Neuron'
 			self.Gamma['prev_1'] = 'Neuron'
 		elif node.op.op_name == 'Neuron_list_mult':

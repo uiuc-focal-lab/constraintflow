@@ -129,6 +129,8 @@ class Opt_graph():
     def get_sufficient_queries(self, query):
         top_level = query.decl()
         lhs, rhs = query.children()
+        # if lhs in self.form_num.keys() and rhs in self.form_num.keys():
+
         if lhs in self.form_num.keys():
             num_lhs = self.form_num[lhs]
             if (top_level == lt) or (top_level == le):

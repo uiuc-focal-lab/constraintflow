@@ -1,0 +1,12 @@
+def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
+
+func add_lower(Neuron n1, Neuron n2) = n1[l] + n2[l];
+func add_upper(Neuron n1, Neuron n2) = n1[u] + n2[u];
+
+func priority(Neuron n) = n[layer];
+
+transformer ibp{
+    Neuron_add -> (add_lower(prev_0, prev_1), add_upper(prev_0, prev_1));
+}
+
+flow(forward, priority, true, ibp);

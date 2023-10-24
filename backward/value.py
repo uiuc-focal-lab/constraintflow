@@ -131,6 +131,19 @@ class EQQ(TerminalValue):
 
 	def __hash__(self):
 		return hash(("EQQ", self.left, self.right))
+	
+class IN(TerminalValue):
+
+	def __init__(self, left, right):
+		self.left = left
+		self.right = right
+
+	def __eq__(self, obj):
+		if(isinstance(obj, IN)):
+			return self.left == obj.left and self.right == obj.right
+
+	def __hash__(self):
+		return hash(("IN", self.left, self.right))
 
 class NEQ(TerminalValue):
 

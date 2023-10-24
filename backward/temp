@@ -1,0 +1,367 @@
+start 1698172393.5432727
+lexer 1698172393.543467
+tokens 1698172393.5434725
+parser 1698172393.5434918
+visit 1698172393.680818
+type check 1698172393.6810336
+start  1698172393.6810553
+graph expansion done 1698172393.6825728
+symbolic output 1698172393.683006
+gen 1698172393.6850793
+end 1698172394.793817
+gen 1698172394.7958443
+end 1698172396.3832197
+Eps_1
+(If(And(And(Prev0_0_u_4*Prev1_0_u_7 >=
+            Prev0_0_l_5*Prev1_0_l_8,
+            Prev0_0_u_4*Prev1_0_u_7 >=
+            Prev0_0_l_5*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_u_7 >= Prev0_0_u_4*Prev1_0_l_8),
+    Prev0_0_u_4*Prev1_0_u_7,
+    If(And(And(Prev0_0_u_4*Prev1_0_l_8 >=
+               Prev0_0_l_5*Prev1_0_l_8,
+               Prev0_0_u_4*Prev1_0_l_8 >=
+               Prev0_0_l_5*Prev1_0_u_7),
+           Prev0_0_u_4*Prev1_0_l_8 >=
+           Prev0_0_u_4*Prev1_0_u_7),
+       Prev0_0_u_4*Prev1_0_l_8,
+       If(And(And(Prev0_0_l_5*Prev1_0_u_7 >=
+                  Prev0_0_l_5*Prev1_0_l_8,
+                  Prev0_0_l_5*Prev1_0_u_7 >=
+                  Prev0_0_u_4*Prev1_0_l_8),
+              Prev0_0_l_5*Prev1_0_u_7 >=
+              Prev0_0_u_4*Prev1_0_u_7),
+          Prev0_0_l_5*Prev1_0_u_7,
+          Prev0_0_l_5*Prev1_0_l_8))) +
+ If(And(And(Prev0_1_u_10*Prev1_1_u_13 >=
+            Prev0_1_l_11*Prev1_1_l_14,
+            Prev0_1_u_10*Prev1_1_u_13 >=
+            Prev0_1_l_11*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_u_13 >=
+        Prev0_1_u_10*Prev1_1_l_14),
+    Prev0_1_u_10*Prev1_1_u_13,
+    If(And(And(Prev0_1_u_10*Prev1_1_l_14 >=
+               Prev0_1_l_11*Prev1_1_l_14,
+               Prev0_1_u_10*Prev1_1_l_14 >=
+               Prev0_1_l_11*Prev1_1_u_13),
+           Prev0_1_u_10*Prev1_1_l_14 >=
+           Prev0_1_u_10*Prev1_1_u_13),
+       Prev0_1_u_10*Prev1_1_l_14,
+       If(And(And(Prev0_1_l_11*Prev1_1_u_13 >=
+                  Prev0_1_l_11*Prev1_1_l_14,
+                  Prev0_1_l_11*Prev1_1_u_13 >=
+                  Prev0_1_u_10*Prev1_1_l_14),
+              Prev0_1_l_11*Prev1_1_u_13 >=
+              Prev0_1_u_10*Prev1_1_u_13),
+          Prev0_1_l_11*Prev1_1_u_13,
+          Prev0_1_l_11*Prev1_1_l_14))) +
+ If(And(And(Prev0_0_u_4*Prev1_0_u_7 <=
+            Prev0_0_l_5*Prev1_0_l_8,
+            Prev0_0_u_4*Prev1_0_u_7 <=
+            Prev0_0_l_5*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_u_7 <= Prev0_0_u_4*Prev1_0_l_8),
+    Prev0_0_u_4*Prev1_0_u_7,
+    If(And(And(Prev0_0_u_4*Prev1_0_l_8 <=
+               Prev0_0_l_5*Prev1_0_l_8,
+               Prev0_0_u_4*Prev1_0_l_8 <=
+               Prev0_0_l_5*Prev1_0_u_7),
+           Prev0_0_u_4*Prev1_0_l_8 <=
+           Prev0_0_u_4*Prev1_0_u_7),
+       Prev0_0_u_4*Prev1_0_l_8,
+       If(And(And(Prev0_0_l_5*Prev1_0_u_7 <=
+                  Prev0_0_l_5*Prev1_0_l_8,
+                  Prev0_0_l_5*Prev1_0_u_7 <=
+                  Prev0_0_u_4*Prev1_0_l_8),
+              Prev0_0_l_5*Prev1_0_u_7 <=
+              Prev0_0_u_4*Prev1_0_u_7),
+          Prev0_0_l_5*Prev1_0_u_7,
+          Prev0_0_l_5*Prev1_0_l_8))) +
+ If(And(And(Prev0_1_u_10*Prev1_1_u_13 <=
+            Prev0_1_l_11*Prev1_1_l_14,
+            Prev0_1_u_10*Prev1_1_u_13 <=
+            Prev0_1_l_11*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_u_13 <=
+        Prev0_1_u_10*Prev1_1_l_14),
+    Prev0_1_u_10*Prev1_1_u_13,
+    If(And(And(Prev0_1_u_10*Prev1_1_l_14 <=
+               Prev0_1_l_11*Prev1_1_l_14,
+               Prev0_1_u_10*Prev1_1_l_14 <=
+               Prev0_1_l_11*Prev1_1_u_13),
+           Prev0_1_u_10*Prev1_1_l_14 <=
+           Prev0_1_u_10*Prev1_1_u_13),
+       Prev0_1_u_10*Prev1_1_l_14,
+       If(And(And(Prev0_1_l_11*Prev1_1_u_13 <=
+                  Prev0_1_l_11*Prev1_1_l_14,
+                  Prev0_1_l_11*Prev1_1_u_13 <=
+                  Prev0_1_u_10*Prev1_1_l_14),
+              Prev0_1_l_11*Prev1_1_u_13 <=
+              Prev0_1_u_10*Prev1_1_u_13),
+          Prev0_1_l_11*Prev1_1_u_13,
+          Prev0_1_l_11*Prev1_1_l_14))))/
+2 +
+((If(And(And(Prev0_0_u_4*Prev1_0_u_7 >=
+             Prev0_0_l_5*Prev1_0_l_8,
+             Prev0_0_u_4*Prev1_0_u_7 >=
+             Prev0_0_l_5*Prev1_0_u_7),
+         Prev0_0_u_4*Prev1_0_u_7 >= Prev0_0_u_4*Prev1_0_l_8),
+     Prev0_0_u_4*Prev1_0_u_7,
+     If(And(And(Prev0_0_u_4*Prev1_0_l_8 >=
+                Prev0_0_l_5*Prev1_0_l_8,
+                Prev0_0_u_4*Prev1_0_l_8 >=
+                Prev0_0_l_5*Prev1_0_u_7),
+            Prev0_0_u_4*Prev1_0_l_8 >=
+            Prev0_0_u_4*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_l_8,
+        If(And(And(Prev0_0_l_5*Prev1_0_u_7 >=
+                   Prev0_0_l_5*Prev1_0_l_8,
+                   Prev0_0_l_5*Prev1_0_u_7 >=
+                   Prev0_0_u_4*Prev1_0_l_8),
+               Prev0_0_l_5*Prev1_0_u_7 >=
+               Prev0_0_u_4*Prev1_0_u_7),
+           Prev0_0_l_5*Prev1_0_u_7,
+           Prev0_0_l_5*Prev1_0_l_8))) +
+  If(And(And(Prev0_1_u_10*Prev1_1_u_13 >=
+             Prev0_1_l_11*Prev1_1_l_14,
+             Prev0_1_u_10*Prev1_1_u_13 >=
+             Prev0_1_l_11*Prev1_1_u_13),
+         Prev0_1_u_10*Prev1_1_u_13 >=
+         Prev0_1_u_10*Prev1_1_l_14),
+     Prev0_1_u_10*Prev1_1_u_13,
+     If(And(And(Prev0_1_u_10*Prev1_1_l_14 >=
+                Prev0_1_l_11*Prev1_1_l_14,
+                Prev0_1_u_10*Prev1_1_l_14 >=
+                Prev0_1_l_11*Prev1_1_u_13),
+            Prev0_1_u_10*Prev1_1_l_14 >=
+            Prev0_1_u_10*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_l_14,
+        If(And(And(Prev0_1_l_11*Prev1_1_u_13 >=
+                   Prev0_1_l_11*Prev1_1_l_14,
+                   Prev0_1_l_11*Prev1_1_u_13 >=
+                   Prev0_1_u_10*Prev1_1_l_14),
+               Prev0_1_l_11*Prev1_1_u_13 >=
+               Prev0_1_u_10*Prev1_1_u_13),
+           Prev0_1_l_11*Prev1_1_u_13,
+           Prev0_1_l_11*Prev1_1_l_14))) -
+  (If(And(And(Prev0_0_u_4*Prev1_0_u_7 <=
+              Prev0_0_l_5*Prev1_0_l_8,
+              Prev0_0_u_4*Prev1_0_u_7 <=
+              Prev0_0_l_5*Prev1_0_u_7),
+          Prev0_0_u_4*Prev1_0_u_7 <= Prev0_0_u_4*Prev1_0_l_8),
+      Prev0_0_u_4*Prev1_0_u_7,
+      If(And(And(Prev0_0_u_4*Prev1_0_l_8 <=
+                 Prev0_0_l_5*Prev1_0_l_8,
+                 Prev0_0_u_4*Prev1_0_l_8 <=
+                 Prev0_0_l_5*Prev1_0_u_7),
+             Prev0_0_u_4*Prev1_0_l_8 <=
+             Prev0_0_u_4*Prev1_0_u_7),
+         Prev0_0_u_4*Prev1_0_l_8,
+         If(And(And(Prev0_0_l_5*Prev1_0_u_7 <=
+                    Prev0_0_l_5*Prev1_0_l_8,
+                    Prev0_0_l_5*Prev1_0_u_7 <=
+                    Prev0_0_u_4*Prev1_0_l_8),
+                Prev0_0_l_5*Prev1_0_u_7 <=
+                Prev0_0_u_4*Prev1_0_u_7),
+            Prev0_0_l_5*Prev1_0_u_7,
+            Prev0_0_l_5*Prev1_0_l_8))) +
+   If(And(And(Prev0_1_u_10*Prev1_1_u_13 <=
+              Prev0_1_l_11*Prev1_1_l_14,
+              Prev0_1_u_10*Prev1_1_u_13 <=
+              Prev0_1_l_11*Prev1_1_u_13),
+          Prev0_1_u_10*Prev1_1_u_13 <=
+          Prev0_1_u_10*Prev1_1_l_14),
+      Prev0_1_u_10*Prev1_1_u_13,
+      If(And(And(Prev0_1_u_10*Prev1_1_l_14 <=
+                 Prev0_1_l_11*Prev1_1_l_14,
+                 Prev0_1_u_10*Prev1_1_l_14 <=
+                 Prev0_1_l_11*Prev1_1_u_13),
+             Prev0_1_u_10*Prev1_1_l_14 <=
+             Prev0_1_u_10*Prev1_1_u_13),
+         Prev0_1_u_10*Prev1_1_l_14,
+         If(And(And(Prev0_1_l_11*Prev1_1_u_13 <=
+                    Prev0_1_l_11*Prev1_1_l_14,
+                    Prev0_1_l_11*Prev1_1_u_13 <=
+                    Prev0_1_u_10*Prev1_1_l_14),
+                Prev0_1_l_11*Prev1_1_u_13 <=
+                Prev0_1_u_10*Prev1_1_u_13),
+            Prev0_1_l_11*Prev1_1_u_13,
+            Prev0_1_l_11*Prev1_1_l_14)))))/
+ 2)*
+Eps_1
+Eps_1
+(If(And(And(Prev0_0_u_4*Prev1_0_u_7 >=
+            Prev0_0_l_5*Prev1_0_l_8,
+            Prev0_0_u_4*Prev1_0_u_7 >=
+            Prev0_0_l_5*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_u_7 >= Prev0_0_u_4*Prev1_0_l_8),
+    Prev0_0_u_4*Prev1_0_u_7,
+    If(And(And(Prev0_0_u_4*Prev1_0_l_8 >=
+               Prev0_0_l_5*Prev1_0_l_8,
+               Prev0_0_u_4*Prev1_0_l_8 >=
+               Prev0_0_l_5*Prev1_0_u_7),
+           Prev0_0_u_4*Prev1_0_l_8 >=
+           Prev0_0_u_4*Prev1_0_u_7),
+       Prev0_0_u_4*Prev1_0_l_8,
+       If(And(And(Prev0_0_l_5*Prev1_0_u_7 >=
+                  Prev0_0_l_5*Prev1_0_l_8,
+                  Prev0_0_l_5*Prev1_0_u_7 >=
+                  Prev0_0_u_4*Prev1_0_l_8),
+              Prev0_0_l_5*Prev1_0_u_7 >=
+              Prev0_0_u_4*Prev1_0_u_7),
+          Prev0_0_l_5*Prev1_0_u_7,
+          Prev0_0_l_5*Prev1_0_l_8))) +
+ If(And(And(Prev0_1_u_10*Prev1_1_u_13 >=
+            Prev0_1_l_11*Prev1_1_l_14,
+            Prev0_1_u_10*Prev1_1_u_13 >=
+            Prev0_1_l_11*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_u_13 >=
+        Prev0_1_u_10*Prev1_1_l_14),
+    Prev0_1_u_10*Prev1_1_u_13,
+    If(And(And(Prev0_1_u_10*Prev1_1_l_14 >=
+               Prev0_1_l_11*Prev1_1_l_14,
+               Prev0_1_u_10*Prev1_1_l_14 >=
+               Prev0_1_l_11*Prev1_1_u_13),
+           Prev0_1_u_10*Prev1_1_l_14 >=
+           Prev0_1_u_10*Prev1_1_u_13),
+       Prev0_1_u_10*Prev1_1_l_14,
+       If(And(And(Prev0_1_l_11*Prev1_1_u_13 >=
+                  Prev0_1_l_11*Prev1_1_l_14,
+                  Prev0_1_l_11*Prev1_1_u_13 >=
+                  Prev0_1_u_10*Prev1_1_l_14),
+              Prev0_1_l_11*Prev1_1_u_13 >=
+              Prev0_1_u_10*Prev1_1_u_13),
+          Prev0_1_l_11*Prev1_1_u_13,
+          Prev0_1_l_11*Prev1_1_l_14))) +
+ If(And(And(Prev0_0_u_4*Prev1_0_u_7 <=
+            Prev0_0_l_5*Prev1_0_l_8,
+            Prev0_0_u_4*Prev1_0_u_7 <=
+            Prev0_0_l_5*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_u_7 <= Prev0_0_u_4*Prev1_0_l_8),
+    Prev0_0_u_4*Prev1_0_u_7,
+    If(And(And(Prev0_0_u_4*Prev1_0_l_8 <=
+               Prev0_0_l_5*Prev1_0_l_8,
+               Prev0_0_u_4*Prev1_0_l_8 <=
+               Prev0_0_l_5*Prev1_0_u_7),
+           Prev0_0_u_4*Prev1_0_l_8 <=
+           Prev0_0_u_4*Prev1_0_u_7),
+       Prev0_0_u_4*Prev1_0_l_8,
+       If(And(And(Prev0_0_l_5*Prev1_0_u_7 <=
+                  Prev0_0_l_5*Prev1_0_l_8,
+                  Prev0_0_l_5*Prev1_0_u_7 <=
+                  Prev0_0_u_4*Prev1_0_l_8),
+              Prev0_0_l_5*Prev1_0_u_7 <=
+              Prev0_0_u_4*Prev1_0_u_7),
+          Prev0_0_l_5*Prev1_0_u_7,
+          Prev0_0_l_5*Prev1_0_l_8))) +
+ If(And(And(Prev0_1_u_10*Prev1_1_u_13 <=
+            Prev0_1_l_11*Prev1_1_l_14,
+            Prev0_1_u_10*Prev1_1_u_13 <=
+            Prev0_1_l_11*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_u_13 <=
+        Prev0_1_u_10*Prev1_1_l_14),
+    Prev0_1_u_10*Prev1_1_u_13,
+    If(And(And(Prev0_1_u_10*Prev1_1_l_14 <=
+               Prev0_1_l_11*Prev1_1_l_14,
+               Prev0_1_u_10*Prev1_1_l_14 <=
+               Prev0_1_l_11*Prev1_1_u_13),
+           Prev0_1_u_10*Prev1_1_l_14 <=
+           Prev0_1_u_10*Prev1_1_u_13),
+       Prev0_1_u_10*Prev1_1_l_14,
+       If(And(And(Prev0_1_l_11*Prev1_1_u_13 <=
+                  Prev0_1_l_11*Prev1_1_l_14,
+                  Prev0_1_l_11*Prev1_1_u_13 <=
+                  Prev0_1_u_10*Prev1_1_l_14),
+              Prev0_1_l_11*Prev1_1_u_13 <=
+              Prev0_1_u_10*Prev1_1_u_13),
+          Prev0_1_l_11*Prev1_1_u_13,
+          Prev0_1_l_11*Prev1_1_l_14))))/
+2 +
+((If(And(And(Prev0_0_u_4*Prev1_0_u_7 >=
+             Prev0_0_l_5*Prev1_0_l_8,
+             Prev0_0_u_4*Prev1_0_u_7 >=
+             Prev0_0_l_5*Prev1_0_u_7),
+         Prev0_0_u_4*Prev1_0_u_7 >= Prev0_0_u_4*Prev1_0_l_8),
+     Prev0_0_u_4*Prev1_0_u_7,
+     If(And(And(Prev0_0_u_4*Prev1_0_l_8 >=
+                Prev0_0_l_5*Prev1_0_l_8,
+                Prev0_0_u_4*Prev1_0_l_8 >=
+                Prev0_0_l_5*Prev1_0_u_7),
+            Prev0_0_u_4*Prev1_0_l_8 >=
+            Prev0_0_u_4*Prev1_0_u_7),
+        Prev0_0_u_4*Prev1_0_l_8,
+        If(And(And(Prev0_0_l_5*Prev1_0_u_7 >=
+                   Prev0_0_l_5*Prev1_0_l_8,
+                   Prev0_0_l_5*Prev1_0_u_7 >=
+                   Prev0_0_u_4*Prev1_0_l_8),
+               Prev0_0_l_5*Prev1_0_u_7 >=
+               Prev0_0_u_4*Prev1_0_u_7),
+           Prev0_0_l_5*Prev1_0_u_7,
+           Prev0_0_l_5*Prev1_0_l_8))) +
+  If(And(And(Prev0_1_u_10*Prev1_1_u_13 >=
+             Prev0_1_l_11*Prev1_1_l_14,
+             Prev0_1_u_10*Prev1_1_u_13 >=
+             Prev0_1_l_11*Prev1_1_u_13),
+         Prev0_1_u_10*Prev1_1_u_13 >=
+         Prev0_1_u_10*Prev1_1_l_14),
+     Prev0_1_u_10*Prev1_1_u_13,
+     If(And(And(Prev0_1_u_10*Prev1_1_l_14 >=
+                Prev0_1_l_11*Prev1_1_l_14,
+                Prev0_1_u_10*Prev1_1_l_14 >=
+                Prev0_1_l_11*Prev1_1_u_13),
+            Prev0_1_u_10*Prev1_1_l_14 >=
+            Prev0_1_u_10*Prev1_1_u_13),
+        Prev0_1_u_10*Prev1_1_l_14,
+        If(And(And(Prev0_1_l_11*Prev1_1_u_13 >=
+                   Prev0_1_l_11*Prev1_1_l_14,
+                   Prev0_1_l_11*Prev1_1_u_13 >=
+                   Prev0_1_u_10*Prev1_1_l_14),
+               Prev0_1_l_11*Prev1_1_u_13 >=
+               Prev0_1_u_10*Prev1_1_u_13),
+           Prev0_1_l_11*Prev1_1_u_13,
+           Prev0_1_l_11*Prev1_1_l_14))) -
+  (If(And(And(Prev0_0_u_4*Prev1_0_u_7 <=
+              Prev0_0_l_5*Prev1_0_l_8,
+              Prev0_0_u_4*Prev1_0_u_7 <=
+              Prev0_0_l_5*Prev1_0_u_7),
+          Prev0_0_u_4*Prev1_0_u_7 <= Prev0_0_u_4*Prev1_0_l_8),
+      Prev0_0_u_4*Prev1_0_u_7,
+      If(And(And(Prev0_0_u_4*Prev1_0_l_8 <=
+                 Prev0_0_l_5*Prev1_0_l_8,
+                 Prev0_0_u_4*Prev1_0_l_8 <=
+                 Prev0_0_l_5*Prev1_0_u_7),
+             Prev0_0_u_4*Prev1_0_l_8 <=
+             Prev0_0_u_4*Prev1_0_u_7),
+         Prev0_0_u_4*Prev1_0_l_8,
+         If(And(And(Prev0_0_l_5*Prev1_0_u_7 <=
+                    Prev0_0_l_5*Prev1_0_l_8,
+                    Prev0_0_l_5*Prev1_0_u_7 <=
+                    Prev0_0_u_4*Prev1_0_l_8),
+                Prev0_0_l_5*Prev1_0_u_7 <=
+                Prev0_0_u_4*Prev1_0_u_7),
+            Prev0_0_l_5*Prev1_0_u_7,
+            Prev0_0_l_5*Prev1_0_l_8))) +
+   If(And(And(Prev0_1_u_10*Prev1_1_u_13 <=
+              Prev0_1_l_11*Prev1_1_l_14,
+              Prev0_1_u_10*Prev1_1_u_13 <=
+              Prev0_1_l_11*Prev1_1_u_13),
+          Prev0_1_u_10*Prev1_1_u_13 <=
+          Prev0_1_u_10*Prev1_1_l_14),
+      Prev0_1_u_10*Prev1_1_u_13,
+      If(And(And(Prev0_1_u_10*Prev1_1_l_14 <=
+                 Prev0_1_l_11*Prev1_1_l_14,
+                 Prev0_1_u_10*Prev1_1_l_14 <=
+                 Prev0_1_l_11*Prev1_1_u_13),
+             Prev0_1_u_10*Prev1_1_l_14 <=
+             Prev0_1_u_10*Prev1_1_u_13),
+         Prev0_1_u_10*Prev1_1_l_14,
+         If(And(And(Prev0_1_l_11*Prev1_1_u_13 <=
+                    Prev0_1_l_11*Prev1_1_l_14,
+                    Prev0_1_l_11*Prev1_1_u_13 <=
+                    Prev0_1_u_10*Prev1_1_l_14),
+                Prev0_1_l_11*Prev1_1_u_13 <=
+                Prev0_1_u_10*Prev1_1_u_13),
+            Prev0_1_l_11*Prev1_1_u_13,
+            Prev0_1_l_11*Prev1_1_l_14)))))/
+ 2)*
+Eps_1
+gen 1698172396.5631967
+end 1698172409.0564137

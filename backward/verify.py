@@ -72,6 +72,7 @@ class Verify(astVisitor.ASTVisitor):
 			# self.old_neurons.append(n)
 		self.store = {}
 		#set_param("timeout", 30)
+		self.solver = Opt_solver()
 
 	def visitShapeDecl(self, node):
 		for (t,e) in node.elements.arglist:
@@ -95,25 +96,29 @@ class Verify(astVisitor.ASTVisitor):
 			hasE = node.oplist.opsE[op_i]
 			op = node.oplist.olist[op_i]
 			store = self.store
-			if(op.op.op_name == "Relu"):
+			op_ = op.op.op_name
+			if(op_ == "Relu"):
 				nprev= 1
-			elif op.op.op_name == 'Neuron_mult':
+			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
 			else:
 				nprev = self.Nprev
-			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons)
+			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.solver)
 			s.os.hasE = hasE
 			#node = self.theta[node.trans.name]
 			required_neurons = []
-			op_ = node.oplist.olist[op_i].op.op_name
+			is_list = True 
+			# op_ = node.oplist.olist[op_i].op.op_name
 			if op_ == 'Affine':
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Relu':
+				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool':
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'Neuron_mult':
+			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				required_neurons = ['curr', 'prev_0', 'prev_1']
+				is_list = False 
 			elif op_ == 'Neuron_list_mult':
 				required_neurons = ['curr', 'prev_0', 'prev_1']
 			if("curr" in required_neurons):
@@ -182,10 +187,10 @@ class Verify(astVisitor.ASTVisitor):
 					curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(nprev)]
 				if(not "bias" in curr.symmap.keys()):
 					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
-				exptemp = (0, 'Float')
+				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
-				exptemp = ADD(exptemp, curr.symmap["bias"])
+				# exptemp = ADD(exptemp, curr.symmap["bias"])
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
@@ -220,6 +225,24 @@ class Verify(astVisitor.ASTVisitor):
 
 			elif(op.op.op_name == "Neuron_mult"):
 				exptemp = MULT(prev[0], prev[1])
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op.op.op_name == "Neuron_add"):
+				exptemp = ADD(prev[0], prev[1])
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+			
+			elif(op.op.op_name == "Neuron_max"):
+				exptemp = IF(GEQ(prev[0], prev[1]), prev[0], prev[1])
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op.op.op_name == "Neuron_min"):
+				exptemp = IF(LEQ(prev[0], prev[1]), prev[0], prev[1])
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
@@ -266,7 +289,6 @@ class Verify(astVisitor.ASTVisitor):
 			for m in curr.symmap.keys():
 				curr_prime.symmap[m] = curr.symmap[m]
 			
-			
 			computation = (curr_prime.name == curr.name)
 			# computation = s.os.tempC
 			computation = [s.currop, computation] + s.os.tempC
@@ -277,6 +299,34 @@ class Verify(astVisitor.ASTVisitor):
 			print("graph expansion done", time.time())
 			vallist = None
 			#s.os.flag = True
+
+			# for k in range(2, self.Nprev):
+			# 	print(k)
+			# 	# self.solver.reveal()
+			# 	self.Nprev = k
+			# 	s.os.Nprev = k
+			# 	s.Nprev = k
+			# 	if(op.op.op_name == "Affine"):
+			# 		# if(not "weight" in curr.symmap.keys()):
+			# 		# 	curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(nprev)]
+			# 		# if(not "bias" in curr.symmap.keys()):
+			# 		# 	curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
+			# 		exptemp = (0, 'Float')
+			# 		for i in range(self.Nprev):
+			# 			exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
+			# 		exptemp = ADD(exptemp, curr.symmap["bias"])
+
+			# 		exptemp = s.os.convertToZ3(exptemp)
+			# 		s.currop = (curr.name == exptemp)
+				
+			# computation = (curr_prime.name == curr.name)
+			# # computation = s.os.tempC
+			# computation = [computation,] + s.os.tempC
+			# # print(computation)
+			# s.os.tempC = []
+			# print(s.os.C)
+			# sdj
+				
 			if(isinstance(op.ret, AST.TransRetIfNode)):
 				vallist = self.visitTransRetIf(op.ret, s)
 			else:
@@ -290,6 +340,28 @@ class Verify(astVisitor.ASTVisitor):
 			# print()
 			# print(s.os.C)
 			leftC = computation + s.os.C 
+			# for j in range(len(s.os.C)):
+			# 	constraint = s.os.C[j]
+			# 	vars = self.solver.vars(constraint)
+			# 	flag = True 
+			# 	# print(vars)
+			# 	for v_ in vars:
+			# 		v = v_.sexpr()
+			# 		# print(v, 'prev' in v)
+			# 		# print(type(v.sexpr()))
+			# 		if 'Prev' in v:
+			# 			if int(v.split('_')[0][4:])>=k:
+			# 				flag = False 
+			# 				break 
+			# 	# jhdg
+			# 	if flag:
+			# 		leftC.append(constraint) 
+			# 	print(type(v[0]))
+			# jshc
+			# print(leftC)
+			# dkj
+			# leftC = computation + s.os.C
+			
 			# print(s.os.C)
 			
 			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
@@ -322,27 +394,19 @@ class Verify(astVisitor.ASTVisitor):
 				if isinstance(exptemp, z3.z3.ArithRef):
 					z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
 				#print("time", time.time())
-				if len(self.E) > 0:
-					conds_eps = [z3constraint]
-					for e in self.E:
-						conds_eps.append(e <= 1)
-						conds_eps.append(e >= -1)
-					z3constraint = Exists(self.E, And(conds_eps))
+				# if len(self.E) > 0:
+				# 	conds_eps = [z3constraint]
+				# 	for e in self.E:
+				# 		conds_eps.append(e <= 1)
+				# 		conds_eps.append(e >= -1)
+				# 	z3constraint = Exists(self.E, And(conds_eps))
+					
 				#solver.set(timeout=30)
 				# leftC += s.os.C 
 				# print(leftC)
 				newLeftC = leftC + s.os.tempC
-				# print(computation)
-				# print()
-				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
-				# for i in newLeftC:
-				# 	print(i)
-				# print()
-				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
-				# print(z3constraint)
-				# print("@@@@@@@@@@@@@@@@@@@@@@@@")
-				opt = Opt_solver()
-				solver = Opt_solver()
+
+				
 				print("gen",time.time())
 				lhs = And(newLeftC)
 				rhs = z3constraint
@@ -352,7 +416,7 @@ class Verify(astVisitor.ASTVisitor):
 				# print(rhs)
 				# print()
 				# fc
-				w = solver.solve(lhs, rhs)
+				w = self.solver.solve(lhs, rhs)
 				if(not w):
 					print("end",time.time())
 					#print(solver)

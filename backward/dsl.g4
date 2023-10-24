@@ -33,6 +33,9 @@ operator :
     | RELU     
     | MAXPOOL   
     | NEURON_MULT
+    | NEURON_ADD
+    | NEURON_MAX
+    | NEURON_MIN
     | NEURON_LIST_MULT
     | REVAFFINE   
     | REVRELU      
@@ -72,8 +75,8 @@ expr: FALSE					                        #false
     | EPSILON 					                    #epsilon
     | CURR					                        #curr
     | PREV					                        #prev
-    | PREV_0					                        #prev_0
-    | PREV_1					                        #prev_1
+    | PREV_0					                    #prev_0
+    | PREV_1					                    #prev_1
     | CURRLIST					                    #curr_list
     | LPAREN expr RPAREN      			            #parenExp
     | LSQR expr_list RSQR                           #exprarray
@@ -193,6 +196,9 @@ RELU: 'Relu' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
+NEURON_ADD: 'Neuron_add' ;
+NEURON_MAX: 'Neuron_max' ;
+NEURON_MIN: 'Neuron_min' ;
 NEURON_LIST_MULT: 'Neuron_list_mult' ;
 REVRELU: 'rev_Relu' ;
 REVMAXPOOL: 'rev_Maxpool' ;
