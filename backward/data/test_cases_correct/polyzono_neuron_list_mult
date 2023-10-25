@@ -1,0 +1,13 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, ZonoExp z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func find_min(Neuron List n1, Neuron List n2) = sum(min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]));
+func find_max(Neuron List n1, Neuron List n2) = sum(max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]));
+
+func priority(Neuron n) = n[layer];
+func find_z(Float l, Float u) = ((u+l)*0.5) + (0.5*eps*(u-l));
+
+transformer polyzono{
+    Neuron_list_mult -> (find_min(prev_0, prev_1), find_max(prev_0, prev_1), find_min(prev_0, prev_1), find_max(prev_0, prev_1), find_z(find_min(prev_0, prev_1), find_max(prev_0, prev_1)));
+}
+
+flow(forward, priority, true, polyzono);

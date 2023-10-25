@@ -1,0 +1,10 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+func create_c(Neuron n, PolyExp e) = n == e;
+
+transformer vegas{
+    rev_Affine -> (lp(minimize, curr, (curr[equations].map_list(create_c curr))), lp(maximize, curr, (curr[equations].map_list(create_c curr))), curr[L], curr[U]);
+}
+
+flow(backward, priority, true, vegas);
