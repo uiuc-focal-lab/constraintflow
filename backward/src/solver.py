@@ -32,6 +32,12 @@ class Opt_solver:
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
         ret = s.check()
+        # print(lhs)
+        # print()
+        # print(rhs)
+        # print()
+        # if(ret==sat):
+        #     print(s.model())
         return (ret==unsat)
     
     def common_vars(self, a, b):
@@ -91,6 +97,7 @@ class Opt_solver:
             return None 
         left, right = rhs.children()
         if left.decl() == if_:
+            # return [(left, right)]
             m1 = self.get_sub_lemmas(top_level(left.children()[1], right))
             m2 = self.get_sub_lemmas(top_level(left.children()[2], right))
             if not m1:
@@ -131,6 +138,12 @@ class Opt_solver:
             return m
     
     def solve_sub_lemma(self, lhs, m, top_level):
+        if(len(m) == 1):
+            res = self.check(lhs, top_level(*m[0]))
+            if not res:
+                return False 
+            return True
+
         for r in m:
             res = self.check(lhs, top_level(*r))
             if not res:
@@ -138,6 +151,7 @@ class Opt_solver:
         return True 
     
     def opt_solve(self, lhs, rhs):
+        
         m = self.get_sub_lemmas(rhs)
         if m:
             if self.solve_sub_lemma(lhs, m, rhs.decl()):
@@ -178,8 +192,9 @@ class Opt_solver:
         return False
     
     def solve_temp(self, lhs, rhs):
+        # afj
         m = self.get_sufficient_formulae(lhs, rhs)
-        # print(len(m))
+        #m = [rhs]
         if m:
             # i=0
             # for r in m:
@@ -244,7 +259,26 @@ class Opt_solver:
         # return self.check(lhs, rhs)
         if self.check_quantifier(lhs, rhs):
             return self.check(lhs, rhs)
+
         m_if = self.check_if(lhs, rhs)
+
+        # if len(m_if)<=1:
+        #     ret = self.solve_temp(*m_if[0])
+        #     if not ret:
+        #         # print(lhs)
+        #         # print()
+        #         # print(rhs)
+        #         return False
+        #     return True
+        # for i in m_if:
+        #     ret = self.solve(*i)
+        #     if not ret:
+        #         # print(lhs)
+        #         # print()
+        #         # print(rhs)
+        #         return False
+        # return True
+
         for i in m_if:
             ret = self.solve_temp(*i)
             if not ret:
