@@ -865,16 +865,23 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if isinstance(elist[0], list):
 			l = min([len(i) for i in elist])
 			ret = []
-			# listlens = set()
-			# for listi in elist:
-			# 	if(listi in self.arrayLens):
-			# 		listlens.add(append(self.arrayLens[listi]))
+			listlens = set()
+			for listi in elist:
+				if(str(listi) in self.arrayLens):
+					listlens.add(self.arrayLens[str(listi)])
 
 			for i in range(l):
 				e = [j[i] for j in elist]
 				ret.append(self.get_max(e, node.op))
 
-			self.arrayLens[str(ret)] = self.arrayLens[str(elist[0])]
+			if(len(listlens) == 1):
+				self.arrayLens[str(ret)] = listlens.pop()
+			if(len(listlens) > 1):
+				newlen = Int("newlen"+str(self.number.nextn()))
+				for i in range(len(listlens)):
+					self.tempC.append(newlen <= self.convertToZ3(listlens.pop()))
+				self.arrayLens[str(ret)] = newlen
+			#self.arrayLens[str(ret)] = self.arrayLens[str(elist[0])]
 			return ret 
 
 		ret =  self.get_max(elist, node.op)

@@ -7,7 +7,7 @@ func priority(Neuron n) = n[layer];
 func foo(Neuron n) = n[c];
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 
-transformer zono(curr, prev){
+transformer zono{
     Maxpool -> len(argmax(prev, f)) > 0 ? (max(prev[l]), max(prev[u]),  avg(argmax(prev, f)[z]), (curr <= max(prev[u])) and (curr >= max(prev[l]))) :
      (max(prev[l]), max(prev[u]), ((max(prev[u]) + max(prev[l])) / 2) + (((max(prev[u]) - max(prev[l])) / 2) * eps), (curr < max(prev[u])) and (curr > max(prev[l])));
 }
