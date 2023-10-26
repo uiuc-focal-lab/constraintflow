@@ -118,7 +118,7 @@ class ZonoExpValue():
 #The property visit functions return a symbolic constraint
 class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, M, V, C, E, old_eps, old_neurons, shape, Nprev, Nzono):
+	def __init__(self, store, F, M, V, C, E, old_eps, old_neurons, shape, Nprev, Nzono, arrayLens):
 		self.F = F #{function name -> function info}
 		self.M = M #{(op, value) -> value}
 		self.V = V #{symbolic var -> vertex}
@@ -137,6 +137,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.flag = False
 		self.tempC = []
 		self.hasE = False
+		self.arrayLens = arrayLens
 
 	def getVname(self):
 		self.vname = self.vname + 1
@@ -395,7 +396,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				left = self.convertToPoly(node.left)
 				right = self.convertToPoly(node.right)
-				return ADDPoly(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
+				return self.ADDPoly(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
 		else:
 			print(node)
 			assert False
@@ -611,7 +612,26 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def get_binop(self, left, right, f):
 		if isinstance(left, list):
 			l = min(len(left), len(right))
-			return [self.get_binop(left[i], right[i], f) for i in range(l)]
+			listout = [self.get_binop(left[i], right[i], f) for i in range(l)]
+			xl = None
+			xr = None
+			if(str(left) in self.arrayLens):
+				xl = self.arrayLens[str(left)]
+			if(str(right) in self.arrayLens):
+				xr = self.arrayLens[str(right)]
+			
+			if(xl == None and xr == None):
+				return listout
+			elif(xl == None):
+				self.arrayLens[str(listout)] = xr
+			elif(xr == None):
+				self.arrayLens[str(listout)] = xl
+			elif(isinstance(xl, tuple) and isinstance(xr, tuple) and (xl[0].sexpr() == xr[0].sexpr())):
+				self.arrayLens[str(listout)] = xl
+			else:
+				self.arrayLens[str(listout)] = IF(LEQ(xr,xl), xr, xl)
+			return listout
+
 		return f(left, right)
 		if isinstance(left, IF):
 			return IF(left.cond, self.get_binop(left.left, right, f), self.get_binop(left.right, right, f))
@@ -727,6 +747,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				pre_elist = self.visit(node.func)
 				fname = node.func.name
 
+			x = None
+			if(str(elist) in self.arrayLens):
+				x = self.arrayLens[str(elist)]
+
 			n = len(elist)
 			temp_array = []
 			for i in range(n):
@@ -745,7 +769,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 						else:
 							arglist = AST.ExprListNode(pre_elist + [elist[j], elist[i]])
 						fcall = AST.FuncCallNode(fname, arglist)
-						temp_array[i][j] = self.visitFuncCall(fcall, True)
+						if(x == None):
+							temp_array[i][j] = self.visitFuncCall(fcall, True)
+						elif(j > i):
+							temp_array[i][j] = OR(GT(j+1,x),self.visitFuncCall(fcall, True))
+						else:
+							temp_array[i][j] = self.visitFuncCall(fcall, True)
+
 			combination = list(itertools.product([0, 1], repeat=n))
 			out = []
 			for k in range(1, len(combination)):
@@ -754,6 +784,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				cond = (True, 'Bool')
 				for i in range(n):
 					if c[i]==1:
+						if(x != None):
+							cond = AND(cond, LEQ(i+1,x))
 						for j in range(n):
 							cond = self.get_binop(cond, temp_array[i][j], AND)
 						temp.append(elist[i])
@@ -768,6 +800,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if isinstance(elist, IF):
 			return IF(elist.cond, self.get_max(elist.left, op), self.get_max(elist.right, op))
 		else:
+			x = None
+			if(str(elist) in self.arrayLens):
+				x = self.arrayLens[str(elist)]
+
 			n = len(elist)
 			temp_array = []
 			for i in range(n):
@@ -786,9 +822,20 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 							temp_array[i][j] = self.get_binop(elist[i], elist[j], LEQ)
 			out = elist[0]
 			for i in range(1, n):
-				cond = (True, 'Bool')
+				if(x == None):
+					cond = (True, "Bool")
+				else:
+					cond = LEQ(i+1,x)
+
 				for j in range(n):
-					cond = self.get_binop(cond, temp_array[i][j], AND)
+					if(x == None):
+						cond = self.get_binop(cond, temp_array[i][j], AND)
+					else:
+						if(j > i):
+							cond = self.get_binop(cond, OR(temp_array[i][j],GT(j+1,x)), AND)
+						else:
+							cond = self.get_binop(cond, temp_array[i][j], AND)
+
 				out = IF(cond, elist[i], out)
 			return out
 
@@ -796,39 +843,41 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elist = self.visit(node.expr)
 		if not isinstance(elist, list):
 			raise Exception('This is not possible. Something must be wrong with type checking')
-		# print((elist))
-		# ksdjg
 		
-		if node.op == 'max':
-			if elist !=[] and isinstance(elist[0], list):
-				l = min([len(e) for e in elist])
-				ll = []
-				for i in range(l):
-					ll.append(MAX([j[i] for j in elist]))
-				# print((ll))
-				return ll 
-			return MAX(elist)
-		else:
-			if elist !=[] and isinstance(elist[0], list):
-				l = min([len(e) for e in elist])
-				ll = []
-				for i in range(l):
-					ll.append(MIN([j[i] for j in elist]))
-				return ll 
-			return MIN(elist)
+		# if node.op == 'max':
+		# 	if elist !=[] and isinstance(elist[0], list):
+		# 		l = min([len(e) for e in elist])
+		# 		ll = []
+		# 		for i in range(l):
+		# 			ll.append(MAX([j[i] for j in elist]))
+		# 		# print((ll))
+		# 		return ll 
+		# 	return MAX(elist)
+		# else:
+		# 	if elist !=[] and isinstance(elist[0], list):
+		# 		l = min([len(e) for e in elist])
+		# 		ll = []
+		# 		for i in range(l):
+		# 			ll.append(MIN([j[i] for j in elist]))
+		# 		return ll 
+		# 	return MIN(elist)
+
 		if isinstance(elist[0], list):
 			l = min([len(i) for i in elist])
 			ret = []
+			# listlens = set()
+			# for listi in elist:
+			# 	if(listi in self.arrayLens):
+			# 		listlens.add(append(self.arrayLens[listi]))
+
 			for i in range(l):
 				e = [j[i] for j in elist]
 				ret.append(self.get_max(e, node.op))
-			# print(self.convertToZ3(ret))
-			# dsh
-			# print(ret)
+
+			self.arrayLens[str(ret)] = self.arrayLens[str(elist[0])]
 			return ret 
+
 		ret =  self.get_max(elist, node.op)
-		# print(ret)
-		# dsj
 		return ret
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
@@ -844,11 +893,21 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return IF(elist.cond, self.get_listOp(elist.left, node), self.get_listOp(elist.right, node))
 		else:
 			sum = (0, "Float")
-			length = (len(elist), 'Int')
-			if len(elist)>0:
-				sum = elist[0]
-			for e in range(1, len(elist)):
-				sum = self.get_binop(sum, elist[e], ADD)
+			if(str(elist) in self.arrayLens):
+				x = self.arrayLens[str(elist)]
+				length = x
+				
+				if len(elist)>0:
+					sum = IF(LEQ(1,x),elist[0],(0,"Int"))
+				for e in range(1, len(elist)):
+					sum = self.get_binop(sum, IF(LEQ(e+1,x),elist[e],(0,"Int")) , ADD)
+			else:
+				length = (len(elist), 'Int')
+
+				if len(elist)>0:
+					sum = elist[0]
+				for e in range(1, len(elist)):
+					sum = self.get_binop(sum, elist[e], ADD)
 			# for e in elist:
 			# 	sum = self.get_binop(sum, e, ADD)
 			if node.op == 'sum':
@@ -872,14 +931,35 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif isinstance(right, IF):
 			return IF(right.cond, self.get_dot(left, right.left), self.get_dot(left, right.right))
 		else:
+			xl = None
+			xr = None
+			if(str(left) in self.arrayLens):
+				xl = self.arrayLens[str(left)]
+			if(str(right) in self.arrayLens):
+				xr = self.arrayLens[str(right)]
+
 			n = min(len(left), len(right))
 			# if n==0:
 			# 	sum = (0, 'Float')
 			# 	return sum 
 			sum = (0, 'Float')
 			# sum = self.get_binop(left[0], right[0], MULT)
-			for i in range(n):
-				sum = self.get_binop(sum, self.get_binop(left[i], right[i], MULT), ADD)
+			if(xl == None and xr == None):
+				for i in range(n):
+					sum = self.get_binop(sum, self.get_binop(left[i], right[i], MULT), ADD)
+			elif(xl == None):
+				for i in range(n):
+					sum = self.get_binop(sum, IF(LEQ(i+1,xr),self.get_binop(left[i], right[i], MULT),(0,"Int")), ADD)
+			elif(xr == None):
+				for i in range(n):
+					sum = self.get_binop(sum, IF(LEQ(i+1,xl),self.get_binop(left[i], right[i], MULT),(0,"Int")), ADD)
+			elif(isinstance(xl, tuple) and isinstance(xr, tuple) and (xl[0].sexpr() == xr[0].sexpr())):
+				for i in range(n):
+					sum = self.get_binop(sum, IF(LEQ(i+1,xr),self.get_binop(left[i], right[i], MULT),(0,"Int")), ADD)
+			else:
+				for i in range(n):
+					sum = self.get_binop(sum, IF(AND(LEQ(i+1,xr), LEQ(i+1,xl)),self.get_binop(left[i], right[i], MULT),(0,"Int")), ADD)
+
 			return sum
 	
 	def get_concat(self, left, right):
@@ -908,6 +988,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			out = []
 			for e in expr:
 				out.append(self.get_getElement(e, name))
+			if(str(expr) in self.arrayLens):
+				self.arrayLens[str(out)] = self.arrayLens[str(expr)]
 			return out 
 		else:
 			return self.V[expr[0]].symmap[name]
@@ -1195,6 +1277,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			out = []
 			for exp in e:
 				out += [self.get_get_mapList(exp, node)]
+			if(str(e) in self.arrayLens):
+				self.arrayLens[str(out)] = self.arrayLens[str(e)]
 			return out 
 
 	def visitMapList(self, node: AST.MapNode):

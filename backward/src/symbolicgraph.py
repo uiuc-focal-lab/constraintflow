@@ -58,7 +58,7 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 
 class SymbolicGraph(astVisitor.ASTVisitor):
 
-	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons, solver):
+	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons, solver, arrayLens, prevLength):
 		self.M = M
 		self.V = V 
 		self.C = C 
@@ -71,7 +71,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.shape = shape
 		self.Nprev = Nprev
 		self.Nzono = Nzono
-		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.shape, self.Nprev, self.Nzono)
+		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.shape, self.Nprev, self.Nzono, arrayLens)
 		self.number = number 
 		self.currop = None #Stores the relationship between curr and prev for traverse proof
 		g = getVars(self.constraint, self.shape)
@@ -80,6 +80,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.flag = False
 		#set_param("timeout", 30)
 		self.solver = solver 
+		self.prevLength = prevLength
 
 	def visitInt(self, node):
 		pass
@@ -129,6 +130,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = newvar_list
+						self.os.arrayLens[str(newvar_list)] = prevLength
 					elif(node.metadata.name == "layer"):
 						newvar = (Int('X' + str(self.number.nextn())), "Int")
 					elif(node.metadata.name == "serial"):
@@ -140,6 +142,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "PolyExp")
 						newvar = newvar_list
+						self.os.arrayLens[str(newvar_list)] = prevLength
 					self.V[n[0]].symmap[node.metadata.name] = newvar
 			else:
 				for ni in n:
@@ -351,7 +354,13 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				val_func = self.os.visit(node.func)
 
 			input = ADD(input, MULT(coeff, (neuron.name, "Neuron")))
-			output = self.os.get_binop(output, IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron'))), ADD)
+			output_temp = IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron')))
+			cond = EQQ(coeff, (0, "Float"))
+			output_temp = IF(cond, (0, 'Float'), output_temp)
+			output = self.os.get_binop(output, output_temp, ADD)
+
+			# input = ADD(input, MULT(coeff, (neuron.name, "Neuron")))
+			# output = self.os.get_binop(output, IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron'))), ADD)
 		# s = Solver()
 		old_val = self.os.store[node.expr.name]
 		self.os.store[node.expr.name] = input 
