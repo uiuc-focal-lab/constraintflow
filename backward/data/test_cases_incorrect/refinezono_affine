@@ -6,7 +6,7 @@ func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (co
 func priority(Neuron n) = n[layer];
 func foo(Neuron n) = n[c];
 
-transformer zono(curr, prev){
+transformer zono{
     Affine -> (lp(minimize, prev.dot(curr[weight]) + curr[bias], prev.map_list(foo)), lp(minimize, prev.dot(curr[weight]) + curr[bias], prev.map_list(foo)), prev[z].dot(curr[weight]) + (curr[bias]), (prev.dot(curr[weight]) + curr[bias]) == curr);
 }
 
