@@ -161,7 +161,10 @@ class Verify(astVisitor.ASTVisitor):
 					prev.append((p.name, "Neuron"))
 					self.V[p.name] = p
 					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
-				store["prev"] = prev 
+				if(is_list):
+					store["prev"] = prev
+				else:
+					store["prev"] = prev[0] 
 				if(len(prev) > 1):
 					arrayLens[str(prev)] = prevLength
 			if(op_ == 'Neuron_list_mult'):
