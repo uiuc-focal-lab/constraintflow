@@ -283,14 +283,19 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitLp(self, node):
 		self.visit(node.expr)
 		self.visit(node.constraints)
-		expr = self.os.visit(node.expr)
-		constraints = self.os.convertToZ3(self.os.visit(node.constraints))
-		out = Real('Lp_'+str(self.number.nextn()))
-		self.M[LP(node.op, expr, constraints)] = out
-		if(node.op == "maximize"):
-			self.C.append(Implies(self.os.convertToZ3(constraints), out >= self.os.convertToZ3(expr)))
-		else:
-			self.C.append(Implies(self.os.convertToZ3(constraints), out <= self.os.convertToZ3(expr)))
+		# expr = self.os.visit(node.expr)
+		# constraints = self.os.convertToZ3(self.os.visit(node.constraints))
+		# if(str(node.constraints) in self.os.arrayLens):
+		# 	x = self.os.arrayLens[str(node.constraints)]
+		# 	for i in range(len(constraints)):
+		# 		constraints[i] = Or(constraints[i],x < i+1)
+
+		# out = Real('Lp_'+str(self.number.nextn()))
+		# self.M[LP(node.op, expr, constraints)] = out
+		# if(node.op == "maximize"):
+		# 	self.C.append(Implies(self.os.convertToZ3(constraints), out >= self.os.convertToZ3(expr)))
+		# else:
+		# 	self.C.append(Implies(self.os.convertToZ3(constraints), out <= self.os.convertToZ3(expr)))
 
 	def visitArgmaxOp(self, node):
 		self.visit(node.expr)

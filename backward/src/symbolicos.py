@@ -1307,9 +1307,23 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return self.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)]
 
 	def visitLp(self, node):
-		e = self.visit(node.expr)
-		c = self.convertToZ3(self.visit(node.constraints))
-		return self.M[LP(node.op, e, c)]
+		expr = self.visit(node.expr)
+		constraints = self.convertToZ3(self.visit(node.constraints))
+
+		if(str(node.constraints) in self.arrayLens):
+			x = self.arrayLens[str(node.constraints)]
+			for i in range(len(constraints)):
+				constraints[i] = Or(constraints[i],x < i+1)
+
+		out = Real('Lp_'+str(self.number.nextn()))
+		#self.M[LP(node.op, expr, constraints)] = out
+		if(node.op == "maximize"):
+			self.C.append(Implies(self.convertToZ3(constraints), out >= self.convertToZ3(expr)))
+		else:
+			self.C.append(Implies(self.convertToZ3(constraints), out <= self.convertToZ3(expr)))
+
+		#return self.M[LP(node.op, e, c)]
+		return out
 
 	# def visitPropTermOp(self, prop):
 	# 	left = self.visit(prop.leftpt)
