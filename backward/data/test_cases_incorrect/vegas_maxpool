@@ -3,8 +3,8 @@ def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>
 func priority(Neuron n) = n[layer];
 func create_c(Neuron n, PolyExp e) = n == e;
 
-transformer ibp(curr, prev, curr_list){
-    rev_Affine -> (lp(minimize, curr, (curr[equations].map_list(create_c curr))), lp(minimize, curr, (curr[equations].map_list(create_c curr))), curr[L], curr[U]);
+transformer ibp{
+    rev_Maxpool -> (curr[l], min(curr[u], min(prev[u])), max(curr[l],min(prev[u])), curr[U]);
 }
 
 flow(backward, priority, true, ibp);

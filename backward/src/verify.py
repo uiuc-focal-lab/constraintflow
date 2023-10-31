@@ -118,7 +118,7 @@ class Verify(astVisitor.ASTVisitor):
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
 			op_ = op.op.op_name
-			if(op_ == "Relu" or op_=='rev_Relu'):
+			if(op_ == "Relu" or op_=='rev_Relu' or op_ == 'rev_Maxpool'):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
@@ -242,8 +242,10 @@ class Verify(astVisitor.ASTVisitor):
 					curr.symmap["equations"] = [(Real('equations_' + str(op_i) + "_" + str(self.number.nextn())), "PolyExp") for i in range(nprev)]
 					arrayLens[str(curr.symmap["equations"])] = prevLength
 				exptemp = (True, "Bool")
+				j = 0
 				for t in curr.symmap["equations"]:
-					exptemp = AND(exptemp, IF(LEQ(i+1,prevLength),EQQ(curr.name, t),(True, "Bool")))
+					exptemp = AND(exptemp, IF(LEQ(j+1,prevLength),EQQ(curr.name, t),(True, "Bool")))
+					j = j + 1
 
 				s.currop = s.os.convertToZ3(exptemp)
 			elif(op_ == "Relu"):

@@ -593,16 +593,32 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, MAX)):
 			e = [self.convertToZ3(i) for i in node.e]
 			y = Real('new_'+str(self.number.nextn()))
-			ge = [(y>=i) for i in e]
-			eq = [(y==i) for i in e]
+			if(str(node.e) in self.arrayLens):
+				lenexp = self.convertToZ3(self.arrayLens[str(node.e)])
+				ge = []
+				eq = []
+				for i in range(len(e)):
+					ge.append(Or(y>=e[i],(i+1)>lenexp))
+					eq.append(And(y==e[i],(i+1)<=lenexp))
+			else:
+				ge = [(y>=i) for i in e]
+				eq = [(y==i) for i in e]
 			self.tempC.append(Or(eq))
 			self.tempC.append(And(ge))
 			return y
 		elif(isinstance(node, MIN)):
 			e = [self.convertToZ3(i) for i in node.e]
 			y = Real('new_'+str(self.number.nextn()))
-			le = [(y<=i) for i in e]
-			eq = [(y==i) for i in e]
+			if(str(node.e) in self.arrayLens):
+				lenexp = self.convertToZ3(self.arrayLens[str(node.e)])
+				le = []
+				eq = []
+				for i in range(len(e)):
+					le.append(Or(y<=e[i],(i+1)>lenexp))
+					eq.append(And(y==e[i],(i+1)<=lenexp))
+			else:
+				le = [(y<=i) for i in e]
+				eq = [(y==i) for i in e]
 			self.tempC.append(Or(eq))
 			self.tempC.append(And(le))
 			return y
@@ -844,23 +860,49 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if not isinstance(elist, list):
 			raise Exception('This is not possible. Something must be wrong with type checking')
 		
-		# if node.op == 'max':
-		# 	if elist !=[] and isinstance(elist[0], list):
-		# 		l = min([len(e) for e in elist])
-		# 		ll = []
-		# 		for i in range(l):
-		# 			ll.append(MAX([j[i] for j in elist]))
-		# 		# print((ll))
-		# 		return ll 
-		# 	return MAX(elist)
-		# else:
-		# 	if elist !=[] and isinstance(elist[0], list):
-		# 		l = min([len(e) for e in elist])
-		# 		ll = []
-		# 		for i in range(l):
-		# 			ll.append(MIN([j[i] for j in elist]))
-		# 		return ll 
-		# 	return MIN(elist)
+		#####Other way of computing min/max
+		if(isinstance(elist[0], list)):
+			listlens = set()
+			for listi in elist:
+				if(str(listi) in self.arrayLens):
+					listlens.add(self.arrayLens[str(listi)])
+			fulllenexp = None
+			if(len(listlens) == 1):
+				fulllenexp = listlens.pop()
+			if(len(listlens) > 1):
+				newlen = Int("newlen"+str(self.number.nextn()))
+				for i in range(len(listlens)):
+					self.tempC.append(newlen <= self.convertToZ3(listlens.pop()))
+				fulllenexp = newlen
+
+			eachlenexp = None
+			if(str(elist) in self.arrayLens):
+				eachlenexp = self.arrayLens[str(elist)]
+
+		if node.op == 'max':
+			if elist !=[] and isinstance(elist[0], list):
+				l = min([len(e) for e in elist])
+				ll = []
+				for i in range(l):
+					if(eachlenexp):
+						self.arrayLens[str([j[i] for j in elist])] = eachlenexp
+					ll.append(MAX([j[i] for j in elist]))
+				# print((ll))
+				self.arrayLens[str(ll)] = fulllenexp
+				return ll 
+			return MAX(elist)
+		else:
+			if elist !=[] and isinstance(elist[0], list):
+				l = min([len(e) for e in elist])
+				ll = []
+				for i in range(l):
+					if(eachlenexp):
+						self.arrayLens[str([j[i] for j in elist])] = eachlenexp
+					ll.append(MIN([j[i] for j in elist]))
+				self.arrayLens[str(ll)] = fulllenexp
+				return ll 
+			return MIN(elist)
+		#####
 
 		if isinstance(elist[0], list):
 			l = min([len(i) for i in elist])
@@ -1308,12 +1350,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 
 	def visitLp(self, node):
 		expr = self.visit(node.expr)
-		constraints = self.convertToZ3(self.visit(node.constraints))
+		constraints = self.visit(node.constraints)
 
-		if(str(node.constraints) in self.arrayLens):
-			x = self.arrayLens[str(node.constraints)]
+		if(str(constraints) in self.arrayLens):
+			x = self.arrayLens[str(constraints)]
 			for i in range(len(constraints)):
-				constraints[i] = Or(constraints[i],x < i+1)
+				constraints[i] = OR(constraints[i],LT(x, i+1))
 
 		out = Real('Lp_'+str(self.number.nextn()))
 		#self.M[LP(node.op, expr, constraints)] = out

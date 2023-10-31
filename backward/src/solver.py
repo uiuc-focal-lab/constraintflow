@@ -32,11 +32,7 @@ class Opt_solver:
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
         ret = s.check()
-        # print(lhs)
-        # print()
-        # print(rhs)
-        # print()
-        # if(ret==sat):
+        # if(ret == sat):
         #     print(s.model())
         return (ret==unsat)
     
@@ -129,7 +125,7 @@ class Opt_solver:
                 m = []
                 break
         if flag:
-            return m 
+            return m
         else:
             left_ = self.get_summands(left)
             right_ = self.get_summands(right)
@@ -278,7 +274,6 @@ class Opt_solver:
         #         # print(rhs)
         #         return False
         # return True
-
         for i in m_if:
             ret = self.solve_temp(*i)
             if not ret:
