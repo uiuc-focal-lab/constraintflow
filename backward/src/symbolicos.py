@@ -861,48 +861,48 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			raise Exception('This is not possible. Something must be wrong with type checking')
 		
 		#####Other way of computing min/max
-		if(isinstance(elist[0], list)):
-			listlens = set()
-			for listi in elist:
-				if(str(listi) in self.arrayLens):
-					listlens.add(self.arrayLens[str(listi)])
-			fulllenexp = None
-			if(len(listlens) == 1):
-				fulllenexp = listlens.pop()
-			if(len(listlens) > 1):
-				newlen = Int("newlen"+str(self.number.nextn()))
-				for i in range(len(listlens)):
-					self.tempC.append(newlen <= self.convertToZ3(listlens.pop()))
-				fulllenexp = newlen
+		# if(isinstance(elist[0], list)):
+		# 	listlens = set()
+		# 	for listi in elist:
+		# 		if(str(listi) in self.arrayLens):
+		# 			listlens.add(self.arrayLens[str(listi)])
+		# 	fulllenexp = None
+		# 	if(len(listlens) == 1):
+		# 		fulllenexp = listlens.pop()
+		# 	if(len(listlens) > 1):
+		# 		newlen = Int("newlen"+str(self.number.nextn()))
+		# 		for i in range(len(listlens)):
+		# 			self.tempC.append(newlen <= self.convertToZ3(listlens.pop()))
+		# 		fulllenexp = newlen
 
-			eachlenexp = None
-			if(str(elist) in self.arrayLens):
-				eachlenexp = self.arrayLens[str(elist)]
+		# 	eachlenexp = None
+		# 	if(str(elist) in self.arrayLens):
+		# 		eachlenexp = self.arrayLens[str(elist)]
 
-		if node.op == 'max':
-			if elist !=[] and isinstance(elist[0], list):
-				l = min([len(e) for e in elist])
-				ll = []
-				for i in range(l):
-					if(eachlenexp):
-						self.arrayLens[str([j[i] for j in elist])] = eachlenexp
-					ll.append(MAX([j[i] for j in elist]))
-				# print((ll))
-				self.arrayLens[str(ll)] = fulllenexp
-				return ll 
-			return MAX(elist)
-		else:
-			if elist !=[] and isinstance(elist[0], list):
-				l = min([len(e) for e in elist])
-				ll = []
-				for i in range(l):
-					if(eachlenexp):
-						self.arrayLens[str([j[i] for j in elist])] = eachlenexp
-					ll.append(MIN([j[i] for j in elist]))
-				self.arrayLens[str(ll)] = fulllenexp
-				return ll 
-			return MIN(elist)
-		#####
+		# if node.op == 'max':
+		# 	if elist !=[] and isinstance(elist[0], list):
+		# 		l = min([len(e) for e in elist])
+		# 		ll = []
+		# 		for i in range(l):
+		# 			if(eachlenexp):
+		# 				self.arrayLens[str([j[i] for j in elist])] = eachlenexp
+		# 			ll.append(MAX([j[i] for j in elist]))
+		# 		# print((ll))
+		# 		self.arrayLens[str(ll)] = fulllenexp
+		# 		return ll 
+		# 	return MAX(elist)
+		# else:
+		# 	if elist !=[] and isinstance(elist[0], list):
+		# 		l = min([len(e) for e in elist])
+		# 		ll = []
+		# 		for i in range(l):
+		# 			if(eachlenexp):
+		# 				self.arrayLens[str([j[i] for j in elist])] = eachlenexp
+		# 			ll.append(MIN([j[i] for j in elist]))
+		# 		self.arrayLens[str(ll)] = fulllenexp
+		# 		return ll 
+		# 	return MIN(elist)
+		
 
 		if isinstance(elist[0], list):
 			l = min([len(i) for i in elist])

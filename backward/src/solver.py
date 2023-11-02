@@ -139,8 +139,31 @@ class Opt_solver:
             if not res:
                 return False 
             return True
-
+        i = 0
         for r in m:
+            print(i)
+            i= i+1
+            # print(r)
+            l_, r_ = r
+            l_top_level = l_.decl()
+            r_top_level = r_.decl()
+            if l_top_level == if_ and r_top_level == if_:
+                # print('here')
+                if l_.children()[0] == r_.children()[0]:
+                    # print('here')
+                    # t1 = self.check(And(lhs, l_.children()[0]), top_level(l_.children()[1], r_.children()[1]))
+                    ll = lhs 
+                    rr = top_level(l_.children()[1], r_.children()[1])
+                    # print(ll)
+                    # print(rr)
+                    t1 = self.check(ll, rr)
+                    # t1 = self.check(lhs, top_level(l_.children()[1], r_.children()[1]))
+                    # print('here')
+                    # t2 = self.check(And(lhs, Not(l_.children()[0])), top_level(l_.children()[2], r_.children()[2]))
+                    t2 = self.check(lhs, top_level(l_.children()[2], r_.children()[2]))
+                    # print('here')
+                    if  (t1 and t2):
+                        continue 
             res = self.check(lhs, top_level(*r))
             if not res:
                 return False 
@@ -253,6 +276,7 @@ class Opt_solver:
         # print(rhs)
         # print()
         # return self.check(lhs, rhs)
+        
         if self.check_quantifier(lhs, rhs):
             return self.check(lhs, rhs)
 
