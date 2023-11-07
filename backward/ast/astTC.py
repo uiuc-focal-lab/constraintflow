@@ -600,6 +600,9 @@ class ASTTC(astVisitor.ASTVisitor):
 		elif node.op.op_name == 'Neuron_mult' or node.op.op_name == 'Neuron_add' or node.op.op_name == 'Neuron_max' or node.op.op_name == 'Neuron_min':
 			self.Gamma['prev_0'] = 'Neuron'
 			self.Gamma['prev_1'] = 'Neuron'
+		elif node.op.op_name == 'rev_Neuron_mult' or node.op.op_name == 'rev_Neuron_add' or node.op.op_name == 'rev_Neuron_max' or node.op.op_name == 'rev_Neuron_min':
+			self.Gamma['prev_0'] = 'Neuron'
+			self.Gamma['prev_1'] = 'Neuron'
 		elif node.op.op_name == 'Neuron_list_mult':
 			self.Gamma['prev_0'] = ArrayType('Neuron')
 			self.Gamma['prev_1'] = ArrayType('Neuron')

@@ -1,6 +1,6 @@
-# Generated from dsl.g4 by ANTLR 4.7.2
+# Generated from dsl.g4 by ANTLR 4.13.1
 from antlr4 import *
-if __name__ is not None and "." in __name__:
+if "." in __name__:
     from .dslParser import dslParser
 else:
     from dslParser import dslParser

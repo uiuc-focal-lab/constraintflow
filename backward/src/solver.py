@@ -141,7 +141,7 @@ class Opt_solver:
             return True
         i = 0
         for r in m:
-            print(i)
+            #print(i)
             i= i+1
             # print(r)
             l_, r_ = r

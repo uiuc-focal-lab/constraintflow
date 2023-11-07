@@ -128,28 +128,29 @@ class Opt_graph():
     
     def get_sufficient_queries(self, query):
         top_level = query.decl()
-        lhs, rhs = query.children()
-        # if lhs in self.form_num.keys() and rhs in self.form_num.keys():
+        if(len(query.children()) == 2):
+            lhs, rhs = query.children()
+            # if lhs in self.form_num.keys() and rhs in self.form_num.keys():
 
-        if lhs in self.form_num.keys():
-            num_lhs = self.form_num[lhs]
-            if (top_level == lt) or (top_level == le):
-                self.up.clear()
-                self.travel_up(num_lhs)
-                return self.get_queries_right(top_level, self.up, rhs)
-            if (top_level == gt) or (top_level == ge):
-                self.down.clear()
-                self.travel_down(num_lhs)
-                return self.get_queries_right(top_level, self.down, rhs)
-        
-        elif rhs in self.form_num.keys():
-            num_rhs = self.form_num[rhs]
-            if (top_level == lt) or (top_level == le):
-                self.down.clear()
-                self.travel_down(num_rhs)
-                return self.get_queries_left(top_level, self.down, lhs)
-            if (top_level == gt) or (top_level == ge):
-                self.up.clear()
-                self.travel_up(num_rhs)
-                return self.get_queries_left(top_level, self.up, lhs)
+            if lhs in self.form_num.keys():
+                num_lhs = self.form_num[lhs]
+                if (top_level == lt) or (top_level == le):
+                    self.up.clear()
+                    self.travel_up(num_lhs)
+                    return self.get_queries_right(top_level, self.up, rhs)
+                if (top_level == gt) or (top_level == ge):
+                    self.down.clear()
+                    self.travel_down(num_lhs)
+                    return self.get_queries_right(top_level, self.down, rhs)
+            
+            elif rhs in self.form_num.keys():
+                num_rhs = self.form_num[rhs]
+                if (top_level == lt) or (top_level == le):
+                    self.down.clear()
+                    self.travel_down(num_rhs)
+                    return self.get_queries_left(top_level, self.down, lhs)
+                if (top_level == gt) or (top_level == ge):
+                    self.up.clear()
+                    self.travel_up(num_rhs)
+                    return self.get_queries_left(top_level, self.up, lhs)
         return []

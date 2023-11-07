@@ -122,6 +122,8 @@ class Verify(astVisitor.ASTVisitor):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
+			elif op_ == 'rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min':
+				nprev = 2
 			else:
 				nprev = self.Nprev
 			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.solver, self.arrayLens, prevLength)
@@ -141,7 +143,8 @@ class Verify(astVisitor.ASTVisitor):
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'rev_Maxpool':
 				required_neurons = ['curr', 'prev', 'curr_list']
-			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
+			elif (op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min' or 
+				'rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min'):
 				required_neurons = ['curr', 'prev_0', 'prev_1']
 				is_list = False 
 			elif op_ == 'Neuron_list_mult':
@@ -280,6 +283,22 @@ class Verify(astVisitor.ASTVisitor):
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "rev_Neuron_mult"): #prev_0 is the output neuron and prev_1 is the other input neuron
+				exptemp = EQQ(prev[0], MULT(curr.name, prev[1]))
+				s.currop = s.os.convertToZ3(exptemp)
+
+			elif(op_ == "rev_Neuron_add"):
+				exptemp = EQQ(prev[0], ADD(curr.name, prev[1]))
+				s.currop = s.os.convertToZ3(exptemp)
+
+			elif(op_ == "rev_Neuron_max"):
+				exptemp = EQQ(prev[0],IF(GEQ(curr.name, prev[1]), curr.name, prev[1]))
+				s.currop = s.os.convertToZ3(exptemp)
+
+			elif(op_ == "rev_Neuron_min"):
+				exptemp = EQQ(prev[0],IF(LEQ(curr.name, prev[1]), curr.name, prev[1]))
+				s.currop = s.os.convertToZ3(exptemp)
 
 			elif(op_ == "rev_Relu"):
 
@@ -431,6 +450,8 @@ class Verify(astVisitor.ASTVisitor):
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
 				# print('here')
 				z3constraint = s.os.convertToZ3(c)
+				if(isinstance(z3constraint, bool)):
+					z3constraint = BoolSort().cast(z3constraint)
 				# print(z3constraint)
 				if isinstance(exptemp, z3.z3.ArithRef) and not('rev' in op_):
 					z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
