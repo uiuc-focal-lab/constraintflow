@@ -39,7 +39,11 @@ operator :
     | NEURON_LIST_MULT
     | REVAFFINE   
     | REVRELU      
-    | REVMAXPOOL      
+    | REVMAXPOOL
+    | REVNEURON_MULT
+    | REVNEURON_ADD
+    | REVNEURON_MAX
+    | REVNEURON_MIN     
 ;
 
 trans_ret :
@@ -202,6 +206,10 @@ NEURON_MIN: 'Neuron_min' ;
 NEURON_LIST_MULT: 'Neuron_list_mult' ;
 REVRELU: 'rev_Relu' ;
 REVMAXPOOL: 'rev_Maxpool' ;
+REVNEURON_MULT: 'rev_Neuron_mult' ;
+REVNEURON_ADD: 'rev_Neuron_add' ;
+REVNEURON_MAX: 'rev_Neuron_max' ;
+REVNEURON_MIN: 'rev_Neuron_min' ;
 SIGMOID: 'Sigmoid' ;
 TANH: 'Tanh' ;
 SHAPE: 'def Shape as' ;
