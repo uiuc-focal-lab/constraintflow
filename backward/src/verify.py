@@ -136,7 +136,7 @@ class Verify(astVisitor.ASTVisitor):
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'rev_Affine':
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'Relu':
+			elif op_ == 'Relu' or op_ == 'rev_Relu':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool':
