@@ -24,7 +24,7 @@ class Certifier:
                     curr = (layer_num, index)
                     prev = (layer_num-1, index)
                     abs_shape = self.transformer.relu(self.abs_elem, self.neighbours, prev, curr)
-                    self.abs_elem.update(curr, abs_shape)
+                    self.abs_elem.update_elem(curr, abs_shape)
                 # for neuron_num in range(self.model.widths[layer_num]):
                 #     curr = (layer_num, neuron_num)
                 #     prev = (layer_num-1, neuron_num)
@@ -46,4 +46,4 @@ class Certifier:
                     w = W[neuron_num]
                     b = B[neuron_num]
                     abs_shape = self.transformer.fc(self.abs_elem, self.neighbours, prev, curr, w, b)
-                    self.abs_elem.update(curr, abs_shape)
+                    self.abs_elem.update_elem(curr, abs_shape)

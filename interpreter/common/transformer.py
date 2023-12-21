@@ -5,23 +5,24 @@ import torch
 
 
 def simplify_lower(n, c, abs_elem):
-    # print(n)
-    # print(abs_elem.d['u'][n[0]].shape)
-    res = c * abs_elem.d['l'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['u'][n[0]][n[1]]
+    res = c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
+    # res = c * abs_elem.d['l'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['u'][n[0]][n[1]]
     return PolyExp(abs_elem.shapes, const = res)
     
 def simplify_upper(n, c, abs_elem):
-    res = c * abs_elem.d['u'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['l'][n[0]][n[1]]
+    res = c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
+    # res = c * abs_elem.d['u'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['l'][n[0]][n[1]]
     return PolyExp(abs_elem.shapes, const = res) 
 
 def replace_lower(n, c, abs_elem):
-    res = abs_elem.d['L'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['U'][n[0]][n[1]].copy()
-    # print(res.)
+    res = abs_elem.get_elem('L', n) if c>=0 else abs_elem.get_elem('U', n)
+    # res = abs_elem.d['L'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['U'][n[0]][n[1]].copy()
     res.mult(c)
     return res 
 
 def replace_upper(n, c, abs_elem):
-    res = abs_elem.d['U'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['L'][n[0]][n[1]].copy()
+    res = abs_elem.get_elem('U', n) if c>=0 else abs_elem.get_elem('L', n)
+    # res = abs_elem.d['U'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['L'][n[0]][n[1]].copy()
     res.mult(c)
     return res 
 
@@ -112,10 +113,14 @@ class CflowInterval(Transformer):
     
 class CflowDeepPoly(Transformer): 
     def relu(self, abs_elem, neighbours, prev, curr):
-        l = abs_elem.d['l'][prev[0]][prev[1]]
-        u = abs_elem.d['u'][prev[0]][prev[1]]
-        L = abs_elem.d['L'][prev[0]][prev[1]]
-        U = abs_elem.d['U'][prev[0]][prev[1]]
+        # l = abs_elem.d['l'][prev[0]][prev[1]]
+        # u = abs_elem.d['u'][prev[0]][prev[1]]
+        # L = abs_elem.d['L'][prev[0]][prev[1]]
+        # U = abs_elem.d['U'][prev[0]][prev[1]]
+        l = abs_elem.get_elem('l', prev)
+        u = abs_elem.get_elem('u', prev)
+        L = abs_elem.get_elem('L', prev)
+        U = abs_elem.get_elem('U', prev)
         l_new = None 
         u_new = None
         L_new = None
@@ -123,20 +128,20 @@ class CflowDeepPoly(Transformer):
         if l>=0:
             l_new = l 
             u_new = u
-            L_new = PolyExp(L.widths)
-            U_new = PolyExp(U.widths)
+            L_new = PolyExp(L.shapes)
+            U_new = PolyExp(U.shapes)
             L_new.mat[prev[0]][prev[1]] = 1.0 
             U_new.mat[prev[0]][prev[1]] = 1.0 
         elif u<=0:
             l_new = 0.0
             u_new = 0.0
-            L_new = PolyExp(L.widths)
-            U_new = PolyExp(U.widths)
+            L_new = PolyExp(L.shapes)
+            U_new = PolyExp(U.shapes)
         else:
             l_new = 0.0 
             u_new = u 
-            L_new = PolyExp(L.widths) 
-            U_new = PolyExp(U.widths)
+            L_new = PolyExp(L.shapes) 
+            U_new = PolyExp(U.shapes)
             slope = u / (u-l)
             intercept = -u*l / (u-l)
             U_new.const = intercept
