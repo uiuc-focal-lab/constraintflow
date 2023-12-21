@@ -1,2 +1,0 @@
-def Shape as (float l, float u, polyexp L, polyexp U);
-forward relu(Relu, neuron n, nlist p) = (p[l], p[u]);
