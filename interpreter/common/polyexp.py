@@ -60,7 +60,8 @@ class PolyExp:
         res = self.copy()
         vertices = set()
         for i in range(len(self.mat)):
-            for j in range(len(self.mat[i])):
+            indices = itertools.product(*[range(dim) for dim in self.shapes[i]])
+            for j in indices:
                 if self.mat[i][j]!=0:
                     if not stop((i, j), self.mat[i][j], abs_elem):
                         vertices.add((i, j))

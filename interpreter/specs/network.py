@@ -9,7 +9,6 @@ class Network(list):
         self.input_shape = input_shape
         self.torch_net = torch_net
         self.net_format = net_format
-        # self.widths = widths
 
 
 class Layer:

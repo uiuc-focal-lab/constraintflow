@@ -19,7 +19,7 @@ class Abs_elem:
             while len(idx) > 1:
                 x = x[idx[0]]
                 idx = idx[1:]
-            return x[idx[0]]
+            return x[idx[0]].copy()
         
     def update_elem(self, neuron, vals):
         for i, key in enumerate(self.d.keys()):
@@ -33,7 +33,7 @@ class Abs_elem:
                 while len(idx) > 1:
                     x = x[idx[0]]
                     idx = idx[1:]
-                x[idx] = vals[i].copy()
+                x[idx[0]] = vals[i].copy()
 
     def update(self, neuron, val):
         for i, key in enumerate(self.d.keys()):

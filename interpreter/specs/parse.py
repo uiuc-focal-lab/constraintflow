@@ -30,12 +30,10 @@ def parse_onnx_layers(net):
     num_layers = len(net.graph.node)
     model_name_to_val_dict = {init_vals.name: torch.tensor(numpy_helper.to_array(init_vals)) for init_vals in
                               net.graph.initializer}
-    print(layers.input_shape)
     for cur_layer in range(num_layers):
         node = net.graph.node[cur_layer]
         operation = node.op_type
         nd_inps = node.input
-        print(operation)
         if operation == 'MatMul':
             # Assuming that the add node is followed by the MatMul node
             add_node = net.graph.node[cur_layer + 1]
@@ -60,11 +58,7 @@ def parse_onnx_layers(net):
             [k_1, k_2, k_3, k_4] = layer.weight.shape 
             (p_1, p_2) = layer.padding
             (s_1, s_2) = layer.stride 
-
-            # print(i_1, i_2, i_3, i_4)
-            # print(k_1, k_2, k_3, k_4)
-            # print(p_1, p_2)
-            # print(s_1, s_2)
+            
             o_1 = i_1 
             o_2 = k_1 
             o_3 = math.floor((i_3 + 2*p_1 - k_3) / s_1) + 1
@@ -78,9 +72,6 @@ def parse_onnx_layers(net):
             layer = Layer(weight=model_name_to_val_dict[nd_inps[1]], bias=(model_name_to_val_dict[nd_inps[2]]),
                           type=LayerType.Linear)
             layers.append(layer)
-            # if len(layers.widths)==0:
-            #     layers.widths.append(layer.weight.shape[1])
-            # layers.widths.append(layer.weight.shape[0])
             if len(layers)==1:
                 [i_1, i_2, i_3, i_4] = layers.input_shape
             else:
@@ -96,8 +87,6 @@ def parse_onnx_layers(net):
         elif operation == 'Relu':
             layers.append(Layer(type=LayerType.ReLU))
             layers[-1].shape = layers[-2].shape 
-            # layers.widths.append(layers.widths[-1])
-        # print(layers[-1].shape)
 
     return layers
 
