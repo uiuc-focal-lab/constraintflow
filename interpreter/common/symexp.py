@@ -1,18 +1,15 @@
-from common.abs_elem import Abs_elem
-import torch 
-import itertools
 import copy
 
 class SymExp:
-    def __init__(self, count = 0, mat = [], const = 0.0):
-        if count==0 and len(mat)>0 :
-            raise ValueError('Incorrect symbolic expression')
-        self.count = count 
+    count = 0
+    def __init__(self, mat = [], const = 0.0):
+        if SymExp.count < len(mat) :
+            SymExp.count = len(mat)
         self.mat = mat 
         self.const = const 
 
     def copy(self):
-        res = SymExp(self.count, [], const=self.const)
+        res = SymExp(const=self.const)
         res.mat = copy.deepcopy(self.mat)
         return res 
 
@@ -20,33 +17,35 @@ class SymExp:
         return self.const
     
     def new_symbol(self):
-        self.count += 1
-        self.mat.append(0)
+        SymExp.count += 1
 
     def populate(self, const=0, n=-1, coeff=0):
+        if n==-1:
+            n = SymExp.count-1
+        if len(self.mat < SymExp.count):
+            tmp = [0]*(SymExp.count - len(self.mat))
+            self.mat += tmp 
         self.const = const 
         self.mat[n] = coeff
     
     def add(self, p):
         if isinstance(p, SymExp):
             self.const = self.const + p.const
-            if self.count < p.count:
-                tmp = [0]*(p.const - self.const)
+            if len(self.mat) < len(p.mat):
+                tmp = [0]*(len(p.mat) - len(self.mat))
                 self.mat += tmp 
-                self.count = p.count
-            for i in range(self.count):
+            for i in range(len(self.mat)):
                 self.mat[i] = self.mat[i] + p.mat[i]
         else:
-            self.count += p
+            self.const += p
 
     def minus(self, p):
         if isinstance(p, SymExp):
             self.const = self.const - p.const 
-            if self.count < p.count:
-                tmp = [0]*(p.const - self.const)
+            if len(self.mat) < len(p.mat):
+                tmp = [0]*(len(p.mat) - len(self.mat))
                 self.mat += tmp 
-                self.count = p.count
-            for i in range(self.count):
+            for i in range(len(self.mat)):
                 self.mat[i] = self.mat[i] - p.mat[i]
         else:
             self.const = self.const - p
@@ -56,9 +55,9 @@ class SymExp:
         for i in range(len(self.mat)):
             self.mat[i] = self.mat[i]*c
     
-    def map(self, abs_elem, f):
-        res = SymExp(self.count, const = self.const)
-        for i in range(len(self.count)):
+    def map(self, f):
+        res = SymExp(const = self.const)
+        for i in range(len(self.mat)):
             if self.mat[i] != 0:
                 tmp = f(i, self.mat[i])
                 res.add(tmp)

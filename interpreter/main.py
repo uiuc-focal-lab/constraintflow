@@ -21,9 +21,6 @@ def get_all_indices(nested_list, current_index=None):
     return indices
 
 net = get_net(net_name='nets/mnist_relu_3_50.onnx')
-print("input layer", net.input_shape)
-for layer in net:
-    print(layer.type, layer.shape)
 
 
 neighbours = dict()
