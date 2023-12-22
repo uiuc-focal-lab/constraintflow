@@ -5,7 +5,6 @@ import copy
 
 class PolyExp:
     def __init__(self, shapes, mat = None, const = 0.0):
-        # self.abs_elem = abs_elem
         self.shapes = shapes 
         self.mat = mat 
         if self.mat == None:
@@ -31,14 +30,20 @@ class PolyExp:
             self.mat[prev[i][0]][prev[i][1]] = w[i].item()
 
     def add(self, p):
-        self.const = self.const + p.const
-        for i in range(len(self.mat)):
-            self.mat[i] = self.mat[i] + p.mat[i]
+        if isinstance(p, PolyExp):
+            self.const = self.const + p.const
+            for i in range(len(self.mat)):
+                self.mat[i] = self.mat[i] + p.mat[i]
+        else:
+            self.const += p.const 
 
     def minus(self, p):
-        self.const = self.const - p.const 
-        for i in range(len(self.mat)):
-            self.mat[i] = self.mat[i] - p.mat[i]
+        if isinstance(p, PolyExp):
+            self.const = self.const - p.const 
+            for i in range(len(self.mat)):
+                self.mat[i] = self.mat[i] - p.mat[i]
+        else:
+            self.const = self.const - p.const
 
     def mult(self, c):
         self.const = self.const*c 
@@ -56,7 +61,6 @@ class PolyExp:
         return res  
     
     def traverse(self, abs_elem, neighbours, stop, priority, f):
-        # print('here')
         res = self.copy()
         vertices = set()
         for i in range(len(self.mat)):
@@ -74,7 +78,6 @@ class PolyExp:
             min = priority_vertices[0][0]
             temp = PolyExp(res.shapes)
             n = []
-            # print(priority_vertices)
             for i in priority_vertices:
                 if i[0] != min:
                     break 
@@ -82,16 +85,8 @@ class PolyExp:
                 res.mat[i[1][0]][i[1][1]] = 0
                 vertices.remove(i[1])
                 n += neighbours[i[1]]
-            # if debug_ctr==2:
-            #     print(temp.mat)
-            #     print(res.mat)
             temp = temp.map(abs_elem, f)
-            # if debug_ctr==2:
-            #     print('debug_ctr !!!!!!!!!!!!!!!!!!', debug_ctr)
-            #     print(temp.mat)
             res.add(temp)
-            # print(res.mat)
-            # print(res.const)
             for i in n:
                 if res.mat[i[0]][i[1]] == 0 or stop(i, res.mat[i[0]][i[1]], abs_elem):
                     n.remove(i)

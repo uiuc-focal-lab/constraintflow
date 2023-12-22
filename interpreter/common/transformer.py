@@ -5,24 +5,18 @@ import torch
 
 
 def simplify_lower(n, c, abs_elem):
-    res = c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
-    # res = c * abs_elem.d['l'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['u'][n[0]][n[1]]
-    return PolyExp(abs_elem.shapes, const = res)
+    return c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
     
 def simplify_upper(n, c, abs_elem):
-    res = c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
-    # res = c * abs_elem.d['u'][n[0]][n[1]] if c >= 0 else c * abs_elem.d['l'][n[0]][n[1]]
-    return PolyExp(abs_elem.shapes, const = res) 
+    return c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
 
 def replace_lower(n, c, abs_elem):
     res = abs_elem.get_elem('L', n) if c>=0 else abs_elem.get_elem('U', n)
-    # res = abs_elem.d['L'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['U'][n[0]][n[1]].copy()
     res.mult(c)
     return res 
 
 def replace_upper(n, c, abs_elem):
     res = abs_elem.get_elem('U', n) if c>=0 else abs_elem.get_elem('L', n)
-    # res = abs_elem.d['U'][n[0]][n[1]].copy() if c >= 0 else abs_elem.d['L'][n[0]][n[1]].copy()
     res.mult(c)
     return res 
 
