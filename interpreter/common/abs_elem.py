@@ -9,11 +9,9 @@ class Abs_elem:
         self.shapes = shapes
 
     def get_elem(self, key, neuron):
-        if self.types[key] == 'int':
+        if self.types[key] == 'int' or self.types[key] == 'float':
             return self.d[key][neuron[0]][neuron[1]]
-        elif self.types[key] == 'float':
-            return self.d[key][neuron[0]][neuron[1]]
-        elif self.types[key] == 'PolyExp':
+        elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
             x = self.d[key][neuron[0]]
             idx = neuron[1]
             while len(idx) > 1:
@@ -23,11 +21,13 @@ class Abs_elem:
         
     def update_elem(self, neuron, vals):
         for i, key in enumerate(self.d.keys()):
-            if self.types[key] == 'int':
-                self.d[key][neuron[0]][neuron[1]] = vals[i]
-            if self.types[key] == 'float':
-                self.d[key][neuron[0]][neuron[1]] = vals[i]
-            elif self.types[key] == 'PolyExp':
+            if self.types[key] == 'int' or self.types[key] == 'float':
+                if isinstance(vals[i], float) or isinstance(vals[i], int) or isinstance(vals[i], torch.Tensor):
+                    self.d[key][neuron[0]][neuron[1]] = vals[i]
+                else:
+                    print(type(vals[i]))
+                    self.d[key][neuron[0]][neuron[1]] = vals[i].const 
+            elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
                 x = self.d[key][neuron[0]]
                 idx = neuron[1]
                 while len(idx) > 1:

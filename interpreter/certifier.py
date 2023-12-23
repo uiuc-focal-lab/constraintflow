@@ -27,6 +27,7 @@ class Certifier:
                 W = layer.weight
                 B = layer.bias
                 for neuron_num, index in enumerate(indices):
+                    print(neuron_num)
                     curr = (layer_num, index)
                     prev = self.neighbours[curr]
                     w = W[neuron_num]

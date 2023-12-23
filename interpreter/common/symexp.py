@@ -22,11 +22,15 @@ class SymExp:
     def populate(self, const=0, n=-1, coeff=0):
         if n==-1:
             n = SymExp.count-1
-        if len(self.mat < SymExp.count):
+        if len(self.mat) < SymExp.count:
             tmp = [0]*(SymExp.count - len(self.mat))
             self.mat += tmp 
         self.const = const 
         self.mat[n] = coeff
+
+    def populate_bot(self):
+        self.const = 0 
+        self.mat = [float('inf')]*SymExp.count 
     
     def add(self, p):
         if isinstance(p, SymExp):
@@ -34,7 +38,7 @@ class SymExp:
             if len(self.mat) < len(p.mat):
                 tmp = [0]*(len(p.mat) - len(self.mat))
                 self.mat += tmp 
-            for i in range(len(self.mat)):
+            for i in range(len(p.mat)):
                 self.mat[i] = self.mat[i] + p.mat[i]
         else:
             self.const += p
@@ -45,7 +49,7 @@ class SymExp:
             if len(self.mat) < len(p.mat):
                 tmp = [0]*(len(p.mat) - len(self.mat))
                 self.mat += tmp 
-            for i in range(len(self.mat)):
+            for i in range(len(p.mat)):
                 self.mat[i] = self.mat[i] - p.mat[i]
         else:
             self.const = self.const - p

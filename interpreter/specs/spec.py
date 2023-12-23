@@ -2,6 +2,7 @@ from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
 from common.polyexp import PolyExp
+from common.symexp import SymExp
 from specs.util import *
 
 def product(iterable):
@@ -79,6 +80,26 @@ def create_U(image, eps, shapes = []):
     U = reshape(U, shapes)
     return U 
 
+def create_Z(image, eps, shapes = []):
+    image = image.flatten()
+    Z_temp = []
+    size = product(shapes[0])
+    for i in range(size):
+        Z_temp.append(SymExp(mat = [], const=image[i]))
+        Z_temp[-1].new_symbol()
+        Z_temp[-1].populate(coeff=eps)
+    Z = [Z_temp]
+    for i in range(1, len(shapes)):
+        size = product(shapes[i])
+        tmp = []
+        for i in range(size):
+            temp_sym = SymExp()
+            temp_sym.populate()
+            tmp.append(temp_sym)
+        Z.append(tmp)
+    Z = reshape(Z, shapes)
+    return Z 
+
 
 def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transformer='ibp', shapes = []):
     transform = transforms.ToTensor()
@@ -97,3 +118,7 @@ def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transfor
 
     elif transformer == 'ibp':
         return (l, u)
+    
+    elif transformer == 'deepz':
+        Z = create_Z(image, eps, shapes)
+        return (l, u, Z)
