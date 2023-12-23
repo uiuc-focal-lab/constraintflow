@@ -1,5 +1,6 @@
 from common.abs_elem import Abs_elem
 from common.polyexp import PolyExp
+from common.symexp import SymExp
 import torch 
 
 
@@ -9,6 +10,12 @@ def simplify_lower(n, c, abs_elem):
     
 def simplify_upper(n, c, abs_elem):
     return c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
+
+def deepz_lower(n, c):
+    return 1.0 if c>=0 else -1.0
+    
+def deepz_upper(n, c):
+    return -1.0 if c>=0 else 1.0
 
 def replace_lower(n, c, abs_elem):
     res = abs_elem.get_elem('L', n) if c>=0 else abs_elem.get_elem('U', n)
@@ -107,10 +114,6 @@ class CflowInterval(Transformer):
     
 class CflowDeepPoly(Transformer): 
     def relu(self, abs_elem, neighbours, prev, curr):
-        # l = abs_elem.d['l'][prev[0]][prev[1]]
-        # u = abs_elem.d['u'][prev[0]][prev[1]]
-        # L = abs_elem.d['L'][prev[0]][prev[1]]
-        # U = abs_elem.d['U'][prev[0]][prev[1]]
         l = abs_elem.get_elem('l', prev)
         u = abs_elem.get_elem('u', prev)
         L = abs_elem.get_elem('L', prev)
@@ -150,3 +153,37 @@ class CflowDeepPoly(Transformer):
         l_new = (backsubs_lower(temp, curr, abs_elem, neighbours)).get_const() 
         u_new = (backsubs_upper(temp, curr, abs_elem, neighbours)).get_const()
         return l_new, u_new, L_new, U_new
+    
+class CflowDeepZ(Transformer): 
+    def relu(self, abs_elem, neighbours, prev, curr):
+        l = abs_elem.get_elem('l', prev)
+        u = abs_elem.get_elem('u', prev)
+        Z = abs_elem.get_elem('Z', prev)
+        l_new = None 
+        u_new = None
+        Z_new = None
+        if l>=0:
+            l_new = l 
+            u_new = u
+            Z_new = Z.copy()
+        elif u<=0:
+            l_new = 0.0
+            u_new = 0.0
+            Z_new = SymExp()
+        else:
+            l_new = 0.0 
+            u_new = u 
+            Z_new = SymExp()
+            Z_new.new_symbol()
+            Z_new.populate(const=u/2, coeff=u/2)
+        return l_new, u_new, Z_new  
+
+    def fc(self, abs_elem, neighbours, prev, curr, w, b):
+        Z_new = SymExp(const = b)
+        for i, p in enumerate(prev):
+            tmp = abs_elem.get_elem('Z', p)
+            tmp.mult(w[i])
+            Z_new.add(tmp)
+        l_new = Z_new.map(deepz_lower).const
+        u_new = Z_new.map(deepz_upper).const
+        return l_new, u_new, Z_new 
