@@ -8,15 +8,17 @@ class Network(list):
         self.input_name = input_name
         self.input_shape = input_shape
         self.torch_net = torch_net
-        self.net_format = net_format
+        self.net_format = net_format 
 
 
 class Layer:
-    def __init__(self, weight=None, bias=None, type=None, shape=None):
+    def __init__(self, weight=None, bias=None, type=None, shape=None, prev = {}, prev_weight = {}):
         self.weight = weight
         self.bias = bias
         self.type = type
         self.shape = shape 
+        self.prev = prev 
+        self.prev_weight = prev_weight 
 
 class LayerType(Enum):
     Conv2D = 1
