@@ -35,7 +35,10 @@ class PolyExp:
             for i in range(len(self.mat)):
                 self.mat[i] = self.mat[i] + p.mat[i]
         else:
-            self.const += p.const 
+            # print((p.shape))
+            # print(self.const)
+            # print(p)
+            self.const += p 
 
     def minus(self, p):
         if isinstance(p, PolyExp):
@@ -43,7 +46,7 @@ class PolyExp:
             for i in range(len(self.mat)):
                 self.mat[i] = self.mat[i] - p.mat[i]
         else:
-            self.const = self.const - p.const
+            self.const = self.const - p
 
     def mult(self, c):
         self.const = self.const*c 

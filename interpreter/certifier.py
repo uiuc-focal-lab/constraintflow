@@ -27,10 +27,24 @@ class Certifier:
                 W = layer.weight
                 B = layer.bias
                 for neuron_num, index in enumerate(indices):
-                    print(neuron_num)
+                    # print(neuron_num, index)
                     curr = (layer_num, index)
-                    prev = self.neighbours[curr]
+                    # prev = self.neighbours[curr]
+                    prev = layer.prev[curr]
                     w = W[neuron_num]
                     b = B[neuron_num]
+                    abs_shape = self.transformer.fc(self.abs_elem, self.neighbours, prev, curr, w, b)
+                    self.abs_elem.update_elem(curr, abs_shape)
+            elif layer.type == LayerType.Conv2D:
+                # W = layer.weight
+                # B = layer.bias
+                for neuron_num, index in enumerate(indices):
+                    # print(neuron_num)
+                    curr = (layer_num, index)
+                    # prev = self.neighbours[curr]
+                    prev = layer.prev[curr]
+                    # print(prev)
+                    w = layer.prev_weight[curr]
+                    b = layer.bias[index[1]]
                     abs_shape = self.transformer.fc(self.abs_elem, self.neighbours, prev, curr, w, b)
                     self.abs_elem.update_elem(curr, abs_shape)

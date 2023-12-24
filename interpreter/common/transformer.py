@@ -6,7 +6,13 @@ import torch
 
 
 def simplify_lower(n, c, abs_elem):
-    return c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
+    # print('!!!!!!!!!')
+    # print(n)
+    # print(c)
+    # print('!!!!!!!!!')
+    res = c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
+    # print(res)
+    return res
     
 def simplify_upper(n, c, abs_elem):
     return c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
