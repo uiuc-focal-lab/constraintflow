@@ -70,7 +70,14 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 
 	def visitTraverse(self, node: AST.TraverseNode):
-		pass
+		self.visit(node.expr)
+		self.file.write(".traverse(abs_elem, neighbors, ")
+		self.visit(node.stop)
+		self.file.write(", ")
+		self.visit(node.priority)
+		self.file.write(", ")
+		self.visit(node.func)
+		self.file.write(")")
 
 
 	def visitListOp(self, node: AST.ListOpNode):
@@ -87,9 +94,6 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.file.write(")")
 
 	def visitDot(self, node: AST.DotNode):
-		pass
-	
-	def visitConcat(self, node):
 		pass
 	
 	def visitFuncCall(self, node: AST.FuncCallNode):
@@ -145,7 +149,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	def visitOpStmt(self, node: AST.OpStmtNode):
 		if node.op.op_name == 'Affine':
-			self.file.write(self.indent + "def fc(self, abs_elem, prev, curr, w, b):\n")
+			self.file.write(self.indent + "def fc(self, abs_elem, neighbors, prev, curr, w, b):\n")
 			self.indent = self.indent + "\t"
 			self.file.write(self.indent + "temp = PolyExp(abs_elem.shapes)\n")
 			self.file.write(self.indent + "temp.populate(b, prev, w)\n")
@@ -169,7 +173,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 			self.indent = self.indent[:-1]
 
 		elif node.op.op_name == "Relu":
-			self.file.write(self.indent + "def relu(self, abs_elem, prev, curr):\n")
+			self.file.write(self.indent + "def relu(self, abs_elem, neighbors, prev, curr):\n")
 			self.indent = self.indent + "\t"
 			self.visit(node.ret)
 
@@ -212,6 +216,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 			for i in range(1,len(node.decl.arglist.arglist)):
 				self.file.write(", ")
 				self.file.write(node.decl.arglist.arglist[i][1].name)
+		self.file.write(", abs_elem, neighbors")
 		self.file.write("):\n")
 		self.indent = "\t"
 		self.file.write(self.indent + "return ")
