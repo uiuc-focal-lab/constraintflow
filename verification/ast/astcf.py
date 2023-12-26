@@ -69,6 +69,11 @@ class MetadataNode(ASTNode):
         self.node_name = "Metadata"
         self.name = name
 
+    def __eq__(self, obj):
+        if(isinstance(obj, MetadataNode)):
+            return self.name == obj.name
+        return False
+
 class ArgmaxOpNode(ExprNode):
 
     #op: min, max, argmin, argmax
@@ -105,6 +110,11 @@ class VarNode(ExprNode):
         super().__init__()
         self.node_name = "Var"
         self.name = name
+
+    def __eq__(self, obj):
+        if(isinstance(obj, VarNode)):
+            return self.name == obj.name
+        return False
 
 class NeuronNode(ExprNode):
 
@@ -170,6 +180,10 @@ class GetMetadataNode(ExprNode):
         self.node_name = "Access Metadata"
         self.expr = expr
         self.metadata = metadata
+
+    def __eq__(self, obj):
+        if(isinstance(obj, GetMetadataNode)):
+            return self.expr == obj.expr and self.metadata == obj.metadata
 
 class GetElementNode(ExprNode):
 
@@ -237,6 +251,11 @@ class DotNode(ExprNode):
         self.node_name = "Dot"
         self.left = left
         self.right = right
+
+    def __eq__(self, obj):
+        if(isinstance(obj, DotNode)):
+            return self.left == obj.left and self.right == obj.right
+        return False
 
 class ConcatNode(ExprNode):
 
