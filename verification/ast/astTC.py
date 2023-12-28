@@ -126,9 +126,11 @@ class ASTTC(astVisitor.ASTVisitor):
 		return self.bfs([t2], [t2], b)
 
 	def visitBaseType(self, node: AST.BaseTypeNode):
+		node.type = node.name
 		return node.name
 
 	def visitArrayType(self, node: AST.ArrayTypeNode):
+		node.type = ArrayType(node.base) 
 		return ArrayType(node.base)
 
 	def visitArgList(self, node: AST.ArgListNode):
@@ -138,6 +140,7 @@ class ASTTC(astVisitor.ASTVisitor):
 				l.append(ArrayType(t[0].base.name))
 			else:
 				l.append(t[0].name)
+		node.type = l
 		return l 
 		# l = [t[0].name for t in node.arglist]
 		# return l 
@@ -147,6 +150,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		listtype = []
 		for e in node.exprlist:
 			listtype.append(self.visit(e))
+		node.type = listtype
 		return listtype
 
 	def get_binop(self, op, ltype, rtype):
@@ -197,13 +201,16 @@ class ASTTC(astVisitor.ASTVisitor):
 		rtype = self.visit(node.right)
 		if (isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType)):
 			ttype = self.get_binop(node.op, ltype.base, rtype.base)
+			node.type = ArrayType(ttype)
 			return ArrayType(ttype)
+		node.type = self.get_binop(node.op, ltype, rtype) 
 		return self.get_binop(node.op, ltype, rtype)
 		accepted = ["Int", "Float", "Neuron", "PolyExp", "ZonoExp", "Noise"]
 		
 		if(node.op == "+" or node.op == "-"):
 			if(ltype in accepted and rtype in accepted):
 				if(self.lub_type(ltype, rtype) != "Top"):
+					node.type = self.lub_type(ltype, rtype) 
 					return self.lub_type(ltype, rtype)
 				else:
 					raise TypeMismatchException(str(ltype) + " and " + str(rtype) + " are not comparable")
@@ -213,29 +220,35 @@ class ASTTC(astVisitor.ASTVisitor):
 		elif(node.op == "*"):
 			if(self.isSubType(ltype, "Float") or self.isSubType(rtype, "Float")):
 				if(self.lub_type(ltype, rtype) != "Top"):
+					node.type = self.lub_type(ltype, rtype)
 					return self.lub_type(ltype, rtype)
 			raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
 
 		elif(node.op == "/"):
 			if(self.isSubType(rtype, "Float")):
 				if(self.lub_type(ltype, rtype) != "Top"):
+					node.type = self.lub_type(ltype, rtype)
 					return self.lub_type(ltype, rtype)
 			raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
 
 		elif(node.op == "and" or node.op == "or"):
 			if(self.isSubType(ltype, "Ct") and self.isSubType(rtype, "Ct")):
+				node.type = self.lub_type(ltype, rtype)
 				return self.lub_type(ltype, rtype)
 			else:
 				raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
 		elif(node.op == "In"):
 			if(self.isSubType(ltype, "PolyExp") and self.isSubType(rtype, "ZonoExp")):
+				node.type = "Ct"
 				return "Ct"
 			else:
 				raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
 		else: #<=, >=, ==
 			if(self.isSubType(ltype, "Float") and self.isSubType(rtype, "Float")):
+				node.type = "Bool"
 				return "Bool"
 			if(self.isSubType(ltype, "PolyExp") and self.isSubType(rtype, "PolyExp")):
+				node.type = "Ct"
 				return "Ct"
 			else:
 				raise TypeMismatchException(node.op + " is not defined on " + str(ltype) + " and " + str(rtype))
@@ -245,11 +258,13 @@ class ASTTC(astVisitor.ASTVisitor):
 		t = self.visit(node.expr)
 		if(node.op == "-"):
 			if(t == "Int" or t =="Float"):
+				node.type = t
 				return t
 			else:
 				raise TypeMismatchException("- not defined on " + str(t))
 		elif(node.op == "!"):
 			if self.isSubType(t, "Ct"):
+				node.type = t
 				return t
 			else:
 				raise TypeMismatchException("! not defined on " + str(t))
@@ -262,6 +277,7 @@ class ASTTC(astVisitor.ASTVisitor):
 			raise TypeMismatchException(node.op + " requires list as first argument")
 		functype = self.visit(node.func)
 		if(self.isSubType(functype, ArrowType([exptype.base, exptype.base], "Bool"))):
+			node.type = ArrayType(exptype.base)
 			return ArrayType(exptype.base)
 		else:
 			raise TypeMismatchException(node.op + " requires function from " + str(exptype.base) + " to Bool")
@@ -270,6 +286,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		exptype = self.visit(node.expr)
 		if isinstance(exptype, ArrayType):
 			if self.isSubType(exptype.base,"Float"):
+				node.type = exptype.base
 				return exptype.base
 		if isinstance(exptype, list):
 			if len(exptype)==0:
@@ -287,6 +304,7 @@ class ASTTC(astVisitor.ASTVisitor):
 			for e in exptype:
 				if e != type:
 					raise Exception('all elements of the list must be of the same type')
+			node.type = type
 			return type
 		else:
 			print(exptype)
@@ -297,6 +315,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		exp2type = self.visit(node.expr2)
 		if(not self.isSubType(exp1type, "Float")) or (not self.isSubType(exp2type, "Float")):
 			raise TypeMismatchException(node.op + " is not defined on " + str(exp1type) + " and " + str(exp2type))
+		node.type = self.lub_type(exp1type, exp2type)
 		return self.lub_type(exp1type, exp2type)
 
 
@@ -306,15 +325,19 @@ class ASTTC(astVisitor.ASTVisitor):
 		if not node.name in self.Gamma.keys():
 			raise UndefinedVarException(node.name + " is undefined")
 		else:
+			node.type = self.Gamma[node.name]
 			return self.Gamma[node.name]
 
 	def visitInt(self, node: AST.ConstIntNode):
+		node.type = "Int"
 		return "Int"
 
 	def visitFloat(self, node: AST.ConstFloatNode):
+		node.type = "Float"
 		return "Float"
 
 	def visitBool(self, node: AST.ConstBoolNode):
+		node.type = "Bool"
 		return "Bool"
 
 	# def visitCurr(self, node: AST.CurrNode):
@@ -331,6 +354,7 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		self.hasE = True
+		node.type = "Noise"
 		return "Noise"
 
 	def visitTernary(self, node: AST.TernaryNode):
@@ -341,6 +365,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		ltype = self.visit(node.texpr)
 		rtype = self.visit(node.fexpr)
 		if(self.lub_type(ltype, rtype) != "Top"):
+			node.type = self.lub_type(ltype, rtype)
 			return self.lub_type(ltype, rtype)
 		else:
 			raise TypeMismatchException(str(ltype) + " and " + str(rtype) + " are not lub_type")
@@ -349,11 +374,13 @@ class ASTTC(astVisitor.ASTVisitor):
 		etype = self.visit(node.expr)
 		if(etype == "Neuron"):
 			if(node.metadata.name in self.metadata.keys()):
+				node.type = self.metadata[node.metadata.name] 
 				return self.metadata[node.metadata.name]
 			else:
 				assert False
 		elif(isinstance(etype, ArrayType) and etype.base == "Neuron"):
 			if(node.metadata.name in self.metadata.keys()):
+				node.type = ArrayType(self.metadata[node.metdata.name])
 				return ArrayType(self.metadata[node.metdata.name])
 			else:
 				assert False
@@ -370,10 +397,13 @@ class ASTTC(astVisitor.ASTVisitor):
 			raise TypeMismatchException(node.elem.name + " is not part of the shape")
 
 		if(etype == "Neuron"):
+			node.type = elemtype
 			return elemtype
 		if(etype == "Neuron List"):
+			node.type = ArrayType(elemtype) 
 			return ArrayType(elemtype)
 		elif(isinstance(etype, ArrayType) and etype.base == "Neuron"):
+			node.type = ArrayType(elemtype)
 			return ArrayType(elemtype)
 		else:
 			raise TypeMismatchException("To access shape variables, expression must be Neuron or Neuron List")
@@ -381,6 +411,7 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitGetElementAtIndex(self, node: AST.GetElementNode):
 		etype = self.visit(node.expr)
 		if isinstance(etype, ArrayType):
+			node.type = etype.base
 			return etype.base
 		else:
 			raise TypeMismatchException("To access element at an index, expression must be a list")
@@ -422,8 +453,10 @@ class ASTTC(astVisitor.ASTVisitor):
 			prop = self.visit(node.p)
 			if self.isSubType(prop, "Ct"):
 				if(right == "Neuron"):
+					node.type = "PolyExp"
 					return "PolyExp"
 				else:
+					node.type = right
 					return right
 			raise TypeMismatchException("Traverse property is the wrong type") 
 
@@ -438,14 +471,18 @@ class ASTTC(astVisitor.ASTVisitor):
 		base = exptype.base
 		if(node.op == "sum" or node.op == "avg"):
 			if(base == "Int" or base == "Float" or base == "PolyExp" or base == "ZonoExp"):
+				node.type = base
 				return base
 			elif (base == "Neuron"):
+				node.type = "PolyExp"
 				return "PolyExp"
 			elif(base == "Noise"):
+				node.type = "ZonoExp"
 				return "ZonoExp"
 			else:
 				raise TypeMismatchException(base + " list cannot be passed to sum or avg")
 		else:
+			node.type = "Int"
 			return "Int"
 
 	# def visitSub(self, node: AST.SubNode):
@@ -470,16 +507,20 @@ class ASTTC(astVisitor.ASTVisitor):
 				raise TypeMismatchException("Function argument to Map is the wrong type")
 			right = ftype.tright
 			if(right == "Neuron"):
+				node.type = "PolyExp"
 				return "PolyExp"
 			else:
+				node.type = right
 				return right
 		elif(self.isSubType(exptype,"ZonoExp")):
 			if(not self.isSubType(ftype, ArrowType(["Noise", "Float"], "ZonoExp"))):
 				raise TypeMismatchException("Function argument to Map is the wrong type")
 			right = ftype.tright
 			if(right == "Noise"):
+				node.type = "ZonoExp"
 				return "ZonoExp"
 			else:
+				node.type = right
 				return right
 		else:
 			raise TypeMismatchException("Left of Map function must be a PolyExp, ZonoExp or a list")
@@ -489,6 +530,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		ftype = self.visit(node.func)
 		if isinstance(exptype, ArrayType):
 			if(self.isSubType(exptype.base, ftype.tleft) and isinstance(ftype.tright, str)):
+				node.type = ArrayType(ftype.tright) 
 				return ArrayType(ftype.tright)
 		else:
 			raise TypeMismatchException("Map list type mismatch")
@@ -502,6 +544,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		
 		if(self.isSubType(tleft.base, "Float") or self.isSubType(tright.base, "Float")):
 			if(self.lub_type(tleft.base, tright.base) != "Top"):
+				node.type = self.lub_type(tleft.base, tright.base) 
 				return self.lub_type(tleft.base, tright.base)
 
 	def visitConcat(self, node: AST.DotNode):
@@ -512,6 +555,7 @@ class ASTTC(astVisitor.ASTVisitor):
 			raise TypeMismatchException("Left and right of dot product have to be list")
 		
 		if(self.lub_type(tleft.base, tright.base) != "Top"):
+			node.type = self.lub_type(tleft.base, tright.base)
 			return self.lub_type(tleft.base, tright.base)
 
 	def visitLp(self, node: AST.LpNode):
@@ -521,6 +565,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(not self.isSubType(tleft, "PolyExp") or not self.isSubType(tright, ArrayType("Ct"))):
 			raise TypeMismatchException("Exp and constraint of LP are incorrect")
 		
+		node.type = "Float"
 		return "Float" 
 		
 	def visitFuncCall(self, node: AST.FuncCallNode):
@@ -541,8 +586,10 @@ class ASTTC(astVisitor.ASTVisitor):
 				raise TypeMismatchException("Arguments of " + name + " are not the correct type(s)")
 			i += 1
 		if(i == len(argstype)):
+			node.type = ftype.tright 
 			return ftype.tright
 		else:
+			node.type = ArrowType(argstype[i:], ftype.tright)
 			return ArrowType(argstype[i:], ftype.tright)
 
 	def visitShapeDecl(self, node: AST.ShapeDeclNode):
@@ -720,6 +767,7 @@ class ASTTC(astVisitor.ASTVisitor):
 			self.Gamma[ov] = oldvalues[ov]
 
 		self.Gamma[fname] = ArrowType(argstype, exprtype)
+		node.type = ArrowType(argstype, exprtype)
 
 	def visitSeq(self, node: AST.SeqNode):
 		self.visit(node.stmt1)
