@@ -21,7 +21,7 @@ def get_all_indices(nested_list, current_index=None):
     
     return indices
 
-net = get_net(net_name='nets/mnist-net_256x2.onnx')
+net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # djkhf
 
 neighbours = dict()
@@ -29,15 +29,15 @@ shapes = [net.input_shape]
 for layer in net:
     shapes.append(layer.shape)
 
-l, u = get_input_spec(shapes=shapes, n=1, transformer='ibp', eps=0.0)
-print(len(l))
-print(len(l[0]))
-print(len(l[0][0]))
-print(len(l[0][0][0]))
-print(len(l[0][0][0][0]))
-# sdh
-abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
-# abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
+l, u, L, U = get_input_spec(shapes=shapes, n=1, transformer='deeppoly', eps=0.0)
+# print(len(l))
+# print(len(l[0]))
+# print(len(l[0][0]))
+# print(len(l[0][0][0]))
+# print(len(l[0][0][0][0]))
+# # sdh
+#abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
+abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
 
 # for idx in itertools.product(*[range(dim) for dim in shapes[0]]):
 #     neighbours[(0, idx)] = []
@@ -57,7 +57,7 @@ abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
 #     print(len(layer.prev))
 
 
-transformer = CflowInterval()
+transformer = CflowDeepPoly()
 certifier = Certifier(abs_elem, transformer, net, neighbours)
 certifier.flow()
 print(certifier.abs_elem.d['l'][-1])

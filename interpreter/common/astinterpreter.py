@@ -25,9 +25,33 @@ class AstInterpret(astVisitor.ASTVisitor):
 				self.file.write("temp.copy()")
 				return
 
-		if(isinstance(node.right, AST.GetMetadataNode)):
-			print(node.right.expr)
-			print(node.right.metadata)
+		if(node.left.type == "PolyExp" or node.left.type == "SymExp" or node.left.type == "Neuron" or node.left.type == "Noise"): #Has to be add, mult, minus or division		
+			self.file.write("(")
+			self.visit(node.left)
+			self.file.write(")")
+			if(node.op == "+"):
+				self.file.write(".add(")
+			elif(node.op == "-"):
+				self.file.write(".minus(")
+			elif(node.op == "*"):
+				self.file.write(".mult(")
+			self.visit(node.right)
+			self.file.write(")")
+			return
+
+		if(node.right.type == "PolyExp" or node.right.type == "SymExp" or node.right.type == "Neuron" or node.right.type == "Noise"): #Has to be add, mult, minus or division		
+			self.file.write("(")
+			self.visit(node.right)
+			self.file.write(")")
+			if(node.op == "+"):
+				self.file.write(".add(")
+			elif(node.op == "-"):
+				self.file.write(".minus(")
+			elif(node.op == "*"):
+				self.file.write(".mult(")
+			self.visit(node.left)
+			self.file.write(")")
+			return
 
 		self.visit(node.left)
 		self.file.write(" " + node.op + " ")
@@ -97,7 +121,15 @@ class AstInterpret(astVisitor.ASTVisitor):
 		pass
 	
 	def visitFuncCall(self, node: AST.FuncCallNode):
-		pass
+		args = node.arglist.exprlist
+		self.file.write(node.name.name)
+		self.file.write("(")
+		if(len(args) > 0):
+			for arg in args:
+				self.visit(arg)
+				self.file.write(",")
+		self.file.write("abs_elem, neighbors")
+		self.file.write(")")
 
 	#Do we have to do a seperate analysis to know when to pass the weight and bias to defined functions?
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
