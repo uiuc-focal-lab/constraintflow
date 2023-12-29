@@ -5,10 +5,10 @@ import torch
 
 
 
-def simplify_lower(n, c, abs_elem):
+def simplify_lower(n, c, abs_elem, neighbours):
     return c * abs_elem.get_elem('l', n) if c>=0 else c * abs_elem.get_elem('u', n)
     
-def simplify_upper(n, c, abs_elem):
+def simplify_upper(n, c, abs_elem, neighbours):
     return c * abs_elem.get_elem('u', n) if c>=0 else c * abs_elem.get_elem('l', n)
 
 def deepz_lower(n, c):
@@ -17,12 +17,12 @@ def deepz_lower(n, c):
 def deepz_upper(n, c):
     return -1.0 if c>=0 else 1.0
 
-def replace_lower(n, c, abs_elem):
+def replace_lower(n, c, abs_elem, neighbours):
     res = abs_elem.get_elem('L', n) if c>=0 else abs_elem.get_elem('U', n)
     res.mult(c)
     return res 
 
-def replace_upper(n, c, abs_elem):
+def replace_upper(n, c, abs_elem, neighbours):
     res = abs_elem.get_elem('U', n) if c>=0 else abs_elem.get_elem('L', n)
     res.mult(c)
     return res 
@@ -35,11 +35,11 @@ def priority(n, c, abs_elem):
 
 def backsubs_lower(p, n, abs_elem, neighbours):
     res = p.traverse(abs_elem, neighbours, stop, priority, replace_lower)
-    return res.map(abs_elem, simplify_lower)
+    return res.map(abs_elem, neighbours, simplify_lower)
 
 def backsubs_upper(p, n, abs_elem, neighbours):
     res = p.traverse(abs_elem, neighbours, stop, priority, replace_upper)
-    return res.map(abs_elem, simplify_upper)
+    return res.map(abs_elem, neighbours, simplify_upper)
 
 class Transformer:
     def relu(self, abs_elem, neighbours, prev, curr):
@@ -108,8 +108,8 @@ class CflowInterval(Transformer):
     def fc(self, abs_elem, neighbours, prev, curr, w, b):
         temp = PolyExp(abs_elem.shapes)
         temp.populate(b, prev, w)
-        l_new = temp.map(abs_elem, simplify_lower)
-        u_new = temp.map(abs_elem, simplify_upper)
+        l_new = temp.map(abs_elem, neighbours, simplify_lower)
+        u_new = temp.map(abs_elem, neighbours, simplify_upper)
         return l_new.get_const(), u_new.get_const() 
     
 class CflowDeepPoly(Transformer): 

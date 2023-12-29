@@ -18,6 +18,7 @@ class SymExp:
     
     def new_symbol(self):
         SymExp.count += 1
+        return self
 
     def populate(self, const=0, n=-1, coeff=0):
         if n==-1:
@@ -27,10 +28,12 @@ class SymExp:
             self.mat += tmp 
         self.const = const 
         self.mat[n] = coeff
+        return self
 
     def populate_bot(self):
         self.const = 0 
         self.mat = [float('inf')]*SymExp.count 
+        return self
     
     def add(self, p):
         if isinstance(p, SymExp):
@@ -42,6 +45,7 @@ class SymExp:
                 self.mat[i] = self.mat[i] + p.mat[i]
         else:
             self.const += p
+        return self
 
     def minus(self, p):
         if isinstance(p, SymExp):
@@ -53,11 +57,13 @@ class SymExp:
                 self.mat[i] = self.mat[i] - p.mat[i]
         else:
             self.const = self.const - p
+        return self
 
     def mult(self, c):
         self.const = self.const*c 
         for i in range(len(self.mat)):
             self.mat[i] = self.mat[i]*c
+        return self
     
     def map(self, f):
         res = SymExp(const = self.const)

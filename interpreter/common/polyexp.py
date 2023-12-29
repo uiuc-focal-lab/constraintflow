@@ -25,9 +25,13 @@ class PolyExp:
     def populate(self, const, prev, w = None):
         self.const = const 
         if w == None:
-            w = [1]*len(prev)
+            #w = [1]*len(prev)
+            w = torch.ones(len(prev))
+        if(isinstance(prev, tuple)):
+            prev = [prev]
         for i in range(len(prev)):
             self.mat[prev[i][0]][prev[i][1]] = w[i].item()
+        return self
 
     def add(self, p):
         if isinstance(p, PolyExp):
@@ -39,6 +43,7 @@ class PolyExp:
             # print(self.const)
             # print(p)
             self.const += p 
+        return self
 
     def minus(self, p):
         if isinstance(p, PolyExp):
@@ -47,19 +52,21 @@ class PolyExp:
                 self.mat[i] = self.mat[i] - p.mat[i]
         else:
             self.const = self.const - p
+        return self
 
     def mult(self, c):
         self.const = self.const*c 
         for i in range(len(self.mat)):
             self.mat[i] = self.mat[i]*c
+        return self
 
-    def map(self, abs_elem, f):
+    def map(self, abs_elem, neighbours, f):
         res = PolyExp(self.shapes, const = self.const)
         for i in range(len(self.shapes)):
             indices = itertools.product(*[range(dim) for dim in self.shapes[i]])
             for j in indices:
                 if self.mat[i][j] != 0:
-                    tmp = f((i, j), self.mat[i][j], abs_elem)
+                    tmp = f((i, j), self.mat[i][j], abs_elem, neighbours)
                     res.add(tmp)
         return res  
     
@@ -70,8 +77,12 @@ class PolyExp:
             indices = itertools.product(*[range(dim) for dim in self.shapes[i]])
             for j in indices:
                 if self.mat[i][j]!=0:
-                    if not stop((i, j), self.mat[i][j], abs_elem):
-                        vertices.add((i, j))
+                    if(callable(stop)):
+                        if not stop((i, j), self.mat[i][j], abs_elem):
+                            vertices.add((i, j))
+                    else:
+                        if not stop:
+                            vertices.add((i, j))
 
         debug_ctr = 0
         while len(vertices)>0:
@@ -88,7 +99,7 @@ class PolyExp:
                 res.mat[i[1][0]][i[1][1]] = 0
                 vertices.remove(i[1])
                 n += neighbours[i[1]]
-            temp = temp.map(abs_elem, f)
+            temp = temp.map(abs_elem, neighbours, f)
             res.add(temp)
             for i in n:
                 if res.mat[i[0]][i[1]] == 0 or stop(i, res.mat[i[0]][i[1]], abs_elem):

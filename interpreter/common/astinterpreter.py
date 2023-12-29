@@ -14,6 +14,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.file.write("from common.transformer import Transformer\n")
 		self.file.write("import torch\n")
 		self.file.write("\n");
+		self.in_get = False
 
 	def visitExprList(self, node: AST.ExprListNode):
 		pass
@@ -71,7 +72,10 @@ class AstInterpret(astVisitor.ASTVisitor):
 		pass
 
 	def visitVar(self, node: AST.VarNode):
-		self.file.write(node.name)
+		if(not self.in_get and node.type == "Neuron"):
+			self.file.write("PolyExp(abs_elem.shapes).populate(0,"+node.name+")")
+		else:
+			self.file.write(node.name)
 
 	def visitInt(self, node: AST.ConstIntNode):
 		self.file.write(str(node.value))
@@ -83,7 +87,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.file.write(str(node.value))
 
 	def visitEpsilon(self, node: AST.EpsilonNode):
-		self.file.write("SymExp()")
+		self.file.write("SymExp().new_symbol().populate(coeff=1)")
 
 	def visitTernary(self, node: AST.TernaryNode):
 		self.visit(node.texpr)
@@ -95,7 +99,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	def visitTraverse(self, node: AST.TraverseNode):
 		self.visit(node.expr)
-		self.file.write(".traverse(abs_elem, neighbors, ")
+		self.file.write(".traverse(abs_elem, neighbours, ")
 		self.visit(node.stop)
 		self.file.write(", ")
 		self.visit(node.priority)
@@ -109,7 +113,10 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
-		self.file.write(".map(abs_elem, ")
+		if(node.expr.type == "PolyExp"):
+			self.file.write(".map(abs_elem, neighbours, ")
+		else: #Zonoexp map
+			self.file.write(".map(")
 		if(isinstance(node.func, AST.VarNode)):
 			self.file.write(node.func.name)
 		else:
@@ -121,6 +128,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 		pass
 	
 	def visitFuncCall(self, node: AST.FuncCallNode):
+		self.in_get = True
 		args = node.arglist.exprlist
 		self.file.write(node.name.name)
 		self.file.write("(")
@@ -128,11 +136,13 @@ class AstInterpret(astVisitor.ASTVisitor):
 			for arg in args:
 				self.visit(arg)
 				self.file.write(",")
-		self.file.write("abs_elem, neighbors")
+		self.file.write("abs_elem, neighbours")
 		self.file.write(")")
+		self.in_get = False
 
 	#Do we have to do a seperate analysis to know when to pass the weight and bias to defined functions?
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
+		self.in_get = True
 		if(node.metadata.name == "layer"):
 			self.visit(node.expr)
 			self.file.write("[0]")
@@ -142,13 +152,16 @@ class AstInterpret(astVisitor.ASTVisitor):
 			self.file.visit("]")
 		elif(node.metadata.name == "bias"):
 			self.file.write("b")
+		self.in_get = False
 
 	def visitGetElement(self, node):
+		self.in_get = True
 		self.file.write("abs_elem.get_elem(\'")
 		self.visit(node.elem)
 		self.file.write("\', ")
 		self.visit(node.expr)
 		self.file.write(")")
+		self.in_get = False
 
 	def visitShapeDecl(self, node: AST.ShapeDeclNode):
 		shape_names = []
@@ -181,7 +194,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	def visitOpStmt(self, node: AST.OpStmtNode):
 		if node.op.op_name == 'Affine':
-			self.file.write(self.indent + "def fc(self, abs_elem, neighbors, prev, curr, w, b):\n")
+			self.file.write(self.indent + "def fc(self, abs_elem, neighbours, prev, curr, w, b):\n")
 			self.indent = self.indent + "\t"
 			self.file.write(self.indent + "temp = PolyExp(abs_elem.shapes)\n")
 			self.file.write(self.indent + "temp.populate(b, prev, w)\n")
@@ -196,6 +209,18 @@ class AstInterpret(astVisitor.ASTVisitor):
 						self.file.write(self.indent + "if isinstance("+sname+",PolyExp) or isinstance("+sname+",SymExp):\n")
 						self.file.write(self.indent + "\t" + sname + " = " + sname + ".get_const()\n")
 
+			#convert any constants to polyexps or symexps
+			self.file.write("\n")
+			for (stype, sname) in zip(self.shape_types, self.shape_names):
+				sname = sname + "_new"
+				if(isinstance(stype, AST.BaseTypeNode)):
+					if(stype.name == "PolyExp"):
+						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "PolyExp(abs_elem.shapes).populate(" + sname + ", [])\n")
+					if(stype.name == "SymExp"):
+						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+", [])\n")
+
 			self.file.write(self.indent + "return ")
 			if(len(self.shape_names)>0):
 				self.file.write(self.shape_names[0]+"_new")
@@ -205,7 +230,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 			self.indent = self.indent[:-1]
 
 		elif node.op.op_name == "Relu":
-			self.file.write(self.indent + "def relu(self, abs_elem, neighbors, prev, curr):\n")
+			self.file.write(self.indent + "def relu(self, abs_elem, neighbours, prev, curr):\n")
 			self.indent = self.indent + "\t"
 			self.visit(node.ret)
 
@@ -217,6 +242,18 @@ class AstInterpret(astVisitor.ASTVisitor):
 					if(stype.name == "Float" or stype.name == "Int"):
 						self.file.write(self.indent + "if isinstance("+sname+",PolyExp) or isinstance("+sname+",SymExp):\n")
 						self.file.write(self.indent + "\t" + sname + " = " + sname + ".get_const()\n")
+
+			#convert any constants to polyexps or symexps
+			self.file.write("\n")
+			for (stype, sname) in zip(self.shape_types, self.shape_names):
+				sname = sname + "_new"
+				if(isinstance(stype, AST.BaseTypeNode)):
+					if(stype.name == "PolyExp"):
+						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "PolyExp(abs_elem.shapes).populate(" + sname + ", [])\n")
+					if(stype.name == "SymExp"):
+						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+", [])\n")
 
 			self.file.write(self.indent + "return ")
 			if(len(self.shape_names)>0):
@@ -248,7 +285,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 			for i in range(1,len(node.decl.arglist.arglist)):
 				self.file.write(", ")
 				self.file.write(node.decl.arglist.arglist[i][1].name)
-		self.file.write(", abs_elem, neighbors")
+		self.file.write(", abs_elem, neighbours")
 		self.file.write("):\n")
 		self.indent = "\t"
 		self.file.write(self.indent + "return ")
