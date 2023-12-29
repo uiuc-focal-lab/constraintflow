@@ -48,5 +48,3 @@ class Certifier:
                     b = layer.bias[index[1]]
                     abs_shape = self.transformer.fc(self.abs_elem, self.neighbours, prev, curr, w, b)
                     self.abs_elem.update_elem(curr, abs_shape)
-            print("abs_shape")
-            print(abs_shape)

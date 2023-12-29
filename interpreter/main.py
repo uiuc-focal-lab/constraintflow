@@ -37,8 +37,8 @@ l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.0)
 # print(len(l[0][0][0]))
 # print(len(l[0][0][0][0]))
 # # sdh
-abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
-#abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
+#abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
+abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
 
 for idx in itertools.product(*[range(dim) for dim in shapes[0]]):
     neighbours[(0, idx)] = []
@@ -58,9 +58,9 @@ for i in range(1, len(shapes)):
 #     print(len(layer.prev))
 
 
-#transformer = Cflowdeeppoly()
+transformer = Cflowdeeppoly()
 #transformer = CflowDeepPoly()
-tranformer = Cflowibp()
+#tranformer = Cflowibp()
 certifier = Certifier(abs_elem, transformer, net, neighbours)
 certifier.flow()
 print(certifier.abs_elem.d['l'][-1])
