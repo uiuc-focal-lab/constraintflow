@@ -102,7 +102,11 @@ class PolyExp:
             temp = temp.map(abs_elem, neighbours, f)
             res.add(temp)
             for i in n:
-                if res.mat[i[0]][i[1]] == 0 or stop(i, res.mat[i[0]][i[1]], abs_elem):
-                    n.remove(i)
+                if(callable(stop)):
+                    if res.mat[i[0]][i[1]] == 0 or stop(i, res.mat[i[0]][i[1]], abs_elem):
+                        n.remove(i)
+                else:
+                    if res.mat[i[0]][i[1]] == 0 or stop:
+                        n.remove(i)
             vertices = vertices.union(n) 
         return res 
