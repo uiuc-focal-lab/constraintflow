@@ -51,14 +51,14 @@ for i in range(1, len(shapes)):
             prev_indices = itertools.product(*[range(dim) for dim in shapes[i-1]])
             neighbours[(i, idx)] = [(i-1, j) for j in prev_indices]
 
-# l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.0)
-# abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
+l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.02)
+abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
 
 # l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=2.0)
 # abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
 
-l, u, Z= get_input_spec(shapes=shapes, n=1, transformer='deepz', eps=2.0)
-abs_elem = Abs_elem({'l': l, 'u': u, 'Z': Z}, {'l': 'float', 'u': 'float', 'Z': 'SymExp'}, shapes)
+# l, u, Z= get_input_spec(shapes=shapes, n=1, transformer='deepz', eps=2.0)
+# abs_elem = Abs_elem({'l': l, 'u': u, 'Z': Z}, {'l': 'float', 'u': 'float', 'Z': 'SymExp'}, shapes)
 
 
 def genAST(inputfile):
@@ -78,7 +78,7 @@ genAST(sys.argv[1])
 
 from newtransformer import *
 
-transformer = Cflowzono()
+transformer = Cflowdeeppoly()
 certifier = Certifier(abs_elem, transformer, net, neighbours)
 certifier.flow()
 print(certifier.abs_elem.d['l'][-1])
