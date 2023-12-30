@@ -55,9 +55,18 @@ class AstInterpret(astVisitor.ASTVisitor):
 			self.file.write(")")
 			return
 
-		self.visit(node.left)
-		self.file.write(" " + node.op + " ")
-		self.visit(node.right)
+		if(node.op == "*" or node.op == "/"):
+			self.file.write("(")
+			self.visit(node.left)
+			self.file.write(")")
+			self.file.write(" " + node.op + " ")
+			self.file.write("(")
+			self.visit(node.right)
+			self.file.write(")")
+		else:
+			self.visit(node.left)
+			self.file.write(" " + node.op + " ")
+			self.visit(node.right)
 		
 	def visitUnOp(self, node: AST.UnOpNode):
 		self.file.write(node.op)

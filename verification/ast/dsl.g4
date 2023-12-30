@@ -58,6 +58,7 @@ types:  INTT
 	|	POLYEXP 
 	|	ZONOEXP 
 	|	NEURON 
+    |   NOISE
 	|	CT  
     |   types LIST
     ;
@@ -152,6 +153,7 @@ BOOL: 'Bool' ;
 POLYEXP: 'PolyExp' ;
 ZONOEXP: 'ZonoExp' ;
 NEURON: 'Neuron' ;
+NOISE: 'Noise' ;
 CT: 'Ct' ;
 LIST: 'List' ;
 DOT: '.' ;
