@@ -85,9 +85,9 @@ def create_Z(image, eps, shapes = []):
     Z_temp = []
     size = product(shapes[0])
     for i in range(size):
-        Z_temp.append(SymExp(mat = [], const=image[i]))
+        Z_temp.append(SymExp(mat = []))
         Z_temp[-1].new_symbol()
-        Z_temp[-1].populate(coeff=eps)
+        Z_temp[-1].populate(coeff=eps, const=image[i])
     Z = [Z_temp]
     for i in range(1, len(shapes)):
         size = product(shapes[i])
