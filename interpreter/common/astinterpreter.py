@@ -13,6 +13,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.file.write("from common.symexp import SymExp\n")
 		self.file.write("from common.transformer import Transformer\n")
 		self.file.write("import torch\n")
+		self.file.write("import functools\n")
 		self.file.write("\n");
 		self.in_get = False
 
@@ -26,7 +27,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 				self.file.write("temp.copy()")
 				return
 
-		if(node.left.type == "PolyExp" or node.left.type == "SymExp" or node.left.type == "Neuron" or node.left.type == "Noise"): #Has to be add, mult, minus or division		
+		if(node.left.type == "PolyExp" or node.left.type == "ZonoExp" or node.left.type == "Neuron" or node.left.type == "Noise"): #Has to be add, mult, minus or division		
 			self.file.write("(")
 			self.visit(node.left)
 			self.file.write(")")
@@ -40,7 +41,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 			self.file.write(")")
 			return
 
-		if(node.right.type == "PolyExp" or node.right.type == "SymExp" or node.right.type == "Neuron" or node.right.type == "Noise"): #Has to be add, mult, minus or division		
+		if(node.right.type == "PolyExp" or node.right.type == "ZonoExp" or node.right.type == "Neuron" or node.right.type == "Noise"): #Has to be add, mult, minus or division		
 			self.file.write("(")
 			self.visit(node.right)
 			self.file.write(")")
@@ -63,13 +64,31 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.visit(node.expr)
 
 	def visitArgmaxOp(self, node: AST.ArgmaxOpNode):
-		pass
+		#For max. Still have to implement argmin
+		self.file.write("[i_argmax for i_argmax in ")
+		self.visit(node.expr)
+		self.file.write(" if ")
+		self.visit(node.func)
+		self.file.write("(i_argmax) == ")
+		self.visit(node.func)
+		self.file.write("(max(")
+		self.visit(node.expr)
+		self.file.write(", key=")
+		self.visit(node.func)
+		self.file.write("))]")
+
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
-		pass
+		self.file.write("max")
+		self.visit(node.expr1)
+		self.file.write(", ")
+		self.visit(node.expr2)
+		self.file.write(")")
 
 	def visitMaxOpList(self, node: AST.MaxOpListNode):
-		pass
+		self.file.write("max(")
+		self.visit(node.expr)
+		self.file.write(")")
 
 	def visitVar(self, node: AST.VarNode):
 		if(not self.in_get and node.type == "Neuron"):
@@ -113,10 +132,7 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	def visitMap(self, node: AST.MapNode):
 		self.visit(node.expr)
-		if(node.expr.type == "PolyExp"):
-			self.file.write(".map(abs_elem, neighbours, ")
-		else: #Zonoexp map
-			self.file.write(".map(")
+		self.file.write(".map(abs_elem, neighbours, ")
 		if(isinstance(node.func, AST.VarNode)):
 			self.file.write(node.func.name)
 		else:
@@ -125,7 +141,24 @@ class AstInterpret(astVisitor.ASTVisitor):
 		self.file.write(")")
 
 	def visitDot(self, node: AST.DotNode):
-		pass
+		self.left_type = str(node.left.type).split(" ")[0]
+		self.right_type = str(node.right.type).split(" ")[0]
+		if(self.left_type == "PolyExp" or self.left_type == "ZonoExp"):
+			in_list = True
+			self.file.write("functools.reduce(lambda a_dot, b_dot: a_dot.add(b_dot),[i_dot[0].mult(i_dot[1]) for i_dot in zip(")
+		elif(self.right_type == "PolyExp" or self.right_type == "ZonoExp"):
+			in_list = True
+			self.file.write("functools.reduce(lambda a_dot, b_dot: a_dot.add(b_dot),[i_dot[1].mult(i_dot[0]) for i_dot in zip(")
+		else:
+			in_list = False
+			self.file.write("sum(i_dot[0] * i_dot[1] for i_dot in zip(")
+		self.visit(node.left)
+		self.file.write(",")
+		self.visit(node.right)
+		if(in_list):
+			self.file.write(")])")
+		else:
+			self.file.write("))")
 	
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		self.in_get = True
@@ -142,26 +175,62 @@ class AstInterpret(astVisitor.ASTVisitor):
 
 	#Do we have to do a seperate analysis to know when to pass the weight and bias to defined functions?
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
-		self.in_get = True
-		if(node.metadata.name == "layer"):
+		if(not isinstance(node.expr.type, str)):
+			self.file.write("[")
+
+			if(node.metadata.name == "layer"):
+				self.file.write("i_metadata")
+				self.file.write("[0]")
+			elif(node.metadata.name == "weight"):
+				# self.file.write("w[")
+				# self.file.write("i_metadata")
+				# self.file.write("]")
+				self.file.write("w")
+			elif(node.metadata.name == "bias"):
+				self.file.write("b")
+
+			self.file.write(" for i_metadata in ")
+			self.in_get = True
 			self.visit(node.expr)
-			self.file.write("[0]")
-		elif(node.metadata.name == "weight"):
-			self.file.write("w[")
-			self.visit(node.expr)
-			self.file.visit("]")
-		elif(node.metadata.name == "bias"):
-			self.file.write("b")
-		self.in_get = False
+			self.in_get = False
+			self.file.write("]")
+		else:
+			self.in_get = True
+			if(node.metadata.name == "layer"):
+				self.visit(node.expr)
+				self.file.write("[0]")
+			elif(node.metadata.name == "weight"):
+				self.file.write("w")
+				# self.file.write("w[")
+				# self.visit(node.expr)
+				# self.file.write("]")
+			elif(node.metadata.name == "bias"):
+				self.file.write("b")
+			self.in_get = False
 
 	def visitGetElement(self, node):
-		self.in_get = True
-		self.file.write("abs_elem.get_elem(\'")
-		self.visit(node.elem)
-		self.file.write("\', ")
-		self.visit(node.expr)
-		self.file.write(")")
-		self.in_get = False
+		if(not isinstance(node.expr.type, str)):
+			self.in_get = True
+			self.file.write("[")
+
+			self.file.write("abs_elem.get_elem(\'")
+			self.visit(node.elem)
+			self.file.write("\', ")
+			self.file.write("i_element")
+			self.file.write(")")
+
+			self.file.write(" for i_element in ")
+			self.visit(node.expr)
+			self.in_get = False
+			self.file.write("]")
+		else:
+			self.in_get = True
+			self.file.write("abs_elem.get_elem(\'")
+			self.visit(node.elem)
+			self.file.write("\', ")
+			self.visit(node.expr)
+			self.file.write(")")
+			self.in_get = False
 
 	def visitShapeDecl(self, node: AST.ShapeDeclNode):
 		shape_names = []
@@ -217,9 +286,9 @@ class AstInterpret(astVisitor.ASTVisitor):
 					if(stype.name == "PolyExp"):
 						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
 						self.file.write(self.indent + "\t" + sname + " = " + "PolyExp(abs_elem.shapes).populate(" + sname + ", [])\n")
-					if(stype.name == "SymExp"):
+					if(stype.name == "ZonoExp"):
 						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
-						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+", [])\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+")\n")
 
 			self.file.write(self.indent + "return ")
 			if(len(self.shape_names)>0):
@@ -251,9 +320,9 @@ class AstInterpret(astVisitor.ASTVisitor):
 					if(stype.name == "PolyExp"):
 						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
 						self.file.write(self.indent + "\t" + sname + " = " + "PolyExp(abs_elem.shapes).populate(" + sname + ", [])\n")
-					if(stype.name == "SymExp"):
+					if(stype.name == "ZonoExp"):
 						self.file.write(self.indent + "if isinstance("+sname+",float) or isinstance("+sname+",int):\n")
-						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+", [])\n")
+						self.file.write(self.indent + "\t" + sname + " = " + "SymExp().populate("+sname+")\n")
 
 			self.file.write(self.indent + "return ")
 			if(len(self.shape_names)>0):

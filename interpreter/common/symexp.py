@@ -9,7 +9,7 @@ class SymExp:
         self.const = const 
 
     def copy(self):
-        res = SymExp(const=self.const)
+        res = SymExp(const=copy.deepcopy(self.const))
         res.mat = copy.deepcopy(self.mat)
         return res 
 
@@ -65,10 +65,10 @@ class SymExp:
             self.mat[i] = self.mat[i]*c
         return self
     
-    def map(self, f):
+    def map(self, abs_elem, neighbours, f):
         res = SymExp(const = self.const)
         for i in range(len(self.mat)):
             if self.mat[i] != 0:
-                tmp = f(i, self.mat[i])
+                tmp = f(i, self.mat[i], abs_elem, neighbours)
                 res.add(tmp)
         return res 
