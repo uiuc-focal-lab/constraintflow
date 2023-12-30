@@ -14,7 +14,7 @@ class PolyExp:
         self.const = const 
 
     def copy(self):
-        res = PolyExp(self.shapes, [], const=self.const)
+        res = PolyExp(self.shapes, [], const=copy.deepcopy(self.const))
         for i in range(len(self.mat)):
             res.mat.append(self.mat[i].clone())
         return res 
