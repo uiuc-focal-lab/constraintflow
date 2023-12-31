@@ -1,2 +1,5 @@
 __pycache__/
 **/__pycache__/
+interpreter/common/__pycache__/*
+interpreter/specs/__pycache__/*
+verification/ast/*
