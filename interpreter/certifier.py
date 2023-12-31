@@ -3,6 +3,7 @@ from common.transformer import Transformer
 from specs.network import Network, LayerType
 
 import itertools 
+import time
 
 class Certifier:
     def __init__(self, abs_elem: Abs_elem, transformer:Transformer, model: Network, neighbours):
@@ -12,6 +13,7 @@ class Certifier:
         self.neighbours = neighbours
 
     def flow(self):
+        t_time = time.time()
         for tmp, layer in enumerate(self.model):
             layer_num = tmp+1
             print(layer_num, layer.type, layer.shape)
@@ -48,3 +50,5 @@ class Certifier:
                     b = layer.bias[index[1]]
                     abs_shape = self.transformer.fc(self.abs_elem, self.neighbours, prev, curr, w, b)
                     self.abs_elem.update_elem(curr, abs_shape)
+            print(time.time()-t_time)
+            t_time = time.time()
