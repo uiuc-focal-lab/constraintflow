@@ -108,8 +108,8 @@ class CflowInterval(Transformer):
     def fc(self, abs_elem, neighbours, prev, curr, w, b):
         temp = PolyExp(abs_elem.shapes)
         temp.populate(b, prev, w)
-        l_new = temp.map(abs_elem, neighbours, simplify_lower)
-        u_new = temp.map(abs_elem, neighbours, simplify_upper)
+        l_new = temp.copy().map(abs_elem, neighbours, simplify_lower)
+        u_new = temp.copy().map(abs_elem, neighbours, simplify_upper)
         return l_new.get_const(), u_new.get_const() 
     
 class CflowDeepPoly(Transformer): 
