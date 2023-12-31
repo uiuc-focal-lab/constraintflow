@@ -54,7 +54,7 @@ for i in range(1, len(shapes)):
 l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.02)
 abs_elem = Abs_elem({'l': l, 'u': u, 'L': L, 'U': U}, {'l': 'float', 'u': 'float', 'L': 'PolyExp', 'U': 'PolyExp'}, shapes)
 
-# l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=2.0)
+# l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.0)
 # abs_elem = Abs_elem({'l': l, 'u': u}, {'l': 'float', 'u': 'float'}, shapes)
 
 # l, u, Z= get_input_spec(shapes=shapes, n=1, transformer='deepz', eps=2.0)
