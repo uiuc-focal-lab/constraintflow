@@ -49,13 +49,14 @@ class Certifier:
                 abs_shape = self.transformer.relu(self.abs_elem, self.neighbours, prev, curr)
                 # print(abs_shape[2].const.shape)
                 # dfsjh
-                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0].flatten()
-                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1].flatten()
+                self.abs_elem.d['t'][curr_s:curr_e+1] = True
+                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0]
+                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1]
                 if len(abs_shape)>2:
                     self.abs_elem.d['L'].mat[curr_s:curr_e+1] = abs_shape[2].mat 
-                    self.abs_elem.d['L'].const[curr_s:curr_e+1] = abs_shape[2].const.flatten()
+                    self.abs_elem.d['L'].const[curr_s:curr_e+1] = abs_shape[2].const
                     self.abs_elem.d['U'].mat[curr_s:curr_e+1] = abs_shape[3].mat 
-                    self.abs_elem.d['U'].const[curr_s:curr_e+1] = abs_shape[3].const.flatten()
+                    self.abs_elem.d['U'].const[curr_s:curr_e+1] = abs_shape[3].const
                 curr_s = curr_e + 1
                 
             elif layer.type == LayerType.Linear:
@@ -78,8 +79,9 @@ class Certifier:
                 # print(abs_shape[2].const.shape)
                 # print(abs_shape[3].const.shape)
                 # jsdh
-                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0].flatten()
-                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1].flatten()
+                self.abs_elem.d['t'][curr_s:curr_e+1] = True
+                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0]
+                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1]
                 if len(abs_shape)>2:
                     self.abs_elem.d['L'].mat[curr_s:curr_e+1] = abs_shape[2].mat 
                     self.abs_elem.d['L'].const[curr_s:curr_e+1] = abs_shape[2].const 
@@ -111,8 +113,9 @@ class Certifier:
                 # print(abs_shape[2].const.shape)
                 # print(abs_shape[3].const.shape)
                 # jsdh
-                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0].flatten()
-                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1].flatten()
+                self.abs_elem.d['t'][curr_s:curr_e+1] = True
+                self.abs_elem.d['l'][curr_s:curr_e+1] = abs_shape[0]
+                self.abs_elem.d['u'][curr_s:curr_e+1] = abs_shape[1]
                 if len(abs_shape)>2:
                     self.abs_elem.d['L'].mat[curr_s:curr_e+1] = abs_shape[2].mat 
                     self.abs_elem.d['L'].const[curr_s:curr_e+1] = abs_shape[2].const 
@@ -135,8 +138,7 @@ class Certifier:
             #         self.abs_elem.update_elem(curr, abs_shape)
             print(time.time()-t_time)
             t_time = time.time()
-            # print(abs_shape[0]) 
-            # print(abs_shape[1])
+        print(abs_shape[0]) 
+        print(abs_shape[1])
         print('time taken', time.time() - begin_time)
         
-            # djhd

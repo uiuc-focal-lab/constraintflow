@@ -1,4 +1,5 @@
 import torch
+import copy
 from common.polyexp import PolyExpNew
 
 class Abs_elem:
@@ -30,11 +31,23 @@ class Abs_elem:
     #     elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
     #         return res.clone()
         
+    def get_live_nlist(self, nlist):
+        live_neurons = torch.nonzero(self.d['t']).flatten()
+        if nlist.nlist_flag:
+            selected_live_neurons = live_neurons[torch.isin(live_neurons, nlist.nlist)]
+        else:
+            selected_live_neurons = live_neurons[live_neurons >= nlist.start & live_neurons <= nlist.end]
+        nlist_new = copy.deepcopy(nlist)
+        nlist_new.nlist_flag = True 
+        nlist_new.nlist = selected_live_neurons 
+        return nlist_new
+
+        
     def get_elem_new(self, key, nlist):
+        nlist = self.get_live_nlist(nlist)
         if nlist.nlist_flag:
             if self.types[key] == 'int' or self.types[key] == 'float':
                 res = self.d[key][nlist.nlist]
-                res = res.reshape(-1,1)
                 return res 
             elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
                 val_mat = self.d[key].mat[nlist.nlist]
@@ -52,6 +65,33 @@ class Abs_elem:
                 size = self.d[key].size 
                 res = PolyExpNew(size=size, mat=val_mat, const=val_const)
                 return res
+            
+    # def get_elem_new(self, key, nlist):
+    #     live_neurons = self.get_live_nlist(nlist)
+    #     flag = True 
+    #     # if nlist.nlist_flag:
+    #     if flag:
+    #         if self.types[key] == 'int' or self.types[key] == 'float':
+    #             res = self.d[key][live_neurons]
+    #             # res = res.reshape(-1,1)
+    #             return res 
+    #         elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
+    #             val_mat = self.d[key].mat[nlist.nlist]
+    #             val_const = self.d[key].const[nlist.nlist]
+    #             size = self.d[key].size 
+    #             res = PolyExpNew(size=size, mat=val_mat, const=val_const)
+    #             return res
+    #     else:
+    #         if self.types[key] == 'int' or self.types[key] == 'float':
+    #             res = self.d[key][nlist.start:nlist.end+1]
+    #             # res = res.reshape(-1,1)
+    #             return res 
+    #         elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
+    #             val_mat = self.d[key].mat[nlist.start:nlist.end+1].clone()
+    #             val_const = self.d[key].const[nlist.start:nlist.end+1].clone()
+    #             size = self.d[key].size 
+    #             res = PolyExpNew(size=size, mat=val_mat, const=val_const)
+    #             return res
             
         
     def update_elem(self, neuron, vals):
