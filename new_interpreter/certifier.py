@@ -29,8 +29,7 @@ class Certifier:
         t_time = time.time()
         curr_s = compute_size(self.model.input_shape)
         for tmp, layer in enumerate(self.model):
-            layer_num = tmp+1
-            print(layer_num, layer.type, layer.shape)
+            print(tmp+1, layer.type, layer.shape)
             shape = tuple(layer.shape) 
             size = compute_size(shape)
             curr_e = curr_s + size - 1 
@@ -46,7 +45,10 @@ class Certifier:
                 curr = Nlist(size = self.size, nlist = curr_mat)
 
                 # abs_shape = self.transformer.relu(self.abs_elem, self.neighbours, prev_s, prev_e, curr_s, curr_e)
-                abs_shape = self.transformer.relu(self.abs_elem, self.neighbours, prev, curr)
+                debug_flag = False 
+                if tmp==5:
+                    debug_flag = True 
+                abs_shape = self.transformer.relu(self.abs_elem, self.neighbours, prev, curr, debug_flag)
                 # print(abs_shape[2].const.shape)
                 # dfsjh
                 self.abs_elem.d['t'][curr_s:curr_e+1] = True
@@ -138,6 +140,11 @@ class Certifier:
             #         self.abs_elem.update_elem(curr, abs_shape)
             print(time.time()-t_time)
             t_time = time.time()
+            
+            temp = (abs_shape[1] - abs_shape[0] > 0).any()
+            if not temp:
+                print('what the hell in layer', tmp)
+                kjf
         print(abs_shape[0]) 
         print(abs_shape[1])
         print('time taken', time.time() - begin_time)

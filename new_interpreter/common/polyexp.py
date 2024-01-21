@@ -121,7 +121,7 @@ class PolyExpNew:
         indices = torch.arange(self.size)
         res = self.copy()
         while True:
-
+            s_time = time.time()
             a = res.mat != 0
             if callable(stop):
                 b = stop(indices, res.mat, abs_elem, neighbours)
@@ -131,16 +131,14 @@ class PolyExpNew:
             vertices = a & b
             if not(vertices.any()):
                 break  
-        # while(vertices.any()):
             all_priorities = priority(indices, res.mat, abs_elem, neighbours)
             masked_priorities = all_priorities[vertices]
             min_priority = masked_priorities.min()
             priority_vertices = all_priorities == min_priority
             priority_vertices[~vertices] = False
-            temp = res.copy()
-            temp.mat = temp.mat * priority_vertices
+            temp = PolyExpNew(res.size, res.mat.clone() * priority_vertices, 0)
             res.mat = res.mat - temp.mat
-            temp.const = 0
+            print('extra time inside traverse after map', time.time()-s_time)
             s_time = time.time()
             temp = temp.map(f, abs_elem, neighbours)
             print('inside traverse after map', time.time()-s_time)
