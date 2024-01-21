@@ -18,15 +18,21 @@ class Transformer:
 
 
 class CflowNewDeepPoly(Transformer): 
-    def relu(self, abs_elem, neighbours, prev, curr):
+    def relu(self, abs_elem, neighbours, prev, curr, debug_flag=False):
         N = abs_elem.d['l'].size(0)
         l = abs_elem.get_elem_new('l', prev)
         u = abs_elem.get_elem_new('u', prev)
         
+        # if debug_flag:
+        #     l_new = torch.where(l>=0, l, torch.where(u<=0, 0, 0))
+        #     u_new = torch.where(l>=0, u, torch.where(u<=0, 0, u))
+        # else:
+        #     l_new = l 
+        #     u_new = u
 
         l_new = torch.where(l>=0, l, torch.where(u<=0, 0, 0))
         u_new = torch.where(l>=0, u, torch.where(u<=0, 0, u))
-        
+
         prev_polyexp_mat = prev.sum().mat 
         prev_polyexp_const = prev.sum().const.reshape(-1,1)
 
@@ -50,8 +56,14 @@ class CflowNewDeepPoly(Transformer):
         
         L_new = PolyExpNew(N, L_new_mat, L_new_const)
         U_new = PolyExpNew(N, U_new_mat, U_new_const)
+        
+        temp = (u_new - l_new) >= 0
+        assert(temp.all())
 
+        # if debug_flag:
+        #     return l_new, u_new, L_new, U_new 
         return l_new, u_new, L_new, U_new 
+        return l, u, L_new, U_new 
 
     def fc(self, abs_elem, neighbours, prev, curr, W, B, debug_flag):
         polyexp = prev.dot(W).add(B)
@@ -73,12 +85,16 @@ class CflowNewInterval(Transformer):
         u = abs_elem.get_elem_new('u', prev)
         l_new = torch.where(l>=0, l, torch.where(u<=0, 0, 0))
         u_new = torch.where(l>=0, u, torch.where(u<=0, 0, u))
+
+
         return l_new, u_new 
     
     def fc(self, abs_elem, neighbours, prev, curr, W, B, debug_flag):
         polyexp = prev.dot(W).add(B)
         l_new = polyexp.map(simplify_lower, abs_elem, neighbours)
         u_new = polyexp.map(simplify_upper, abs_elem, neighbours)
+
+
         return l_new, u_new 
 
 def simplify_lower(n, c, abs_elem, neighbours):
@@ -93,8 +109,12 @@ def simplify_lower(n, c, abs_elem, neighbours):
     indices = c >= 0
     c_pos = torch.where(indices, c, 0)
     c_neg = torch.where(~indices, c, 0)
+
+    
     
     res = c_pos @ l + c_neg @ u
+    
+
     return res 
     
 
@@ -110,8 +130,11 @@ def simplify_upper(n, c, abs_elem, neighbours):
     indices = c >= 0
     c_pos = torch.where(indices, c, 0)
     c_neg = torch.where(~indices, c, 0)
+
+    
     
     res = c_pos @ u + c_neg @ l
+
     return res 
 
 def replace_lower(n, c, abs_elem, neighbours):
@@ -170,7 +193,8 @@ def replace_upper(n, c, abs_elem, neighbours):
 
 
 def stop(n, c, abs_elem, neighbours):
-    return torch.ones(c.shape, dtype=torch.bool)*0
+    return n<784
+    return torch.zeros(c.shape, dtype=torch.bool)
     return False 
 
 def priority(n, c, abs_elem, neighbours):
@@ -179,9 +203,10 @@ def priority(n, c, abs_elem, neighbours):
 
 def backsubs_lower(p, n, abs_elem, neighbours):
     res = p.traverse(stop, priority, replace_lower, abs_elem, neighbours, replace_lower)
-    res = res.map(simplify_lower, abs_elem, neighbours)
-    return res
+    return res.map(simplify_lower, abs_elem, neighbours)
+    return res.const 
 
 def backsubs_upper(p, n, abs_elem, neighbours):
     res = p.traverse(stop, priority, replace_upper, abs_elem, neighbours)
     return res.map(simplify_upper, abs_elem, neighbours)
+    return res.const 

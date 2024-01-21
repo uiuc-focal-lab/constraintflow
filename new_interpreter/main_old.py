@@ -25,7 +25,7 @@ for layer in net:
     shapes.append(layer.shape)
 
 
-t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.0)
+t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.02)
 # t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.0)
 
 # abs_elem = Abs_elem({'t': t, 'l': l, 'u': u}, {'t': 'bool', 'l': 'float', 'u': 'float'}, shapes)
