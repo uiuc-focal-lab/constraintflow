@@ -200,6 +200,7 @@ class NEG(TerminalValue):
 
 	def __init__(self, right):
 		self.right = right
+		self.left = right
 
 	def __eq__(self, obj):
 		if(isinstance(obj, NEG)):

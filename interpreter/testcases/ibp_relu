@@ -4,10 +4,10 @@ func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (co
 func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
 
 func priority(Neuron n) = n[layer];
-
+func stop(Neuron n) = true;
 
 transformer ibp{
     Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u])) : (((prev[u]) <= 0) ? (0, 0) : (0, (prev[u])));
 }
 
-flow(forward, priority, true, ibp);
+flow(forward, priority, stop, ibp);
