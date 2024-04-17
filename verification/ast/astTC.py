@@ -360,6 +360,7 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitTernary(self, node: AST.TernaryNode):
 		ctype = self.visit(node.cond)
 		if(not self.isSubType(ctype, "Bool")):
+			print(ctype)
 			raise TypeMismatchException("Condition has to be boolean")
 
 		ltype = self.visit(node.texpr)
@@ -624,6 +625,7 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitTransRetIf(self, node: AST.TransRetIfNode):
 		ctype = self.visit(node.cond)
 		if(not self.isSubType(ctype, "Bool")):
+			print(ctype)
 			raise TypeMismatchException("Condition has to be boolean")
 
 		self.visit(node.tret)
@@ -634,6 +636,8 @@ class ASTTC(astVisitor.ASTVisitor):
 		if node.op.op_name == 'Affine':
 			self.Gamma['prev'] = ArrayType('Neuron')
 		elif node.op.op_name == 'Relu':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'Hardtanh':
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'rev_Relu':
 			self.Gamma['prev'] = 'Neuron'

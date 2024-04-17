@@ -7,10 +7,12 @@ func replace_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[L]) : (coe
 func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coeff * n[L]);
 
 func priority(Neuron n) = n[layer];
-func priority2(Neuron n) = -n[layer];
+func priority2(Neuron n, Float c) = 0-n[layer];
+func stop(Neuron n, Float c) = false;
+func stop2(Neuron n) = true;
 
-func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, false, replace_lower){e <= n}).map(simplify_lower);
-func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, false, replace_upper){e >= n}).map(simplify_upper);
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop, replace_upper){e >= n}).map(simplify_upper);
 
 
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
@@ -21,4 +23,4 @@ transformer deeppoly{
     Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev), (prev)) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0, 0.0) : (0.0, (prev[u]), 0.0, (((prev[u]) / ((prev[u]) - (prev[l]))) * (prev)) - (((prev[u]) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
 }
 
-flow(forward, priority, true, deeppoly);
+flow(forward, priority, stop2, deeppoly);

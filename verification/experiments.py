@@ -1,6 +1,6 @@
 import sys
 sys.path.append('src/')
-sys.path.append('ast/')
+sys.path.append('../ast/')
 
 import antlr4 as antlr
 

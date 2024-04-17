@@ -1,0 +1,17 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n) = -n[layer];
+func stop(Neuron n) = true;
+func stop_traverse(Neuron n) = false;
+
+
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+transformer deeppoly{
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev), (prev)) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0, 0.0) : (0.0, (prev[u]), 0.0, (((prev[u]) / ((prev[u]) - (prev[l]))) * (prev)) - (((prev[u]) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
+}
+
+flow(forward, priority, stop, deeppoly);

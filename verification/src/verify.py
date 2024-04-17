@@ -118,7 +118,7 @@ class Verify(astVisitor.ASTVisitor):
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
 			op_ = op.op.op_name
-			if(op_ == "Relu" or op_=='rev_Relu' or op_ == 'rev_Maxpool'):
+			if(op_ == "Relu" or op_ == "Abs" or op_=='rev_Relu' or op_ == 'rev_Maxpool'):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
@@ -137,6 +137,9 @@ class Verify(astVisitor.ASTVisitor):
 			elif op_ == 'rev_Affine':
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Relu' or op_ == 'rev_Relu':
+				is_list = False 
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'Abs' or op_ == 'rev_Abs':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool':
@@ -256,6 +259,15 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "Abs"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, NEG(exptemp))
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)

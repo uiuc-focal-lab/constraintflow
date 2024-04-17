@@ -31,6 +31,7 @@ trans_decl : TRANSFORMER VAR;
 operator :
     AFFINE    
     | RELU     
+    | HARDTANH     
     | MAXPOOL   
     | NEURON_MULT
     | NEURON_ADD
@@ -199,6 +200,7 @@ BIAS: 'bias' ;
 LAYER: 'layer' ;
 AFFINE: 'Affine' ;
 RELU: 'Relu' ;
+HARDTANH: 'Hardtanh' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
@@ -228,13 +230,11 @@ LP: 'lp' ;
 CONCAT: 'concat' ;
 EQUATIONS: 'equations' ;
 
-IntConst: Sign? Digit+ ;
+IntConst: Digit+ ;
 
 FloatConst: [0-9]+'.'[0-9]+([Ee] [+-]? [0-9]+)? ;
 
 fragment Digit : [0-9] ;
-
-fragment Sign : [+-] ; 
 
 VAR : Nondigit (Nondigit | Digit | '\'')* ;
 fragment Nondigit : [a-zA-Z_] ;
