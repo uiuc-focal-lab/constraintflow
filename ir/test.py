@@ -10,7 +10,10 @@ import astBuilder
 import astTC
 import convert_to_ir_2 as c2r
 import cse
+import uses
+import representations
 import copy_propagation
+import rewrite
 import codeGen2 as codeGen
 from print import *
 
@@ -47,9 +50,12 @@ def genAST(inputfile):
     print("Creating IR", time.time()-ttime)
     ttime = time.time()
 
-    y = cse.cse(y)
-    y = copy_propagation.copy_proagate(y)
-    y = cse.cse(y)
+    # y = representations.ssa(y)
+    # y = uses.populate_uses(y)
+    # y = cse.cse(y)
+    # y = copy_propagation.copy_proagate(y)
+    # y = cse.cse(y)
+    y = rewrite.rewrite(y)
 
     print("CSE", time.time()-ttime)
     ttime = time.time()

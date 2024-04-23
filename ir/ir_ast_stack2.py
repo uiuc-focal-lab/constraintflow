@@ -186,13 +186,14 @@ class IrAst:
         self.identifier = IrAst.counter
         self.parents = []
         self.children = []
-        if self.identifier == 168:
-            print(type(self))
+        
     
     def update_parent_child(self, children):
         self.children = children 
         for child in children:
-            child.parents.append(self)
+            new_parents = set(child.parents)
+            new_parents.add(self)
+            child.parents = list(new_parents)
 
     def hash(self):
         self.hash_str = str(type(self))
@@ -256,6 +257,7 @@ class IrVar(IrExpression):
         super().__init__()
         self.name = name 
         self.irMetadata = irMetadata
+        self.uses = []
         
     def __str__(self):
         print(type(self), self.name)
@@ -267,10 +269,26 @@ class IrVar(IrExpression):
                 return True 
         return False
     
+    def __hash__(self):
+        return 0
+    
     def hash(self):
         self.hash_str = str(type(self))
         self.hash_str += self.name 
         return self.hash_str
+    
+class IrPhi(IrExpression):
+    def __init__(self, original_name, vars, irMetadata):
+        super().__init__()
+        self.original_name = original_name
+        self.irMetadata = irMetadata
+        self.update_parent_child(vars)
+
+    def __eq__(self, obj):
+        return self.identifier == obj.identifier
+    
+    def __hash__(self):
+        return 0
 
 class IrRepeat(IrExpression):
     def __init__(self, inputIr, irMetadata):
@@ -285,6 +303,12 @@ class IrRepeat(IrExpression):
     #     print(self.inputIr)
     #     return ''
 
+class IrConvertBoolToFloat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.irMetadata = inputIr.irMetadata
+        self.irMetadata[-1].type = 'Float'
+        self.update_parent_child([inputIr])
 
 
 class IrAddDimension(IrExpression):
@@ -518,6 +542,7 @@ class IrBinaryOp(IrExpression):
         if self.op in ['>', '>=', '==', '<', '<=']:
             new_type = 'Bool'
         self.irMetadata[-1].type = new_type
+        self.irMetadata[-1].isConst = lhsIrMetadata[-1].isConst and rhsIrMetadata[-1].isConst    
         self.update_parent_child([lhsIr, rhsIr])
 
     # def __str__(self):
@@ -766,9 +791,10 @@ class IrSymbolic(IrExpression):
         super().__init__()
         self.name = name
         self.irMetadata = irMetadata
+        self.uses = []
 
     def __eq__(self, obj):
-        if type(obj)==IrCustomCodeGen:
+        if type(obj)==IrSymbolic:
             if self.name == obj.name:
                 return True 
         return False 
@@ -842,14 +868,14 @@ class IrBreak(IrStatement):
         super().__init__()
 
 class IrCustomCodeGen(IrStatement):
-    def __init__(self, documentation, name):
+    def __init__(self, documentation, var):
         super().__init__()
         self.documentation = documentation
-        self.name = name
+        self.update_parent_child([var])
 
     def __eq__(self, obj):
         if type(obj)==IrCustomCodeGen:
-            if self.documentation == obj.documentation and self.name == obj.name:
+            if self.documentation == obj.documentation and self.children == obj.children:
                 return True 
         return False 
     

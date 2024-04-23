@@ -139,7 +139,7 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrCustomCodeGen(self, node):
         if node.documentation == 'stop':
-            self.write('vertices = ' + node.name + '.mat != 0')
+            self.write('vertices = ' + self.visit(node.children[0]) + '.mat != 0')
             self.write('vertices_stop = convert_to_tensor(vertices_stop, poly_size) != True')
             self.write('vertices_stop_default = torch.zeros(vertices_stop.size())')
             self.write('vertices_stop_default[0:input_size] = 1')
@@ -151,7 +151,7 @@ class CodeGen(irVisitor.IRVisitor):
         elif node.documentation == 'priority':
             print('CODE GEN FOR PRIORITY NOT IMPLEMENTED')
         elif node.documentation == 'trav_size':
-            self.write('trav_size = ' + node.name + '.const.shape[0]')
+            self.write('trav_size = ' + self.visit(node.children[0]) + '.const.shape[0]')
         else:
             raise Exception('NOT IMPLEMENTED')
         
@@ -162,6 +162,18 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrVar(self, node):
         return node.name
+    
+    def visitIrPhi(self, node):
+        s = 'phi(['
+        for i in range(len(node.children)):
+            s += self.visit(node.children[i])
+            if i != len(node.children)-1:
+                s += ', '
+        s += '])'
+        return s
+    
+    def visitIrConvertBoolToFloat(self, node):
+        return 'convert_to_float(' + self.visit(node.children[0]) + ')'
 
     def visitIrRepeat(self, node):
         [inputIr] = node.children
@@ -190,9 +202,6 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrAddDimensionConst(self, node):
         assert(isinstance(node, IrAddDimensionConst))
         [inputIr] = node.children
-        # print('!!!!!!!!!!!!!!!!')
-        # print(inputIr)
-        # sdj
         size = 0
         repeat_dims = ''
         for i in range(len(node.irMetadata)):

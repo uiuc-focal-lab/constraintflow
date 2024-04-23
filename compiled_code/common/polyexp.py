@@ -134,6 +134,7 @@ class PolyExpNew:
     
     def get_mat(self, abs_elem):
         if not isinstance(self.mat, torch.Tensor):
+            # TODO. IF IT IS NOT A TENSOR, IT HAS TO BE CONVERTED TO A TENSOR BEFORE RETURNING
             return self.mat
         live_neurons = torch.nonzero(abs_elem.d['t']).flatten()
         # print(self.mat)

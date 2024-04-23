@@ -73,14 +73,14 @@ class Certifier:
             temp = (abs_shape[1] - abs_shape[0] >= 0).any()
             if not temp:
                 raise Exception('Something is not right')
-        matrix = self.abs_elem.d['U'].mat[-10:, -10:]
-        torch.set_printoptions(edgeitems=matrix.numel(), threshold=matrix.numel())
+        # matrix = self.abs_elem.d['U'].mat[-10:, -10:]
+        # torch.set_printoptions(edgeitems=matrix.numel(), threshold=matrix.numel())
         print(abs_shape[0])
         print(abs_shape[1])
-        print(abs_shape[2].mat.shape)
-        print(abs_shape[2].mat[:, -10:], abs_shape[2].const)
-        print(abs_shape[3].mat[:, -10:], abs_shape[3].const)
+        # print(abs_shape[2].mat.shape)
+        # print(abs_shape[2].mat[:, -10:], abs_shape[2].const)
+        # print(abs_shape[3].mat[:, -10:], abs_shape[3].const)
         print()
-        print((self.abs_elem.d['U'].mat[-20:, :]).sum())
+        # print((self.abs_elem.d['U'].mat[-20:, :]).sum())
         print('time taken', time.time() - begin_time)
         

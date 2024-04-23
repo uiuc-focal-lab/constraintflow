@@ -1,14 +1,11 @@
 import torch 
 
 def checkTypes(x, y):
-    # if isinstance(x, float) or isinstance(y, float) or isinstance(x, int) or isinstance(y, int):
-    #     return 
     if type(x) != type(y):
+        print(type(x), type(y))
         raise Exception('TYPE MISMATCH')
 
 def checkShapes(x, y):
-    # if isinstance(x, float) or isinstance(y, float) or isinstance(x, int) or isinstance(y, int):
-    #     return 
     if x.shape != y.shape:
         print(x.shape, y.shape)
         raise Exception('SHAPE MISMATCH')
@@ -56,5 +53,13 @@ def divide(x, y):
 
 def convert_to_tensor(x, shape):
     if not isinstance(x, torch.Tensor):
-        return (torch.ones(shape).bool())*x 
+        return torch.ones(shape)*x 
     return x
+
+def convert_to_float(x):
+    return x.float()
+
+def phi(l):
+    pass
+
+print('!!!!!!!!!!!!!!!!!!!!!!')
