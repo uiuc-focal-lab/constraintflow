@@ -222,19 +222,19 @@ class ConvertToIr(astVisitor.ASTVisitor):
         varStopIr = IrVar('vertices_stop', stopIr.irMetadata)
         tempStop = IrAssignment(varStopIr, stopIr)
         stopSeqIr.append(tempStop)
-        stopSeqIr.append(IrCustomCodeGen('stop', varIr.name))
+        stopSeqIr.append(IrCustomCodeGen('stop', varIr))
 
         priorityIr, prioritySeqIr = self.visitMap(None, polyExpIr, [], ast_node.priority, False)
         varPriorityIr = IrVar('vertices_priority', priorityIr.irMetadata)
         tempPriority = IrAssignment(varPriorityIr, priorityIr)
         prioritySeqIr.append(tempPriority)
-        prioritySeqIr.append(IrCustomCodeGen('priority', varIr.name))
+        prioritySeqIr.append(IrCustomCodeGen('priority', varIr))
 
         funcIr, funcSeqIr = self.visitMap(None, polyExpIr, [], ast_node.func, True)
         tempFunc = IrAssignment(varIr, funcIr)
         funcSeqIr.append(tempFunc)
 
-        trav_size_assignment = IrCustomCodeGen('trav_size', varIr.name)
+        trav_size_assignment = IrCustomCodeGen('trav_size', varIr)
 
         seqIr = [trav_size_assignment] + stopSeqIr + prioritySeqIr + funcSeqIr
         

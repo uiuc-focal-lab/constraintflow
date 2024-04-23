@@ -8,6 +8,12 @@ class IRVisitor:
         elif isinstance(node, IR.IrVar):
             return self.visitIrVar(node)
         
+        elif isinstance(node, IR.IrPhi):
+            return self.visitIrPhi(node)
+        
+        elif isinstance(node, IR.IrConvertBoolToFloat):
+            return self.visitIrConvertBoolToFloat(node)
+        
         elif isinstance(node, IR.IrRepeat):
             return self.visitIrRepeat(node)
         
