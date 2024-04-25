@@ -14,6 +14,12 @@ class IRVisitor:
         elif isinstance(node, IR.IrConvertBoolToFloat):
             return self.visitIrConvertBoolToFloat(node)
         
+        elif isinstance(node, IR.IrConvertToTensor):
+            return self.visitIrConvertToTensor(node)
+        
+        elif isinstance(node, IR.IrGetDefaultStop):
+            return self.visitIrGetDefaultStop(node)
+        
         elif isinstance(node, IR.IrRepeat):
             return self.visitIrRepeat(node)
         
@@ -25,6 +31,9 @@ class IRVisitor:
         
         elif isinstance(node, IR.IrBinaryOp):
             return self.visitIrBinaryOp(node)
+        
+        elif isinstance(node, IR.IrUnaryOp):
+            return self.visitIrUnaryOp(node)
         
         elif isinstance(node, IR.IrMult):
             return self.visitIrMult(node)
@@ -68,14 +77,26 @@ class IRVisitor:
         elif isinstance(node, IR.IrAssignment):
             return self.visitIrAssignment(node)
         
+        elif isinstance(node, IR.IrIte):
+            return self.visitIrIte(node)
+        
+        elif isinstance(node, IR.IrBreak):
+            return self.visitIrBreak(node)
+        
         elif isinstance(node, IR.IrTransRetBasic):
             return self.visitIrTransRetBasic(node)
         
         elif isinstance(node, IR.IrWhile):
             return self.visitIrWhile(node)
         
-        elif isinstance(node, IR.IrCustomCodeGen):
-            return self.visitIrCustomCodeGen(node)
+        elif isinstance(node, IR.IrBlock):
+            return self.visitIrBlock(node)
+        
+        elif isinstance(node, IR.IrBreak):
+            return self.visitIrBreak(node)
+        
+        # elif isinstance(node, IR.IrCustomCodeGen):
+        #     return self.visitIrCustomCodeGen(node)
         
         # elif isinstance(node, IR.IrTransRetIf):
         #     return self.visitIrTransRetIf(node)

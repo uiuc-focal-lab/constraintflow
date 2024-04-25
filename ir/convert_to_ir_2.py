@@ -4,6 +4,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../ast'))
 import astcf as AST
 import astVisitor
 from ir_ast_stack2 import *
+import representations
 
 class FuncDef:
     def __init__(self, retIr, argIrs):
@@ -222,19 +223,56 @@ class ConvertToIr(astVisitor.ASTVisitor):
         varStopIr = IrVar('vertices_stop', stopIr.irMetadata)
         tempStop = IrAssignment(varStopIr, stopIr)
         stopSeqIr.append(tempStop)
-        stopSeqIr.append(IrCustomCodeGen('stop', varIr))
+
+
+        custom_stop_assignments = []
+        
+        rhs = IrBinaryOp(IrExtractPolyCoeff(varIr), IrConst(0, 'Float'), '!=')
+        new_var_vertices = IrVar('vertices'+str(self.counter), rhs.irMetadata)
+        new_assignment = IrAssignment(new_var_vertices, rhs)
+        custom_stop_assignments.append(new_assignment)
+
+        # rhs = IrBinaryOp(IrConvertToTensor(varStopIr, polyExpIr.irMetadata), IrConst(True, 'Bool'), '!=')
+        # rhs = IrUnaryOp(varStopIr, 'not')
+        # varStopIr = IrVar('vertices_stop_temp'+str(self.counter), rhs.irMetadata)
+        # new_assignment = IrAssignment(varStopIr, rhs)
+        # custom_stop_assignments.append(new_assignment)
+        
+        # rhs = IrGetDefaultStop(varStopIr)
+        rhs = IrGetDefaultStop(exprIr)
+        new_var = IrVar('vertices_stop_default'+str(self.counter), rhs.irMetadata)
+        new_assignment = IrAssignment(new_var, rhs)
+        custom_stop_assignments.append(new_assignment)
+
+        varStopTempIr = varStopIr
+        rhs = IrBinaryOp(varStopIr, new_var, 'or')
+        varStopIr = IrVar('vertices_stop_temp'+str(self.counter), rhs.irMetadata)
+        new_assignment = IrAssignment(varStopIr, IrBinaryOp(varStopTempIr, new_var, 'or'))
+        custom_stop_assignments.append(new_assignment)
+
+        rhs = IrBinaryOp(new_var_vertices, IrUnaryOp(varStopIr, 'not'), 'and')
+        new_assignment = IrAssignment(new_var_vertices, rhs)
+        custom_stop_assignments.append(new_assignment)
+
+        cond = IrUnaryOp(IrUnaryOp(new_var_vertices, 'any'), 'not')
+        lhs = [IrBreak()]
+        rhs = []
+        ifStatement = IrIte(cond, lhs, rhs)
+        custom_stop_assignments.append(ifStatement)
+        stopSeqIr += custom_stop_assignments
 
         priorityIr, prioritySeqIr = self.visitMap(None, polyExpIr, [], ast_node.priority, False)
         varPriorityIr = IrVar('vertices_priority', priorityIr.irMetadata)
         tempPriority = IrAssignment(varPriorityIr, priorityIr)
         prioritySeqIr.append(tempPriority)
-        prioritySeqIr.append(IrCustomCodeGen('priority', varIr))
 
         funcIr, funcSeqIr = self.visitMap(None, polyExpIr, [], ast_node.func, True)
         tempFunc = IrAssignment(varIr, funcIr)
         funcSeqIr.append(tempFunc)
 
-        trav_size_assignment = IrCustomCodeGen('trav_size', varIr)
+        rhs = IrUnaryOp(IrExtractPolyConst(varIr), 'get_shape_0')
+        new_var = IrVar('trav_size', rhs.irMetadata)
+        trav_size_assignment = IrAssignment(new_var, rhs)
 
         seqIr = [trav_size_assignment] + stopSeqIr + prioritySeqIr + funcSeqIr
         
@@ -261,9 +299,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
             else:
                 rhsIr = [rhsIr]
         return lhsIr + rhsIr
-
-    # def visitTransRetBasic(self, ast_node):
-    #     return IrTransRetBasic([self.visit(expr) for expr in ast_node.exprlist.exprlist])
     
     def visitTransRetBasic(self, ast_node):
         retlist = []
@@ -317,8 +352,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
             self.store['prev'] = IrVar('prev', [IrMetadataElement([1, PREV_SIZE], 'Neuron', [CURR_SIZE, 1], False)])
         else:
             raise Exception('Not Implemented')
-        retIr = IrOpStmt(ast_node.op.op_name, self.visit(ast_node.ret))
+        cfg = representations.create_cfg(self.visit(ast_node.ret))
+        retIr = IrOpStmt(ast_node.op.op_name, cfg)
         self.store = original_store
+        
         return retIr
     
     def visitOpList(self, ast_node):

@@ -55,7 +55,7 @@ def genAST(inputfile):
     # y = cse.cse(y)
     # y = copy_propagation.copy_proagate(y)
     # y = cse.cse(y)
-    y = rewrite.rewrite(y)
+    # y = rewrite.rewrite(y)
 
     print("CSE", time.time()-ttime)
     ttime = time.time()
