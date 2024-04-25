@@ -41,6 +41,8 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("shapes.append(layer.shape)")
         self.indent -= 1
 
+        self.visited = set()
+
     def write(self, str, flag=True):
         self.file.write('\t'*self.indent + str)
         if flag:
@@ -97,8 +99,10 @@ class CodeGen(irVisitor.IRVisitor):
                 self.write('def ' + opStmtIr.op + '(self, abs_elem, prev, curr, poly_size, curr_size, prev_size, input_size):')
                 self.indent += 1
                 
-                for ir in opStmtIr.children:
-                    self.visit(ir)
+                cfg = opStmtIr.cfg
+                self.visit(cfg.ir[cfg.entry_node])
+                # for ir in opStmtIr.children:
+                #     self.visit(ir)
 
                 # self.visit(opStmtIr.inputIr)
                 self.indent -= 1
@@ -110,12 +114,51 @@ class CodeGen(irVisitor.IRVisitor):
         for i in range(len(node.irNodes)):
             self.visit(node.irNodes[i])
 
+    def visitIrBlock(self, node):
+        if not node in self.visited:
+            self.visited.add(node)
+            ir_list = node.children
+            for counter, i in enumerate(ir_list):
+                self.visit(i)
+            if node.inner_jump != None:
+                if len(node.inner_jump)==3:
+                    cond = self.visit(node.inner_jump[0])
+                    self.write('if(' + str(cond) + '):')
+                    self.indent += 1
+                    self.visit(node.inner_jump[1])
+                    self.indent -= 1
+                    self.write('else:')
+                    self.indent += 1
+                    self.visit(node.inner_jump[2])
+                    self.indent -= 1
+                elif not isinstance(node.inner_jump[1], IrWhileBlock):
+                    cond = self.visit(node.inner_jump[0])
+                    self.write('if(' + str(cond) + '):')
+                    self.indent += 1
+                    self.visit(node.inner_jump[1])
+                    self.indent -= 1
+                else:
+                    cond = self.visit(node.inner_jump[0])
+                    self.write('while(' + str(cond) + '):')
+                    self.indent += 1
+                    self.visit(node.inner_jump[1])
+                    self.indent -= 1
+            if node.jump != None:
+                print(node.jump)
+                self.visit(node.jump[1])
+
+    def visitIrBreak(self, node):
+        self.write('break')
+
     def visitIrAssignment(self, node):
         var = str(self.visit(node.children[0]))
         expr = str(self.visit(node.children[1]))
         # print(var)
         # print(expr)
         self.write(var + ' = ' + expr)
+
+    def visitIrBreak(self, node):
+        self.write('break')
 
     def visitIrTransRetBasic(self, node):
         exprs = []
@@ -129,6 +172,23 @@ class CodeGen(irVisitor.IRVisitor):
         ret_expr += exprs[-1]
         self.write(ret_expr)
 
+    def visitIrIte(self, node):
+        cond = self.visit(node.children[0])
+        self.write('if(' + cond + '):')
+        self.indent += 1
+        if len(node.children[1])>0:
+            for i in node.children[1]:
+                self.visit(i)
+        else:
+            self.write('pass')
+        self.indent -= 1
+        if len(node.children[2])>0:
+            self.write('else:')
+            self.indent += 1
+            for i in node.children[1]:
+                self.visit(i)
+            self.indent -= 1
+
     def visitIrWhile(self, node):
         cond = self.visit(node.children[0])
         self.write('while(' + str(cond) + '):')
@@ -137,28 +197,28 @@ class CodeGen(irVisitor.IRVisitor):
             self.visit(ir)
         self.indent -= 1
 
-    def visitIrCustomCodeGen(self, node):
-        if node.documentation == 'stop':
-            self.write('vertices = ' + self.visit(node.children[0]) + '.mat != 0')
-            self.write('vertices_stop = convert_to_tensor(vertices_stop, poly_size) != True')
-            self.write('vertices_stop_default = torch.zeros(vertices_stop.size())')
-            self.write('vertices_stop_default[0:input_size] = 1')
-            self.write('vertices_stop_default = vertices_stop_default.bool()')
-            self.write('vertices_stop = vertices_stop | vertices_stop_default')
-            self.write('vertices = vertices & (~ vertices_stop)')
-            self.write('if not(vertices.any()):')
-            self.write('\tbreak')
-        elif node.documentation == 'priority':
-            print('CODE GEN FOR PRIORITY NOT IMPLEMENTED')
-        elif node.documentation == 'trav_size':
-            self.write('trav_size = ' + self.visit(node.children[0]) + '.const.shape[0]')
-        else:
-            raise Exception('NOT IMPLEMENTED')
+    # def visitIrCustomCodeGen(self, node):
+    #     if node.documentation == 'stop':
+    #         self.write('vertices = ' + self.visit(node.children[0]) + '.mat != 0')
+    #         self.write('vertices_stop = convert_to_tensor(vertices_stop, poly_size) != True')
+    #         self.write('vertices_stop_default = torch.zeros(vertices_stop.size())')
+    #         self.write('vertices_stop_default[0:input_size] = 1')
+    #         self.write('vertices_stop_default = vertices_stop_default.bool()')
+    #         self.write('vertices_stop = vertices_stop | vertices_stop_default')
+    #         self.write('vertices = vertices & (~ vertices_stop)')
+    #         self.write('if not(vertices.any()):')
+    #         self.write('\tbreak')
+    #     elif node.documentation == 'priority':
+    #         print('CODE GEN FOR PRIORITY NOT IMPLEMENTED')
+    #     elif node.documentation == 'trav_size':
+    #         self.write('trav_size = ' + self.visit(node.children[0]) + '.const.shape[0]')
+    #     else:
+    #         raise Exception('NOT IMPLEMENTED')
         
     
 
     def visitIrConst(self, node):
-        return node.const
+        return str(node.const)
 
     def visitIrVar(self, node):
         return node.name
@@ -234,11 +294,44 @@ class CodeGen(irVisitor.IRVisitor):
             op_name = 'gt'
         elif node.op == '==':
             op_name = 'eq'
+        elif node.op == '!=':
+            op_name = 'ne'
+        elif node.op == 'and':
+            op_name = 'conj'
+        elif node.op == 'or':
+            op_name = 'disj'
         else:
             raise Exception('OP NOT IDENTIFIED', node.op)
         
         [lhsIr, rhsIr] = node.children
         return op_name + '(' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
+    
+    def visitIrUnaryOp(self, node):
+        op_name = None 
+        if node.op == '-':
+            op_name = 'neg'
+        elif node.op == 'not':
+            op_name = 'boolNeg'
+        elif node.op == 'any':
+            op_name = 'any'
+        elif node.op == 'get_shape_0':
+            op_name = 'get_shape_0'
+        else:
+            raise Exception('OP NOT IDENTIFIED', node.op)
+        
+        [inputIr] = node.children
+        return op_name + '(' + self.visit(inputIr) + ')'
+    
+    def visitIrGetDefaultStop(self, node):
+        return 'get_default_stop(' + self.visit(node.children[0]) + ')'
+    
+    def visitIrConvertToTensor(self, node):
+        def get_shape(irMetadata):
+            shape = []
+            for i in irMetadata:
+                shape += i.shape
+            return shape
+        return 'convert_to_tensor(' + self.visit(node.children[0]) + ', ' + str(get_shape(node.irMetadata)) +  ')'
 
     def visitIrMult(self, node):
         op_name = None 

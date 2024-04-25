@@ -65,7 +65,8 @@ class Graph:
             else:
                 for child in expr.children:
                     get_vars_expr(child, l)
-        def get_vars_block(ir_list, l):
+        def get_vars_block(block, l):
+            ir_list = block.children
             for i in range(len(ir_list)):
                 if isinstance(ir_list[i], IrAssignment):
                     get_vars_expr(ir_list[i].children[0], l)
@@ -73,12 +74,10 @@ class Graph:
                 elif isinstance(ir_list[i], IrTransRetBasic):
                     for child in ir_list[i].children:
                         get_vars_expr(child, l)
-                elif isinstance(ir_list[i], IrWhile):
-                    get_vars_expr(ir_list[i].children[0], l)
         vars = set()
         for node in self.nodes:
-            ir_list = self.ir[node]
-            get_vars_block(ir_list, vars)
+            block = self.ir[node]
+            get_vars_block(block, vars)
         return vars
     
     def get_vars_metadata(self):
@@ -86,25 +85,27 @@ class Graph:
             if isinstance(expr, IrVar) or isinstance(expr, IrSymbolic):
                 if expr.name not in l:
                     l[expr.name] = expr
-        def get_vars_block(ir_list, l):
+        def get_vars_block(block, l):
+            ir_list = block.children
             for i in range(len(ir_list)):
                 if isinstance(ir_list[i], IrAssignment):
                     get_vars_expr(ir_list[i].children[0], l)
         vars = dict()
         for node in self.nodes:
-            ir_list = self.ir[node]
-            get_vars_block(ir_list, vars)
+            block = self.ir[node]
+            get_vars_block(block, vars)
         return vars
     
     def get_nodes_modifying_vars(self, vars):
-        def get_nodes_modifying_vars_block(node, ir_list, l):
+        def get_nodes_modifying_vars_block(node, block, l):
+            ir_list = block.children
             for i in range(len(ir_list)):
                 if isinstance(ir_list[i], IrAssignment):
                     l[ir_list[i].children[0].name].append(node)
         vars_modifying_nodes = {var:[] for var in vars}
         for node in self.nodes:
-            ir_list = self.ir[node]
-            get_nodes_modifying_vars_block(node, ir_list, vars_modifying_nodes)
+            block = self.ir[node]
+            get_nodes_modifying_vars_block(node, block, vars_modifying_nodes)
         return vars_modifying_nodes
 
 
@@ -116,38 +117,135 @@ class Graph:
                 dot.edge(str(i), str(j))
         dot.render('graph', view=True)
 
+    def find_node(self, ir):
+        for i in self.nodes:
+            if self.ir[i].identifier==ir.identifier:
+                return i
+        return -1
+
 
 def create_cfg(ir_list):
     cfg = Graph()
-    def create_cfg_rec(ir_list, cfg):
+    def create_cfg_rec(ir_list, cfg, currBlock, currNode, whileBlock, exitWhileBlock):
         end = 0
-        while(True):
+        while(end < len(ir_list)):
             if isinstance(ir_list[end], IrWhile):
-                node_1 = cfg.add()
-                cfg.ir[node_1] = ir_list[:end]
-                node_2 = create_cfg_rec(ir_list[end].children[1:], cfg)
-                node_3 = create_cfg_rec(ir_list[end+1:], cfg) 
+                new_children = ir_list[:end]
+                currBlock.update_parent_child(new_children)
+                if whileBlock != None:
+                    if currBlock not in whileBlock.loopBody:
+                        whileBlock.loopBody.append(currBlock)
+                cond = ir_list[end].children[0]
+                node_2 = cfg.add()
+                block_2 = IrWhileBlock(ir_list[end].children[0])
+                print('!!!!!!!!!!!!', block_2.condIr)
+                cfg.ir[node_2] = block_2
 
-                cfg.successors[node_1].append(node_2)
-                cfg.successors[node_1].append(node_3)
+                node_3 = cfg.add()
+                block_3 = IrBlock()
+                cfg.ir[node_3] = block_3
+                currBlock.inner_jump = [cond, block_2]
 
-                cfg.predecessors[node_2].append(node_1)
-                cfg.predecessors[node_2].append(node_2)
-                cfg.successors[node_2].append(node_2)
+                cond = IrUnaryOp(cond, 'not')
+                currBlock.jump = [cond, block_3]
+
+                create_cfg_rec(ir_list[end].children[1:], cfg, block_2, node_2, block_2, block_3)
+                block_2.loopBody[-1].loopBack = [block_2.condIr, block_2]
+                
+                create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock)
+
+                cfg.successors[currNode].append(node_2)
+                cfg.successors[currNode].append(node_3)
+
+                cfg.predecessors[node_2].append(currNode)
+                node = cfg.find_node(block_2.loopBody[-1])
+                cfg.predecessors[node_2].append(node)
+                cfg.successors[node].append(node_2)
                 cfg.successors[node_2].append(node_3)
 
-                cfg.predecessors[node_3].append(node_1)
+                cfg.predecessors[node_3].append(currNode)
                 cfg.predecessors[node_3].append(node_2)
 
-                return node_1 
+
+                return  
             
+            elif isinstance(ir_list[end], IrIte):
+                new_children = ir_list[:end]
+                currBlock.update_parent_child(new_children)
+                if whileBlock != None:
+                    if currBlock not in whileBlock.loopBody:
+                        whileBlock.loopBody.append(currBlock)
+                cond_if = ir_list[end].condIr 
+                cond_else = IrUnaryOp(cond_if, 'not')
+                block_if = IrBlock()
+                node_if = cfg.add()
+                cfg.ir[node_if] = block_if
+                
+                create_cfg_rec(ir_list[end].lhsIrs, cfg, block_if, node_if, whileBlock, exitWhileBlock)
+
+                
+                
+                node_3 = cfg.add()
+                block_3 = IrBlock()
+                cfg.ir[node_3] = block_3
+                create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock)
+                currBlock.jump = [cond_else, block_3]
+
+                if len(ir_list[end].rhsIrs) > 0:
+                    block_else = IrBlock()
+                    node_else = cfg.add()
+                    cfg.ir[node_else] = block_else
+                    create_cfg_rec(ir_list[end].rhsIrs, cfg, block_if, node_if, whileBlock, exitWhileBlock)
+                    currBlock.inner_jump = [cond_if, block_if, block_else]
+                else:
+                    currBlock.inner_jump = [cond_if, block_if]
+
+
+                cfg.successors[currNode].append(node_if)
+                cfg.successors[node_if].append(node_3)
+                
+                cfg.predecessors[node_3].append(node_if)
+                cfg.predecessors[node_if].append(currNode)
+                
+
+                if len(ir_list[end].rhsIrs) > 0:
+                    cfg.successors[currNode].append(node_else)
+                    cfg.successors[node_else].append(node_3)
+
+                    cfg.predecessors[node_3].append(node_else)
+                    cfg.predecessors[node_else].append(currNode)
+                else:
+                    cfg.successors[currNode].append(node_3)
+                    cfg.predecessors[node_3].append(currNode)
+                
+                return 
+            
+            elif isinstance(ir_list[end], IrBreak):
+                exitWhileNode = cfg.find_node(exitWhileBlock)
+                cfg.successors[currNode].append(exitWhileNode)
+                cfg.predecessors[exitWhileNode].append(currNode)
+                new_children = ir_list[:end+1]
+                currBlock.update_parent_child(new_children)
+                if whileBlock != None:
+                    if currBlock not in whileBlock.loopBody:
+                        whileBlock.loopBody.append(currBlock)
+
+                return 
+
             else:
                 end += 1
                 if end >= len(ir_list):
-                    node = cfg.add()
-                    cfg.ir[node] = ir_list
-                    return node
-    create_cfg_rec(ir_list, cfg)
+                    new_children = ir_list[:end]
+                    currBlock.update_parent_child(new_children)
+                    if whileBlock != None:
+                        if currBlock not in whileBlock.loopBody:
+                            whileBlock.loopBody.append(currBlock)
+                    return 
+    rootBlock = IrBlock([])
+    whileBlock = None
+    rootNode = cfg.add()
+    cfg.ir[rootNode] = rootBlock
+    create_cfg_rec(ir_list, cfg, rootBlock, rootNode, whileBlock, whileBlock)
     return cfg
     
 
@@ -175,7 +273,6 @@ def find_dominators(cfg):
 
 def construct_dominator_tree(cfg):
     dominators = find_dominators(cfg)
-    # print(dominators)
     dominator_tree = Graph()
     for n in dominators.keys():
         dominator_tree.add(n)
@@ -215,7 +312,6 @@ def compute_dominance_frontier(cfg, dominator_tree):
 def get_phi_nodes(cfg, df):
     vars = cfg.get_vars()
     nodes_modifying_vars = cfg.get_nodes_modifying_vars(vars)
-    # print(vars)
     print(nodes_modifying_vars)
     phi_nodes = {var:[] for var in vars}
     for var in vars:
@@ -238,9 +334,6 @@ def get_phi_nodes(cfg, df):
                         worklist.add(y)
     phi_nodes_ret = {var:phi_nodes[var] for var in phi_nodes.keys() if len(phi_nodes[var])>1}
     print(phi_nodes_ret)
-    # del phi_nodes_ret['vertices_priority']
-    # del phi_nodes_ret['vertices_stop']
-    # del phi_nodes_ret['trav_exp2']
     print(phi_nodes_ret)
     return phi_nodes_ret
 
@@ -264,29 +357,25 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
     for var in vars_list:
         for node in phi_nodes[var]:
             print(var, node)
-            ir_list = cfg.ir[node]
+            block = cfg.ir[node]
             phi_node = IrPhi(var, [], metadata[var].irMetadata)
             new_assignment = IrAssignment(metadata[var], phi_node)
-            # print('!!!!!!!!!!', node, len(ir_list[0].parents))
-            parent_ir = ir_list[0].parents[0]
-            index = parent_ir.children.index(ir_list[0])
-            new_children = parent_ir.children 
-            new_children.insert(index, new_assignment)
-            parent_ir.update_parent_child(new_children)
-            ir_list.insert(0, new_assignment)
-            print(node, len(parent_ir.children), len(ir_list))
-            # print(new_assignment.parents)
-            # print(type(parent_ir))
+            new_children = block.children 
+            new_children.insert(0, new_assignment)
+            block.update_parent_child(new_children)
             
     def get_new_name(irVar, node, phi=False):
         var = irVar.name
         if var in counter.keys():
             i = counter[var]
             counter[var] += 1
-            if phi:
-                new_name = 'phi_' + var + '_' + str(node) + '_' + str(i)
+            if var=='trav_size':
+                new_name = 'trav_size'
             else:
-                new_name = var + '_' + str(node) + '_' + str(i)
+                if phi:
+                    new_name = 'phi_' + var + '_' + str(node) + '_' + str(i)
+                else:
+                    new_name = var + '_' + str(node) + '_' + str(i)
             new_var = IrVar(new_name, metadata[var])
             stack[var].append(new_var)
             original_vars[new_var.name] = var
@@ -304,34 +393,38 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
         expr.update_parent_child(new_children)
         return expr
     def rename(node):
-        ir_list = cfg.ir[node]
+        block = cfg.ir[node]
+        ir_list = block.children
         for j in range(len(ir_list)):
             if isinstance(ir_list[j], IrAssignment):
                 if isinstance(ir_list[j].children[1], IrPhi):
                     new_name = get_new_name(ir_list[j].children[0], node, True)
                     new_children = [new_name, ir_list[j].children[1]]
-                    ir_list[j].update_parent_child(new_children)        
+                    ir_list[j].update_parent_child(new_children)   
         for j in range(len(ir_list)):
-            if isinstance(ir_list[j], IrCustomCodeGen):
-                new_children = [rename_expr(ir_list[j].children[0])]
-                ir_list[j].update_parent_child(new_children)
             if isinstance(ir_list[j], IrAssignment):
                 if not isinstance(ir_list[j].children[1], IrPhi):
                     new_lhs = get_new_name(ir_list[j].children[0], node, False)
                     new_rhs = rename_expr(ir_list[j].children[1])
                     ir_list[j].update_parent_child([new_lhs, new_rhs])
-
+        if block.inner_jump is not None:
+            new_cond = rename_expr(block.inner_jump[0])
+            block.inner_jump[0] = new_cond
+        if block.jump is not None:
+            new_cond = rename_expr(block.jump[0])
+            block.jump[0] = new_cond
         for successor in cfg.successors[node]:
-            ir_list = cfg.ir[successor]
-            for j in range(len(ir_list)):
-                if not isinstance(ir_list[j], IrAssignment):
+            successor_block = cfg.ir[successor]
+            ir_list_successor = successor_block.children
+            for j in range(len(ir_list_successor)):
+                if not isinstance(ir_list_successor[j], IrAssignment):
                     continue 
-                if not isinstance(ir_list[j].children[1], IrPhi):
+                if not isinstance(ir_list_successor[j].children[1], IrPhi):
                     continue 
-                var = ir_list[j].children[1].original_name
+                var = ir_list_successor[j].children[1].original_name
                 if len(stack[var])>0:
-                    new_children = ir_list[j].children[1].children + [stack[var][-1]]
-                    ir_list[j].children[1].update_parent_child(new_children)
+                    new_children = ir_list_successor[j].children[1].children + [stack[var][-1]]
+                    ir_list_successor[j].children[1].update_parent_child(new_children)
         for successor in dtree.successors[node]:
             rename(successor)
         for j in range(len(ir_list)):
@@ -341,7 +434,8 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
                         if len(stack[original_vars[ir_list[j].children[0].name]]) > 0:
                             stack[original_vars[ir_list[j].children[0].name]] = stack[original_vars[ir_list[j].children[0].name]][:-1]
     def prune(node):
-        ir_list = cfg.ir[node]
+        block = cfg.ir[node]
+        ir_list = block.children
         for j in range(len(ir_list)):
             if isinstance(ir_list[j], IrAssignment):
                 if isinstance(ir_list[j].children[1], IrPhi):
@@ -359,9 +453,14 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
 def ssa(ir):
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
-            cfg = create_cfg(ir.tstore[transformer][i].children)
+            if i==1:
+                continue 
+            cfg = ir.tstore[transformer][i].cfg
+            cfg.print()
             dtree = construct_dominator_tree(cfg)
+            # dtree.print()
             df = compute_dominance_frontier(cfg, dtree)
+            print(df)
             phi_nodes = get_phi_nodes(cfg, df)
             vars_metadata = cfg.get_vars_metadata()
             convert_to_ssa(cfg, dtree, phi_nodes, vars_metadata)

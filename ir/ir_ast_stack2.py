@@ -29,7 +29,7 @@ class IrMetadataElement:
         return copy.deepcopy(self)
     
     def __eq__(self,obj):
-        return self.shape == obj.shape and self.type == obj.type and self.isConst == obj.isConst and self.isExpanded == obj.isExpanded
+        return self.shape == obj.shape and self.type == obj.type and self.isConst == obj.isConst and self.broadcast == obj.broadcast
 
     def __str__(self):
         print(self.shape)
@@ -306,8 +306,20 @@ class IrRepeat(IrExpression):
 class IrConvertBoolToFloat(IrExpression):
     def __init__(self, inputIr):
         super().__init__()
-        self.irMetadata = inputIr.irMetadata
+        self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.irMetadata[-1].type = 'Float'
+        self.update_parent_child([inputIr])
+
+class IrConvertToTensor(IrExpression):
+    def __init__(self, inputIr, irMetadata):
+        super().__init__()
+        self.irMetadata = irMetadata
+        self.update_parent_child([inputIr])
+
+class IrGetDefaultStop(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.update_parent_child([inputIr])
 
 
@@ -320,17 +332,6 @@ class IrAddDimension(IrExpression):
         self.irMetadata.append(irMetadataElement) 
         self.update_parent_child([inputIr])
 
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.inputIr)
-    #     return ''
-    
-    # def update_child(self, original_child, new_child):
-    #     if self.inputIr == original_child:
-    #         self.children.remove(self.inputIr)
-    #         self.inputIr = new_child 
-    #         self.children.append(new_child)
-    #         new_child.parents.append(self)
 
 class IrAddDimensionConst(IrExpression):
     def __init__(self, inputIr, irMetadata):
@@ -344,18 +345,6 @@ class IrAddDimensionConst(IrExpression):
         self.irMetadata = irMetadata
         self.update_parent_child([inputIr])
 
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.inputIr)
-    #     return ''
-    
-    # def update_child(self, original_child, new_child):
-    #     if self.inputIr == original_child:
-    #         self.children.remove(self.inputIr)
-    #         self.inputIr = new_child 
-    #         self.children.append(new_child)
-    #         new_child.parents.append(self)
-
 class IrConvertNeuronToPoly(IrExpression):
     def __init__(self, inputIr):
         super().__init__()
@@ -365,18 +354,6 @@ class IrConvertNeuronToPoly(IrExpression):
         self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.irMetadata[-1].type = 'PolyExp'
         self.update_parent_child([inputIr])
-
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.inputIr)
-    #     return ''
-    
-    # def update_child(self, original_child, new_child):
-    #     if self.inputIr == original_child:
-    #         self.children.remove(self.inputIr)
-    #         self.inputIr = new_child 
-    #         self.children.append(new_child)
-    #         new_child.parents.append(self)
     
     
 
@@ -545,34 +522,19 @@ class IrBinaryOp(IrExpression):
         self.irMetadata[-1].isConst = lhsIrMetadata[-1].isConst and rhsIrMetadata[-1].isConst    
         self.update_parent_child([lhsIr, rhsIr])
 
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.lhsIr)
-    #     print('\nmid\n')
-    #     print(self.rhsIr)
-    #     return ''
-    
-    # def update_child(self, original_child, new_child):
-    #     if self.lhsIr == original_child:
-    #         self.children.remove(self.lhsIr)
-    #         self.lhsIr = new_child 
-    #         self.children.append(new_child)
-    #         new_child.parents.append(self)
-
-    #     if self.rhsIr == original_child:
-    #         self.children.remove(self.rhsIr)
-    #         self.rhsIr = new_child 
-
-    #         self.children.append(new_child)
-    #         new_child.parents.append(self)
+class IrUnaryOp(IrExpression):
+    def __init__(self, inputIr, op):
+        super().__init__()
+        self.op = op
+        
+        self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.update_parent_child([inputIr])
 
 
 
 class IrMult(IrExpression):
     def __init__(self, lhsIr, rhsIr, op):
         super().__init__()
-        # self.lhsIr = lhsIr
-        # self.rhsIr = rhsIr
         self.op = op 
 
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
@@ -781,11 +743,6 @@ class IrMapNeuron(IrExpression):
         self.irMetadata.append(irMetadataElement)
         self.update_parent_child([inputIr])
 
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.inputIr)
-    #     return ''
-
 class IrSymbolic(IrExpression):
     def __init__(self, name, irMetadata):
         super().__init__()
@@ -802,49 +759,14 @@ class IrSymbolic(IrExpression):
     def __hash__(self):
         return 0
 
-
-# class IrTraverse(IrAst):
-#     def __init__(self, exprIr, stopSeqIr, priorityIr, prioritySeqIr, funcIr, funcSeqIr, direction):
-#         super().__init__()
-#         self.exprIr = exprIr 
-#         self.stopSeqIr = stopSeqIr 
-#         self.priorityIr = priorityIr
-#         self.prioritySeqIr = prioritySeqIr 
-#         self.funcIr = funcIr
-#         self.funcSeqIr = funcSeqIr 
-#         self.direction = direction 
-#         self.irMetadata = copy.deepcopy(exprIr.irMetadata)
-        
-#         self.children.append(exprIr)
-#         self.children += stopSeqIr
-#         self.children += prioritySeqIr
-#         self.children += funcSeqIr
-
 class IrAssignment(IrStatement):
     def __init__(self, varIr, inputIr):
         super().__init__()
-        # self.varIr = varIr
-        # self.inputIr = inputIr
+        # if not checkEqualMetadata(varIr.irMetadata, inputIr.irMetadata):
+        #     print(varIr.irMetadata[0].shape, inputIr.irMetadata[0].shape)
+        # assert(checkEqualMetadata(varIr.irMetadata, inputIr.irMetadata))
         self.irMetadata = inputIr.irMetadata
         self.update_parent_child([varIr, inputIr])
-
-    # def __str__(self):
-    #     print(type(self))
-    #     for child in self.children:
-    #         print(child)
-    #     return ''
-
-# class IrRet(IrStatement):
-#     def __init__(self, inputIr):
-#         super().__init__()
-#         self.inputIr = inputIr
-#         self.children.append(self.inputIr)
-
-# class IrSeq(IrAst):
-#     def __init__(self, inputIr1, inputIr2=None):
-#         super().__init__()
-#         self.inputIr1 = inputIr1
-#         self.inputIr2 = inputIr2
 
 class IrTransRetBasic(IrStatement):
     def __init__(self, exprIrs):
@@ -852,16 +774,7 @@ class IrTransRetBasic(IrStatement):
         self.exprIrs = exprIrs
         self.update_parent_child(exprIrs)
 
-    # def __str__(self):
-    #     print(type(self))
-    #     for t in self.exprIrs:
-    #         print(t)
-    #     return ''
 
-class IrWhile(IrStatement):
-    def __init__(self, condIr, inputIrs):
-        super().__init__()
-        self.update_parent_child([condIr] + inputIrs)
 
 class IrBreak(IrStatement):
     def __init__(self):
@@ -881,27 +794,56 @@ class IrCustomCodeGen(IrStatement):
     
     def __hash__(self):
         return 0
+    
+class IrWhile(IrStatement):
+    def __init__(self, condIr, inputIrs):
+        super().__init__()
+        self.update_parent_child([condIr] + inputIrs)
 
-# class IrTransRetIf(IrAst):
-#     def __init__(self, condIr, lhsIrs, rhsIrs):
-#         super().__init__()
-#         self.condIr = condIr
-#         self.lhsIrs = lhsIrs
-#         self.rhsIrs = rhsIrs
-#         self.children.append(self.condIr)
-#         self.children.append(self.lhsIr)
-#         self.children.append(self.rhsIr)
+class IrIte(IrAst):
+    def __init__(self, condIr, lhsIrs, rhsIrs):
+        super().__init__()
+        self.condIr = condIr
+        self.lhsIrs = lhsIrs
+        self.rhsIrs = rhsIrs
+        self.children.append(condIr)
+        self.children.append(lhsIrs)
+        self.children.append(rhsIrs)
+
+class IrBreak(IrStatement):
+    def __init__(self):
+        super().__init__()
+
+class IrBlock(IrAst):
+    def __init__(self, ir_list = [], jump = None, inner_jump = None, loopBack = None):
+        super().__init__()
+        self.inner_jump = inner_jump
+        self.jump = jump
+        self.update_parent_child(ir_list)
+
+    def __eq__(self, obj):
+        if isinstance(obj, IrBlock):
+            return self.identifier == obj.identifier 
+        return False 
+    
+    def __hash__(self):
+        return 0
+
+class IrWhileBlock(IrBlock):
+    def __init__(self, condIr, ir_list = [], loopBody = None, jump = None, inner_jump = None, loopBack = None):
+        super().__init__(ir_list, jump, inner_jump, loopBack)
+        self.condIr = condIr
+        self.loopBody = loopBody
+        if self.loopBody == None:
+            self.loopBody = [self]
+
 
 class IrOpStmt(IrAst):
-    def __init__(self, op, inputIrs):
+    def __init__(self, op, cfg):
         super().__init__()
         self.op = op
-        self.update_parent_child(inputIrs)
-
-    # def __str__(self):
-    #     print(type(self))
-    #     print(self.children[0])
-    #     return ''
+        self.cfg = cfg
+        # self.update_parent_child(inputIrs)
 
 class IrFlow(IrAst):
     def __init__(self, stop, priority, transformer, direction):
@@ -918,10 +860,3 @@ class IrProgram(IrAst):
         self.tstore = tstore
         self.fstore = fstore
         self.irNodes = irNodes
-
-    # def __str__(self):
-    #     print(type(self))
-    #     for t in self.tstore.keys():
-    #         for tt in self.tstore[t]:
-    #             print(tt)
-    #     return ''
