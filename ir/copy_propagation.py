@@ -1,47 +1,77 @@
 from ir_ast_stack2 import *
+import representations
 
-def replace(expr, old_var, new_var):
-    if isinstance(expr, IrSymbolic):
-        if expr.name == old_var.name:
+
+def replace_all_occurrences_metadata(irMetadata, old_var, new_var):
+    for j, irMetadataElement in enumerate(irMetadata):
+        for i in range(len(irMetadataElement.shape)):
+            if isinstance(irMetadataElement.shape[i], IrAst):
+                replace_all_occurrences_expr(irMetadataElement.shape[i], old_var, new_var)
+            # if isinstance(irMetadataElement.shape[i], z3.z3.ArithRef):
+                # z3_vars = representations.get_z3_vars(irMetadataElement.shape[i])
+                # for var in z3_vars:
+                #     var_name = str(var)
+                #     if var_name == old_var.name:
+                #         new_z3_var = Int(new_var.name)
+                #         irMetadataElement.shape[i] = substitute(irMetadataElement.shape[i], (var, new_z3_var))
+        for i in range(len(irMetadataElement.broadcast)):
+            if isinstance(irMetadataElement.broadcast[i], IrAst):
+                replace_all_occurrences_expr(irMetadataElement.broadcast[i], old_var, new_var)
+            # if isinstance(irMetadataElement.broadcast[i], z3.z3.ArithRef):
+            #     z3_vars = representations.get_z3_vars(irMetadataElement.broadcast[i])
+            #     for var in z3_vars:
+            #         var_name = str(var)
+            #         if var_name == old_var.name:
+            #             new_z3_var = Int(new_var.name)
+            #             irMetadataElement.broadcast[i] = substitute(irMetadataElement.broadcast[i], (var, new_z3_var))
+                
+
+def replace_all_occurrences_expr(expr, old_var, new_var):
+    if not isinstance(expr, int):
+        replace_all_occurrences_metadata(expr.irMetadata, old_var, new_var)
+        if expr == old_var:
             return new_var
-    if expr == old_var:
-        return new_var
-    for i in range(len(expr.children)):
-        new_child = replace(expr.children[i], old_var, new_var)
-        expr.children[i] = new_child
+        for i in range(len(expr.children)):
+            new_child = replace_all_occurrences_expr(expr.children[i], old_var, new_var)
+            expr.children[i] = new_child
     return expr
+    
 
-def replace_all_occurrences(ir_list, old_var, new_var):
+def replace_all_occurrences(old_var, new_var, cfg):
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        ir_list = block.children
+        for i in range(len(ir_list)):
+            new_children = []
+            for child in ir_list[i].children:
+                new_children.append(replace_all_occurrences_expr(child, old_var, new_var))
+            ir_list[i].update_parent_child(new_children)
+        if block.inner_jump != None:
+            block.inner_jump[0] = replace_all_occurrences_expr(block.inner_jump[0], old_var, new_var)
+        if block.jump != None:
+            block.jump[0] = replace_all_occurrences_expr(block.jump[0], old_var, new_var)
+
+def cp_block(block, cfg):
+    ir_list = block.children
+    to_be_removed = []
     for i in range(len(ir_list)):
         if isinstance(ir_list[i], IrAssignment):
-            new_expr = replace(ir_list[i].children[0], old_var, new_var)
-            ir_list[i].children[0] = new_expr
-            new_expr = replace(ir_list[i].children[1], old_var, new_var)
-            ir_list[i].children[1] = new_expr
-        elif isinstance(ir_list[i], IrWhile):
-            new_expr = replace(ir_list[i].children[0], old_var, new_var)
-            ir_list[i].children[0] = new_expr
-            replace_all_occurrences(ir_list[i].children[1:], old_var, new_var)
-        elif isinstance(ir_list[i], IrTransRetBasic):
-            for j in range(len(ir_list[i].children)):
-                new_expr = replace(ir_list[i].children[j], old_var, new_var)
-                ir_list[i].children[j] = new_expr
-
-def cp_list(ir):
-    to_be_removed = []
-    for i in range(len(ir)):
-        if isinstance(ir[i], IrAssignment):
-            if isinstance(ir[i].children[1], IrVar) and 'trav' not in ir[i].children[0].name:
-                replace_all_occurrences(ir[i+1:], ir[i].children[0], ir[i].children[1])
+            if isinstance(ir_list[i].children[1], IrVar):
+                replace_all_occurrences(ir_list[i].children[0], ir_list[i].children[1], cfg)
                 to_be_removed.append(i)
-        elif isinstance(ir[i], IrWhile):
-            ir[i].children[1:] = cp_list(ir[i].children[1:])
     for i in range(len(to_be_removed)-1, -1, -1):
-        ir = ir[:to_be_removed[i]] + ir[to_be_removed[i]+1:]
-    return ir
+        del ir_list[to_be_removed[i]]
+        # ir_list = ir_list[:to_be_removed[i]] + ir_list[to_be_removed[i]+1:]
+    return ir_list
+
+def cp_cfg(cfg):
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        cp_block(block, cfg)
 
 def copy_proagate(ir):
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
-            ir.tstore[transformer][i].children = cp_list(ir.tstore[transformer][i].children)
+            cfg = ir.tstore[transformer][i].cfg
+            cp_cfg(cfg)
     return ir

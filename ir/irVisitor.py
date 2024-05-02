@@ -5,6 +5,9 @@ class IRVisitor:
         if isinstance(node, IR.IrConst):
             return self.visitIrConst(node)
         
+        elif isinstance(node, int):
+            return self.visitInt(node)
+        
         elif isinstance(node, IR.IrVar):
             return self.visitIrVar(node)
         

@@ -139,7 +139,11 @@ class PolyExpNew:
                 return self.copy()
         indices = torch.arange(self.size)
         res = self.copy()
+        counter = 0
         while True:
+            counter += 1
+            # print('Trav exp', counter)
+            # print(res.const)
             s_time = time.time()
             a = res.mat != 0
             if callable(stop):
@@ -157,19 +161,20 @@ class PolyExpNew:
             priority_vertices[~vertices] = False
             temp = PolyExpNew(res.size, res.mat.clone() * priority_vertices, 0)
             res.mat = res.mat - temp.mat
-            print('extra time inside traverse after map', time.time()-s_time)
+            # print('extra time inside traverse after map', time.time()-s_time)
             s_time = time.time()
             temp = temp.map_compiler(f, abs_elem, neighbours)
-            # print(res.mat.shape)
-            # print(res.const.shape)
+            
             # print(temp.mat)
             # print(temp.const)
             # lkdh
-            print('inside traverse after map', time.time()-s_time)
+            # print('inside traverse after map', time.time()-s_time)
             s_time = time.time()
             
+            # print(res.mat.sum())
+            # print(res.const.sum())
+            # print(temp.const.sum())
             res = res.add(temp)
-            
             # vertices_temp = vertices ^ priority_vertices
             # for i in range(priority_vertices.shape[1]):
             #     # print(i)
@@ -182,6 +187,8 @@ class PolyExpNew:
             # # assert(test)
             # print('inside traverse after updating vertices', time.time()-s_time)
             # s_time = time.time()
+        # print('After trav')
+        # print(res.mat.sum(), res.const.sum())
         return res 
 
     

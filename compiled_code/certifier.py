@@ -1,6 +1,6 @@
 from common.abs_elem import Abs_elem
 from common.polyexp import Nlist
-from common.transformer import Transformer
+# from common.transformer import Transformer
 from specs.network import Network, LayerType
 
 import torch
@@ -75,8 +75,8 @@ class Certifier:
                 raise Exception('Something is not right')
         # matrix = self.abs_elem.d['U'].mat[-10:, -10:]
         # torch.set_printoptions(edgeitems=matrix.numel(), threshold=matrix.numel())
-        print(abs_shape[0])
-        print(abs_shape[1])
+            print(abs_shape[0])
+            print(abs_shape[1])
         # print(abs_shape[2].mat.shape)
         # print(abs_shape[2].mat[:, -10:], abs_shape[2].const)
         # print(abs_shape[3].mat[:, -10:], abs_shape[3].const)

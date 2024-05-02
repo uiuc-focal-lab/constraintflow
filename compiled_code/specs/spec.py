@@ -1,7 +1,7 @@
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
-from common.polyexp import PolyExpNew
+from common.polyexp import PolyExp
 from common.symexp import SymExp
 from specs.util import *
 
@@ -78,7 +78,7 @@ def create_L(image, eps, shapes = []):
     const = create_l(image, eps, shapes)
     N = const.size(0)
     coeff = torch.zeros((N, N))
-    return PolyExpNew(N, coeff, const)
+    return PolyExp(N, N, coeff, const)
 
     image = image.flatten()
     L_temp = []
@@ -97,7 +97,7 @@ def create_U(image, eps, shapes = []):
     const = create_u(image, eps, shapes)
     N = const.size(0)
     coeff = torch.zeros((N, N))
-    return PolyExpNew(N, coeff, const)
+    return PolyExp(N, N, coeff, const)
     image = image.flatten()
     U_temp = []
     size = product(shapes[0])

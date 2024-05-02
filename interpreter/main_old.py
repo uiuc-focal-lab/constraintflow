@@ -64,8 +64,8 @@ for layer in range(1, len(shapes)):
             ctr += 1
 
 
-transformer = CflowNewInterval()
-# transformer = CflowNewDeepPolyCompiler()
+# transformer = CflowNewInterval()
+transformer = CflowNewDeepPolyCompiler()
 
 certifier = Certifier(abs_elem, transformer, net, neighbours)
 certifier.flow()

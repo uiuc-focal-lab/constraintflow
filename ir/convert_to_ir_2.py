@@ -37,6 +37,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
     def visitVar(self, ast_node: AST.VarNode):
         return self.store[ast_node.name], []
     
+    def visitUnOp(self, ast_node):
+        exprIr, exprSeqIr = self.visit(ast_node.expr)
+        return IrUnaryOp(exprIr, ast_node.op), exprSeqIr
+    
     def visitBinOp(self, ast_node: AST.BinOpNode, lhsIr=None, rhsIr=None, ast_node_type=None, op=None):
         seqIr = []
         if lhsIr==None:
@@ -119,16 +123,16 @@ class ConvertToIr(astVisitor.ASTVisitor):
             elif rhsIr.irMetadata[-1].type == 'Float' or rhsIr.irMetadata[-1].type == 'Int':
                 rhsIr = IrConvertConstToPoly(rhsIr)
 
-            if (not isinstance(lhsIr, IrVar)) and (not isinstance(lhsIr, IrConst)):
-                new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
-                lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
-                seqIr.append(lhs_assignment)
-                lhsIr = new_lhs_var
-            if (not isinstance(rhsIr, IrVar)) and (not isinstance(rhsIr, IrConst)):
-                new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
-                rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
-                seqIr.append(rhs_assignment)
-                rhsIr = new_rhs_var
+            # if (not isinstance(lhsIr, IrVar)) and (not isinstance(lhsIr, IrConst)):
+            #     new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
+            #     lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
+            #     seqIr.append(lhs_assignment)
+            #     lhsIr = new_lhs_var
+            # if (not isinstance(rhsIr, IrVar)) and (not isinstance(rhsIr, IrConst)):
+            #     new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
+            #     rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
+            #     seqIr.append(rhs_assignment)
+            #     rhsIr = new_rhs_var
             
 
 
@@ -184,11 +188,12 @@ class ConvertToIr(astVisitor.ASTVisitor):
             polyExpIr, polyExpSeqIr = self.visit(ast_node.expr)
             name = ast_node.func
         seqIr = polyExpSeqIr
-        if (not isinstance(polyExpIr, IrVar)) and (not isinstance(polyExpIr, IrConst)):
+        if (not isinstance(polyExpIr, IrVar)) and (not isinstance(polyExpIr, IrSymbolic)) and (not isinstance(polyExpIr, IrConst)):
             new_polyExp_var = IrVar(self.get_var(), polyExpIr.irMetadata)
             new_polyExp_var_assignment = IrAssignment(new_polyExp_var, polyExpIr)
             polyExpIr = new_polyExp_var
             seqIr += [new_polyExp_var_assignment]
+            
         coeffIr = IrMapCoeff(polyExpIr)
         neuronIr = IrMapNeuron(polyExpIr)
         constIr = IrExtractPolyConst(polyExpIr)
@@ -204,23 +209,150 @@ class ConvertToIr(astVisitor.ASTVisitor):
         self.store = original_store
         seqIr += funcSeqIr
         if reduce:
-            redIr = IrReduce(funcIr)
+            if funcIr.irMetadata[-1].type == 'PolyExp':
+                redCoeffIr = IrReduce(IrExtractPolyCoeff(funcIr))
+                redConstIr = IrReduce(IrExtractPolyConst(funcIr))
+                redIr = IrCombineToPoly(redCoeffIr, redConstIr)
+            else:
+                redIr = IrReduce(funcIr)
             binopIr, binopSeqIr = self.visitBinOp(None, redIr, constIr, redIr.irMetadata[-1].type, '+')
             return binopIr, seqIr + binopSeqIr
         else:
             return funcIr, seqIr
     
+
+    # def visitTraverse(self, ast_node):
+    #     self.counter += 1
+    #     exprIr, exprSeqIr = self.visit(ast_node.expr)
+
+    #     rhs = IrUnaryOp(IrExtractPolyConst(exprIr), 'get_shape_0')
+    #     trav_size_var = IrVar('trav_size', rhs.irMetadata)
+    #     trav_size_assignment = IrAssignment(trav_size_var, rhs)
+    #     exprSeqIr.append(trav_size_assignment)
+
+
+    #     new_name = 'trav_exp'+str(self.counter)
+    #     polyExpIr = IrVar(new_name, [IrMetadataElement([IrAst.trav_size], 'PolyExp', [1], False)])
+    #     varIr = polyExpIr
+    #     temp = IrAssignment(varIr, exprIr)
+    #     exprSeqIr.append(temp)
+
+        
+
+
+    #     stopIr, stopSeqIr = self.visitMap(None, polyExpIr, [], ast_node.stop, False)
+    #     varStopIr = IrVar('vertices_stop'+str(self.counter), stopIr.irMetadata)
+    #     tempStop = IrAssignment(varStopIr, stopIr)
+    #     stopSeqIr.append(tempStop)
+
+    #     exprSeqIr += stopSeqIr
+
+    #     custom_stop_assignments = []
+        
+    #     rhs = IrBinaryOp(IrExtractPolyCoeff(varIr), IrConst(0, 'Float'), '!=')
+    #     new_var_vertices = IrVar('vertices'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(new_var_vertices, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+        
+    #     rhs = IrGetDefaultStop(polyExpIr)
+    #     new_var = IrVar('vertices_stop_default'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(new_var, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     varStopTempIr = varStopIr
+    #     rhs = IrBinaryOp(varStopIr, new_var, 'or')
+    #     varStopIr = IrVar('vertices_stop_temp'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(varStopIr, IrBinaryOp(varStopTempIr, new_var, 'or'))
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     rhs = IrBinaryOp(new_var_vertices, IrUnaryOp(varStopIr, 'not'), 'and')
+    #     new_assignment = IrAssignment(new_var_vertices, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     exprSeqIr += custom_stop_assignments
+
+    #     while_cond = IrUnaryOp(new_var_vertices, 'any')
+
+    #     # cond = IrUnaryOp(IrUnaryOp(new_var_vertices, 'any'), 'not')
+    #     # lhs = [IrBreak()]
+    #     # rhs = []
+    #     # ifStatement = IrIte(cond, lhs, rhs)
+    #     # custom_stop_assignments.append(ifStatement)
+    #     # stopSeqIr += custom_stop_assignments
+
+    #     insideWhileStatements = []
+
+    #     priorityIr, prioritySeqIr = self.visitMap(None, polyExpIr, [], ast_node.priority, False)
+    #     varPriorityIr = IrVar('vertices_priority'+str(self.counter), priorityIr.irMetadata)
+    #     tempPriority = IrAssignment(varPriorityIr, priorityIr)
+    #     prioritySeqIr.append(tempPriority)
+
+    #     insideWhileStatements += prioritySeqIr
+
+    #     funcIr, funcSeqIr = self.visitMap(None, polyExpIr, [], ast_node.func, True)
+    #     tempFunc = IrAssignment(varIr, funcIr)
+    #     funcSeqIr.append(tempFunc)
+
+    #     insideWhileStatements +=  funcSeqIr
+
+    #     rhs = IrUnaryOp(IrExtractPolyConst(varIr), 'get_shape_0')
+    #     # new_var = IrVar('trav_size', rhs.irMetadata)
+    #     trav_size_assignment = IrAssignment(trav_size_var, rhs)
+
+    #     insideWhileStatements.append(trav_size_assignment)
+
+    #     custom_stop_assignments = []
+        
+    #     rhs = IrBinaryOp(IrExtractPolyCoeff(varIr), IrConst(0, 'Float'), '!=')
+    #     new_var_vertices = IrVar('vertices'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(new_var_vertices, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+        
+    #     rhs = IrGetDefaultStop(polyExpIr)
+    #     new_var = IrVar('vertices_stop_default'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(new_var, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     varStopTempIr = varStopIr
+    #     rhs = IrBinaryOp(varStopIr, new_var, 'or')
+    #     varStopIr = IrVar('vertices_stop_temp'+str(self.counter), rhs.irMetadata)
+    #     new_assignment = IrAssignment(varStopIr, IrBinaryOp(varStopTempIr, new_var, 'or'))
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     rhs = IrBinaryOp(new_var_vertices, IrUnaryOp(varStopIr, 'not'), 'and')
+    #     new_assignment = IrAssignment(new_var_vertices, rhs)
+    #     custom_stop_assignments.append(new_assignment)
+
+    #     insideWhileStatements += custom_stop_assignments
+
+    #     # seqIr = [trav_size_assignment] + stopSeqIr + prioritySeqIr + funcSeqIr
+        
+    #     return varIr, exprSeqIr + [IrWhile(while_cond, insideWhileStatements)]
+
+
+
     def visitTraverse(self, ast_node):
         self.counter += 1
         exprIr, exprSeqIr = self.visit(ast_node.expr)
-        varIr = IrVar('trav_exp'+str(self.counter), exprIr.irMetadata)
+
+        rhs = IrUnaryOp(IrExtractPolyConst(exprIr), 'get_shape_0')
+        trav_size_var = IrVar('trav_size', rhs.irMetadata)
+        trav_size_assignment = IrAssignment(trav_size_var, rhs)
+        exprSeqIr.append(trav_size_assignment)
+
+        new_name = 'trav_exp'+str(self.counter)
+        polyExpIr = IrVar(new_name, [IrMetadataElement([IrAst.trav_size], 'PolyExp', [1], False)])
+        varIr = polyExpIr
         temp = IrAssignment(varIr, exprIr)
         exprSeqIr.append(temp)
 
-        polyExpIr = IrSymbolic(varIr.name, [IrMetadataElement([Int('trav_size')], 'PolyExp', [1], False)])
+        
+
 
         stopIr, stopSeqIr = self.visitMap(None, polyExpIr, [], ast_node.stop, False)
-        varStopIr = IrVar('vertices_stop', stopIr.irMetadata)
+        varStopIr = IrVar('vertices_stop'+str(self.counter), stopIr.irMetadata)
         tempStop = IrAssignment(varStopIr, stopIr)
         stopSeqIr.append(tempStop)
 
@@ -232,14 +364,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
         new_assignment = IrAssignment(new_var_vertices, rhs)
         custom_stop_assignments.append(new_assignment)
 
-        # rhs = IrBinaryOp(IrConvertToTensor(varStopIr, polyExpIr.irMetadata), IrConst(True, 'Bool'), '!=')
-        # rhs = IrUnaryOp(varStopIr, 'not')
-        # varStopIr = IrVar('vertices_stop_temp'+str(self.counter), rhs.irMetadata)
-        # new_assignment = IrAssignment(varStopIr, rhs)
-        # custom_stop_assignments.append(new_assignment)
         
-        # rhs = IrGetDefaultStop(varStopIr)
-        rhs = IrGetDefaultStop(exprIr)
+        rhs = IrGetDefaultStop(polyExpIr)
         new_var = IrVar('vertices_stop_default'+str(self.counter), rhs.irMetadata)
         new_assignment = IrAssignment(new_var, rhs)
         custom_stop_assignments.append(new_assignment)
@@ -254,6 +380,15 @@ class ConvertToIr(astVisitor.ASTVisitor):
         new_assignment = IrAssignment(new_var_vertices, rhs)
         custom_stop_assignments.append(new_assignment)
 
+
+
+
+
+
+
+
+
+
         cond = IrUnaryOp(IrUnaryOp(new_var_vertices, 'any'), 'not')
         lhs = [IrBreak()]
         rhs = []
@@ -262,7 +397,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
         stopSeqIr += custom_stop_assignments
 
         priorityIr, prioritySeqIr = self.visitMap(None, polyExpIr, [], ast_node.priority, False)
-        varPriorityIr = IrVar('vertices_priority', priorityIr.irMetadata)
+        varPriorityIr = IrVar('vertices_priority'+str(self.counter), priorityIr.irMetadata)
         tempPriority = IrAssignment(varPriorityIr, priorityIr)
         prioritySeqIr.append(tempPriority)
 
@@ -271,8 +406,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
         funcSeqIr.append(tempFunc)
 
         rhs = IrUnaryOp(IrExtractPolyConst(varIr), 'get_shape_0')
-        new_var = IrVar('trav_size', rhs.irMetadata)
-        trav_size_assignment = IrAssignment(new_var, rhs)
+        # new_var = IrVar('trav_size', rhs.irMetadata)
+        trav_size_assignment = IrAssignment(trav_size_var, rhs)
 
         seqIr = [trav_size_assignment] + stopSeqIr + prioritySeqIr + funcSeqIr
         
@@ -309,7 +444,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
             varIr = IrVar(list(self.shape.keys())[i]+'_new', exprIr.irMetadata)
             temp = IrAssignment(varIr, exprIr)
             seqIr.append(temp)
-            retlist.append(copy.deepcopy(varIr))
+            retlist.append(varIr)
         seqIr.append(IrTransRetBasic(retlist))
         return seqIr
 
@@ -345,11 +480,11 @@ class ConvertToIr(astVisitor.ASTVisitor):
     def visitOpStmt(self, ast_node):
         original_store = copy.deepcopy(self.store)
         if ast_node.op.op_name == 'Relu':
-            self.store['curr'] = IrVar('curr', [IrMetadataElement([CURR_SIZE], 'Neuron', [1], False)])
-            self.store['prev'] = IrVar('prev', [IrMetadataElement([CURR_SIZE], 'Neuron', [1], False)])
+            self.store['curr'] = IrVar('curr', [IrMetadataElement([IrAst.curr_size], 'Neuron', [1], False)])
+            self.store['prev'] = IrVar('prev', [IrMetadataElement([IrAst.curr_size], 'Neuron', [1], False)])
         elif ast_node.op.op_name == 'Affine':
-            self.store['curr'] = IrVar('curr', [IrMetadataElement([CURR_SIZE], 'Neuron', [1], False)])
-            self.store['prev'] = IrVar('prev', [IrMetadataElement([1, PREV_SIZE], 'Neuron', [CURR_SIZE, 1], False)])
+            self.store['curr'] = IrVar('curr', [IrMetadataElement([IrAst.curr_size], 'Neuron', [1], False)])
+            self.store['prev'] = IrVar('prev', [IrMetadataElement([1, IrAst.prev_size], 'Neuron', [IrAst.curr_size, 1], False)])
         else:
             raise Exception('Not Implemented')
         cfg = representations.create_cfg(self.visit(ast_node.ret))
@@ -392,6 +527,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return IrFlow(ast_node.sfunc.name, ast_node.pfunc.name, ast_node.trans.name, ast_node.direction.value)
 
     def visitProg(self, ast_node):
+        _ = IrVar('_', [])
         self.visit(ast_node.shape)
         irNodes = self.visit(ast_node.stmt)
         return IrProgram(self.shape, self.tstore, self.fstore, irNodes)

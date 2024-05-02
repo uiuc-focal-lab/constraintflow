@@ -8,9 +8,10 @@ def checkTypes(x, y):
         raise Exception('TYPE MISMATCH')
 
 def checkShapes(x, y):
-    if x.shape != y.shape:
-        print(x.shape, y.shape)
-        raise Exception('SHAPE MISMATCH')
+    if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor):
+        if x.shape != y.shape:
+            print(x.shape, y.shape)
+            raise Exception('SHAPE MISMATCH')
 
 def sanityCheck(x, y):
     checkTypes(x, y)
@@ -87,18 +88,18 @@ def disj(x, y):
         return x or y 
     return x | y
 
-def convert_to_tensor(x, shape):
-    if not isinstance(x, torch.Tensor):
-        return torch.ones(shape)*x 
-    return x
+# def convert_to_tensor(x, shape):
+#     if not isinstance(x, torch.Tensor):
+#         return torch.ones(shape)*x 
+#     return x
 
 def convert_to_float(x):
     return x.float()
 
-def get_default_stop(vertices_stop):
+def get_default_stop(shape):
     global input_size
-    vertices_stop_default = torch.zeros(vertices_stop.mat.size())
-    vertices_stop_default[0:input_size] = 1
+    vertices_stop_default = torch.zeros(shape)
+    # vertices_stop_default[:, 0:input_size] = 1
     vertices_stop_default = vertices_stop_default.bool()
     return vertices_stop_default
 
@@ -109,5 +110,3 @@ def get_shape_0(x):
 
 def phi(l):
     pass
-
-print('!!!!!!!!!!!!!!!!!!!!!!')

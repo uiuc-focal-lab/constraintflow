@@ -7,11 +7,13 @@ def get_var():
     counter += 1
     return 'rewrite_' + str(counter)
 
-def rewrite_expr(expr):
+def rewrite_expr_1(expr):
+    if isinstance(expr, int):
+        return expr, []
     new_children = []
     new_assignments = []
     for child in expr.children:
-        new_child, new_assignment = rewrite_expr(child)
+        new_child, new_assignment = rewrite_expr_1(child)
         new_children.append(new_child)
         new_assignments += new_assignment
     expr.update_parent_child(new_children)
@@ -27,13 +29,57 @@ def rewrite_expr(expr):
     
     return expr, new_assignments
 
-def rewrite_ir_list(ir_list):
+def rewrite_expr_2(expr):
+    if isinstance(expr, int):
+        return expr, []
+    new_children = []
+    new_assignments = []
+    for child in expr.children:
+        new_child, new_assignment = rewrite_expr_2(child)
+        new_children.append(new_child)
+        new_assignments += new_assignment
+    expr.update_parent_child(new_children)
+    if isinstance(expr, IrBinaryOp):
+        if expr.op == '+':
+            lhs = expr.children[0]
+            rhs = expr.children[1]
+            def collect_multiplicands(expr):
+                if not (isinstance(expr, IrMult) and (expr.op == '*')):
+                    return [expr]
+                multiplicands = []
+                for child in expr.children:
+                    temp = collect_multiplicands(child)
+                    multiplicands.extend(temp)
+                return multiplicands
+            lhs_multiplicands = collect_multiplicands(lhs)
+            rhs_multiplicands = collect_multiplicands(rhs)
+            if len(lhs_multiplicands) > 1 and len(rhs_multiplicands)>1:
+                common = list(set(lhs_multiplicands).intersection(set(rhs_multiplicands)))
+                if len(common)==0:
+                    return expr, []
+                common = list(set(lhs_multiplicands).intersection(set(rhs_multiplicands)))[0]
+                new_lhs = common 
+                lhs_multiplicands.remove(common)
+                rhs_multiplicands.remove(common)
+                new_rhs_lhs = lhs_multiplicands[0]
+                new_rhs_rhs = rhs_multiplicands[0]
+                for i in range(1, len(lhs_multiplicands)):
+                    new_rhs_lhs = IrMult(new_rhs_lhs, lhs_multiplicands[i], '*')
+                for i in range(1, len(rhs_multiplicands)):
+                    new_rhs_rhs = IrMult(new_rhs_rhs, rhs_multiplicands[i], '*')
+                new_rhs = IrBinaryOp(new_rhs_lhs, new_rhs_rhs, expr.op)
+                new_expr = IrMult(new_lhs, new_rhs, '*')
+                return new_expr, []
+    return expr, new_assignments
+
+def rewrite_block(block, rewrite_func):
+    ir_list = block.children
     length = len(ir_list)
     index = 0
     for i in range(length):
         l = ir_list[index]
         if isinstance(l, IrAssignment):
-            new_expr, new_assignments = rewrite_expr(l.children[1])
+            new_expr, new_assignments = rewrite_func(l.children[1])
             new_children = [l.children[0], new_expr]
             l.update_parent_child(new_children)
             for j in range(len(new_assignments)):
@@ -43,25 +89,26 @@ def rewrite_ir_list(ir_list):
             new_children = []
             new_assignments = []
             for child in l.children:
-                new_expr, new_assignments_inner = rewrite_expr(child)
+                new_expr, new_assignments_inner = rewrite_func(child)
                 new_children.append(new_expr)
                 new_assignments += new_assignments_inner
             l.update_parent_child(new_children)
             for j in range(len(new_assignments)):
                 ir_list.insert(index, new_assignments[j])
                 index += 1
-        elif isinstance(l, IrWhile):
-            new_ir_list = rewrite_ir_list(l.children[1:])
-            new_children = [l.children[0]] + new_ir_list
-            l.update_parent_child(new_children)
         index += 1
-    return ir_list
+    # return ir_list
 
+
+def rewrite_cfg(cfg):
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        rewrite_block(block, rewrite_expr_1)
+        rewrite_block(block, rewrite_expr_2)
 
 def rewrite(ir):
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
-            ir_transformer = ir.tstore[transformer][i].children
-            new_ir = rewrite_ir_list(ir_transformer)
-            ir.tstore[transformer][i].children = new_ir
+            cfg = ir.tstore[transformer][i].cfg
+            rewrite_cfg(cfg)
     return ir

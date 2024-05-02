@@ -11,6 +11,8 @@ import astTC
 import convert_to_ir_2 as c2r
 import cse
 import uses
+import dce
+import poly_opt
 import representations
 import copy_propagation
 import rewrite
@@ -50,22 +52,23 @@ def genAST(inputfile):
     print("Creating IR", time.time()-ttime)
     ttime = time.time()
 
-    # y = representations.ssa(y)
-    # y = uses.populate_uses(y)
-    # y = cse.cse(y)
-    # y = copy_propagation.copy_proagate(y)
-    # y = cse.cse(y)
-    # y = rewrite.rewrite(y)
+    representations.ssa(y)
+    # cse.cse(y)
+    # copy_propagation.copy_proagate(y)
+    # cse.cse(y)
+    copy_propagation.copy_proagate(y)
+    poly_opt.poly_opt(y)
+    rewrite.rewrite(y)
+    cse.cse(y)
+    dce.dce(y)
+    # cse.cse(y)
 
-    print("CSE", time.time()-ttime)
-    ttime = time.time()
+    # print("CSE", time.time()-ttime)
+    # ttime = time.time()
 
-    # print('Printing')
-    # pprint(y)
-    # jkdf
     
-    
 
+    representations.remove_phi(y)
     z = codeGen.CodeGen('../compiled_code').visit(y)
     print('Code Generation', time.time()-ttime)
     ttime = time.time()

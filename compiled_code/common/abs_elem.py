@@ -1,6 +1,6 @@
 import torch
 import copy
-from common.polyexp import PolyExpNew
+from common.polyexp import PolyExp
 
 class Abs_elem:
     def __init__(self, d, types, shapes):
@@ -31,8 +31,9 @@ class Abs_elem:
             elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
                 val_mat = self.d[key].mat[nlist.nlist]
                 val_const = self.d[key].const[nlist.nlist].flatten()
-                size = self.d[key].size 
-                res = PolyExpNew(size=size, mat=val_mat, const=val_const)
+                size = self.d[key].cols 
+                res = PolyExp(len(nlist.nlist), size, val_mat, val_const)
+                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
                 return res
         else:
             if self.types[key] == 'int' or self.types[key] == 'float':
@@ -41,8 +42,9 @@ class Abs_elem:
             elif self.types[key] == 'PolyExp' or self.types[key] == 'SymExp':
                 val_mat = self.d[key].mat[nlist.start:nlist.end+1].clone()
                 val_const = self.d[key].const[nlist.start:nlist.end+1].clone()
-                size = self.d[key].size 
-                res = PolyExpNew(size=size, mat=val_mat, const=val_const)
+                size = self.d[key].cols 
+                res = PolyExp(-nlist.start+nlist.end+1, size, val_mat, val_const)
+                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
                 return res
             
     def update_elem(self, neuron, vals):
