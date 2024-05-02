@@ -17,19 +17,19 @@ class Nlist:
             self.nlist_flag = False
 
     def get_metadata(self, elem):
-        # if not self.nlist_flag:
-        counter = Nlist.network.input_size
-        for k, layer in enumerate(Nlist.network):
-            if counter == self.start:
-                if elem == 'weight' or elem == 'w':
-                    return layer.weight
-                elif elem == 'bias' or elem == 'b':
-                    return layer.bias
-                elif elem == 'layer':
-                    return torch.ones(layer.bias.shape)*k
-            counter += layer.size
-        # else:
-        #     raise Exception('NOT IMPLEMENTED')
+        if not self.nlist_flag:
+            counter = Nlist.network.input_size
+            for k, layer in enumerate(Nlist.network):
+                if counter == self.start:
+                    if elem == 'weight' or elem == 'w':
+                        return layer.weight
+                    elif elem == 'bias' or elem == 'b':
+                        return layer.bias
+                    elif elem == 'layer':
+                        return torch.ones(layer.bias.shape)*k
+                counter += layer.size
+        else:
+            raise Exception('NOT IMPLEMENTED')
                 
     def dot(self, w):
         if isinstance(w, torch.Tensor):
@@ -53,7 +53,8 @@ class Nlist:
                 polyexp_coeff[torch.arange(n).unsqueeze(1), self.nlist] = w 
         else:
             polyexp_coeff[:, self.start:self.end+1] = w 
-        res = PolyExpNew(N, polyexp_coeff, polyexp_const)
+        res = PolyExp(n, N, polyexp_coeff, polyexp_const)
+        # res = PolyExpNew(N, polyexp_coeff, polyexp_const)
         return res 
     
     def sum(self):
@@ -81,7 +82,8 @@ class Nlist:
             else:
                 polyexp_coeff[self.start:self.end+1] = 1
                 polyexp_const = 0
-        res = PolyExpNew(N, polyexp_coeff, polyexp_const)
+        res = PolyExp(n, N, polyexp_coeff, polyexp_const)
+        # res = PolyExpNew(N, polyexp_coeff, polyexp_const)
         return res 
     
     def avg(self):
@@ -103,13 +105,15 @@ class Nlist:
             const = torch.zeros(len(self.nlist))
             for i in range(len(self.nlist)):
                 mat[i, self.nlist[i]] = 1
-            return PolyExpNew(self.size, mat, const)
+            return PolyExp(len(self.nlist), self.size, mat, const)
+            # return PolyExpNew(self.size, mat, const)
         else:
             mat = torch.zeros(self.end-self.start+1, self.size)
             const = torch.zeros(self.end-self.start+1)
             for i in range(self.end-self.start+1):
                 mat[i, self.start+i] = 1
-            return PolyExpNew(self.size, mat, const)
+            return PolyExp(self.end-self.start+1, mat, const)
+            # return PolyExpNew(self.size, mat, const)
 
 class PolyExpNew:
     def __init__(self, size, mat, const):
@@ -133,13 +137,47 @@ class PolyExpNew:
         return copy.deepcopy(self)
     
     def get_mat(self, abs_elem):
+        live_neurons = torch.nonzero(abs_elem.d['t']).flatten()
         if not isinstance(self.mat, torch.Tensor):
             # TODO. IF IT IS NOT A TENSOR, IT HAS TO BE CONVERTED TO A TENSOR BEFORE RETURNING
-            return self.mat
-        live_neurons = torch.nonzero(abs_elem.d['t']).flatten()
+            new_mat = torch.zeros(self.const.shape[0], live_neurons.shape[0])
+            return new_mat
         # print(self.mat)
         return self.mat[:, live_neurons]
     
     def get_const(self):
         # assert(self.const.dim()==1)
+        return self.const
+    
+    def convert_to_polyexp(self):
+        return PolyExp(self.const.shape[0], self.size, self.mat, self.const)
+    
+class PolyExp:
+    def __init__(self, rows, cols, mat, const):
+        self.rows = rows
+        self.cols = cols
+        self.mat = mat 
+        self.const = const
+        self.debug_flag = False 
+
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def get_mat(self, poly_size):
+        assert(poly_size <= self.cols)
+        if self.mat == None and  isinstance(self.const, torch.Tensor):
+            return torch.zeros(self.rows, poly_size)
+        elif not isinstance(self.mat, torch.Tensor) and  isinstance(self.const, torch.Tensor):
+            return torch.ones(self.rows, poly_size)*self.mat
+        elif self.mat == None:
+            return 0.0
+        return self.mat[:, :poly_size]
+    
+    def get_const(self):
+        if self.const == None and  isinstance(self.mat, torch.Tensor):
+            return torch.zeros(self.rows)
+        elif not isinstance(self.const, torch.Tensor) and  isinstance(self.mat, torch.Tensor):
+            return torch.ones(self.rows)*self.const
+        elif self.const == None:
+            return 0.0
         return self.const

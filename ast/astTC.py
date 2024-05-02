@@ -170,6 +170,8 @@ class ASTTC(astVisitor.ASTVisitor):
 			if(self.isSubType(ltype, "Float") or self.isSubType(rtype, "Float")):
 				if(self.lub_type(ltype, rtype) != "Top"):
 					return self.lub_type(ltype, rtype)
+			if((self.isSubType(ltype, "ZonoExp") and self.isSubType(rtype, "PolyExp")) or (self.isSubType(rtype, "ZonoExp") and self.isSubType(ltype, "PolyExp"))):
+				return 'PolyExp'
 			raise TypeMismatchException(op + " is not defined on " + str(ltype) + " and " + str(rtype))
 
 		elif(op == "/"):

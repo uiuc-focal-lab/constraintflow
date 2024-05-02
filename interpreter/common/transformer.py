@@ -257,6 +257,7 @@ class CflowNewDeepPolyCompiler(Transformer):
 
         # if debug_flag:
         #     return l_new, u_new, L_new, U_new 
+        print(U_new.const)
         return l_new, u_new, L_new, U_new 
         return l, u, L_new, U_new 
 
@@ -315,17 +316,26 @@ def replace_lower_compiler(n, c, abs_elem, neighbours):
     c_n_L_mat = c_temp * n_L.mat
     c_n_L_const = c * n_L.const
 
+    # print('here')
+    # print(c_n_L_mat)
+    # print(c_n_L_const)
+
     c_temp2 = c.unsqueeze(-1)
     c_temp2 = c_temp2.repeat(1, 1, n_L.mat.size(-1))
     c_n_U_mat = c_temp2 * n_U.mat
     c_n_U_const = c * n_U.const
-
+    # print('here')
+    # print(n_U.const[0, :])
+    # print(n_U.const.sum())
+    # print(c.shape)
+    # print(c_n_U_const.sum())
     
     res_const = torch.where(cond, c_n_L_const, c_n_U_const)
     cond_temp = cond.unsqueeze(-1)
     cond_temp = cond_temp.repeat(1, 1, n_L.mat.size(-1))
     res_mat = torch.where(cond_temp, c_n_L_mat, c_n_U_mat)
-
+    # print(res_mat.sum())
+    # print(res_const.sum())
     return PolyExpNew(size=n_L.mat.size(-1), mat=res_mat, const=res_const)
 
 def replace_upper_compiler(n, c, abs_elem, neighbours):

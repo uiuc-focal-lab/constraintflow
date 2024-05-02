@@ -15,7 +15,9 @@ one = Real('one')
 minus_one = Real('minus_one')
 
 def z3_vars(x):
-	if not isinstance(x, z3.z3.ArithRef):
+	# if not isinstance(x, z3.z3.ArithRef):
+	# 	return set()
+	if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool):
 		return set()
 	if x.children() == []:
 		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
@@ -472,6 +474,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			e2 = self.convertToZ3(node.right)
 			e2_max = get_z3max_eps(self.E, e2)
 			e2_min = get_z3min_eps(self.E, e2)
+			def remove(E, e):
+				vars = z3_vars(e)
+				for var in vars:
+					if var in E:
+						E.remove(var)
+			remove(self.E, e2)
 			if isinstance(e2_max, z3.z3.ArithRef):
 				if e2.sexpr() == e2_max.sexpr():
 					return e1 == e2 

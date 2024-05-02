@@ -15,17 +15,21 @@ set_param('parallel.enable', True) #uncomment when using Z3
 exptemp = None
 op_ = None 
 
-def z3_vars(x):
-	if not isinstance(x, z3.z3.ArithRef):
-		return set()
-	if x.children() == []:
-		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
-			return set()
-		return {x}
-	s = set()
-	for i in x.children():
-		s = s.union(z3_vars(i))
-	return s
+# def z3_vars(x, verbose = False):
+# 	# if not isinstance(x, z3.z3.ArithRef):
+# 	# 	if verbose:
+# 	# 		print(x, type(x))
+# 	# 	return set()
+# 	if x.children() == []:
+# 		if verbose:
+# 			print(x)
+# 		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
+# 			return set()
+# 		return {x}
+# 	s = set()
+# 	for i in x.children():
+# 		s = s.union(z3_vars(i))
+# 	return s
 
 
 # class AstRefKey:
@@ -461,6 +465,7 @@ class Verify(astVisitor.ASTVisitor):
 			for one_cons in conslist:
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
 				# print('here')
+				print(c)
 				z3constraint = s.os.convertToZ3(c)
 				if(isinstance(z3constraint, bool)):
 					z3constraint = BoolSort().cast(z3constraint)
@@ -470,22 +475,28 @@ class Verify(astVisitor.ASTVisitor):
 				# print(z3constraint)
 				# sdkj
 				#print("time", time.time())
-				if len(self.E) > 0:
-					epsilons = []
-					for epsilon in self.E:
-						if epsilon in z3_vars(z3constraint):
-							epsilons.append(epsilon)
-					if len(epsilons)>0: 
-						conds_eps = [z3constraint]
-						for e in self.E:
-							conds_eps.append(e <= 1)
-							conds_eps.append(e >= -1)
-						z3constraint = Exists(epsilons, And(conds_eps))
+				# print(self.E)
+				# print(z3_vars(z3constraint, True))
+				eps_constraints = []
+				for eps in self.E:
+					eps_constraints.append(eps >= -1)
+					eps_constraints.append(eps <= 1)
+				# if len(self.E) > 0:
+				# 	epsilons = []
+				# 	for epsilon in self.E:
+				# 		if epsilon in z3_vars(z3constraint):
+				# 			epsilons.append(epsilon)
+				# 	if len(epsilons)>0: 
+				# 		conds_eps = [z3constraint]
+				# 		for e in self.E:
+				# 			conds_eps.append(e <= 1)
+				# 			conds_eps.append(e >= -1)
+				# 		z3constraint = Exists(epsilons, And(conds_eps))
 					
 				#solver.set(timeout=30)
 				# leftC += s.os.C 
 				# print(leftC)
-				newLeftC = leftC + s.os.tempC
+				newLeftC = leftC + s.os.tempC + eps_constraints
 
 				
 				print("gen",time.time())
@@ -498,7 +509,18 @@ class Verify(astVisitor.ASTVisitor):
 				# print()
 				# fc
 				w = self.solver.solve(lhs, rhs)
+				print(lhs)
+				print()
+				print(rhs)
 				if(not w):
+					print(lhs)
+					print()
+					print(rhs)
+					s = Solver()
+					s.add(Not(Implies(lhs, rhs)))
+					c = s.check()
+					if c==sat:
+						print(s.model())
 					print("end",time.time())
 					#print(solver)
 					#print(solver.model())

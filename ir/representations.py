@@ -3,6 +3,18 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import graphviz
 
+def get_z3_vars(z3_expr):
+    if isinstance(z3_expr, z3.z3.ArithRef):
+        if len(z3_expr.children())>0:
+            vars = set()
+            for child in z3_expr.children():
+                vars = vars.union(get_z3_vars(child))
+            return vars
+        else:
+            return {z3_expr}
+    else:
+        return set()
+
 class Graph:
     def __init__(self):
         self.nodes = []
@@ -55,12 +67,14 @@ class Graph:
         for node in self.nodes:
             if node not in visited:
                 dfs(node)
-        print(stack[::-1])
+        # print(stack[::-1])
         return stack[::-1]
     
     def get_vars(self):
         def get_vars_expr(expr, l):
-            if isinstance(expr, IrVar) or isinstance(expr, IrSymbolic):
+            if isinstance(expr, int):
+                pass
+            elif isinstance(expr, IrVar) or isinstance(expr, IrSymbolic):
                 l.add(expr.name)
             else:
                 for child in expr.children:
@@ -138,7 +152,7 @@ def create_cfg(ir_list):
                 cond = ir_list[end].children[0]
                 node_2 = cfg.add()
                 block_2 = IrWhileBlock(ir_list[end].children[0])
-                print('!!!!!!!!!!!!', block_2.condIr)
+                # print('!!!!!!!!!!!!', block_2.condIr)
                 cfg.ir[node_2] = block_2
 
                 node_3 = cfg.add()
@@ -312,7 +326,7 @@ def compute_dominance_frontier(cfg, dominator_tree):
 def get_phi_nodes(cfg, df):
     vars = cfg.get_vars()
     nodes_modifying_vars = cfg.get_nodes_modifying_vars(vars)
-    print(nodes_modifying_vars)
+    # print(nodes_modifying_vars)
     phi_nodes = {var:[] for var in vars}
     for var in vars:
         if len(nodes_modifying_vars[var]) < 2:
@@ -333,8 +347,11 @@ def get_phi_nodes(cfg, df):
                         everOnWorklist.add(y)
                         worklist.add(y)
     phi_nodes_ret = {var:phi_nodes[var] for var in phi_nodes.keys() if len(phi_nodes[var])>1}
-    print(phi_nodes_ret)
-    print(phi_nodes_ret)
+    # phi_nodes_ret.remove('trav_size')
+    # print(phi_nodes_ret)
+    # if 'trav_size' in phi_nodes_ret:
+    #     del phi_nodes_ret['trav_size']
+    # print(phi_nodes_ret)
     return phi_nodes_ret
 
 def replace(expr, old_var, new_var):
@@ -356,7 +373,7 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
     vars_list.sort(reverse=True)
     for var in vars_list:
         for node in phi_nodes[var]:
-            print(var, node)
+            # print(var, node)
             block = cfg.ir[node]
             phi_node = IrPhi(var, [], metadata[var].irMetadata)
             new_assignment = IrAssignment(metadata[var], phi_node)
@@ -369,20 +386,54 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
         if var in counter.keys():
             i = counter[var]
             counter[var] += 1
-            if var=='trav_size':
-                new_name = 'trav_size'
+            # if var=='trav_size':
+            #     new_name = 'trav_size'
+            # else:
+            if phi:
+                new_name = 'phi_' + var + '_' + str(node) + '_' + str(i)
             else:
-                if phi:
-                    new_name = 'phi_' + var + '_' + str(node) + '_' + str(i)
-                else:
-                    new_name = var + '_' + str(node) + '_' + str(i)
-            new_var = IrVar(new_name, metadata[var])
+                new_name = var + '_' + str(node) + '_' + str(i)
+            new_var = IrVar(new_name, metadata[var].irMetadata)
             stack[var].append(new_var)
             original_vars[new_var.name] = var
             return new_var
         else:
             return irVar 
+    def rename_metadata(irMetadata, expr=None):
+        flag = False
+        for j, irMetadataElement in enumerate(irMetadata):
+            for i in range(len(irMetadataElement.shape)):
+                if isinstance(irMetadataElement.shape[i], int):
+                    continue
+                irMetadataElement.shape[i] = rename_expr(irMetadataElement.shape[i])
+                # if isinstance(irMetadataElement.shape[i], z3.z3.ArithRef):
+                #     z3_vars = get_z3_vars(irMetadataElement.shape[i])
+                    
+                #     for var in z3_vars:
+                #         if str(var) in stack.keys():
+                #             new_z3_var = Int(stack[str(var)][-1].name)
+                #             irMetadataElement.shape[i] = substitute(irMetadataElement.shape[i], (var, new_z3_var))
+                #             # print(irMetadataElement.shape)
+                #             flag = True
+            for i in range(len(irMetadataElement.broadcast)):
+                if isinstance(irMetadataElement.broadcast[i], int):
+                    continue
+                irMetadataElement.broadcast[i] = rename_expr(irMetadataElement.broadcast[i])
+                # if isinstance(irMetadataElement.broadcast[i], z3.z3.ArithRef):
+                #     z3_vars = get_z3_vars(irMetadataElement.broadcast[i])
+                    
+                #     for var in z3_vars:
+                #         if str(var) in stack.keys():
+                #             new_z3_var = Int(stack[str(var)][-1].name)
+                #             irMetadataElement.broadcast[i] = substitute(irMetadataElement.broadcast[i], (var, new_z3_var))
+                #             # print(irMetadataElement.broadcast)
+                #             flag = True
+                    
+        return flag
     def rename_expr(expr):
+        if isinstance(expr, int):
+            return expr
+        rename_metadata(expr.irMetadata, expr)
         if isinstance(expr, IrSymbolic) or isinstance(expr, IrVar):
             if expr.name in stack.keys():
                 return stack[expr.name][-1]
@@ -403,9 +454,10 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
                     ir_list[j].update_parent_child(new_children)   
         for j in range(len(ir_list)):
             if isinstance(ir_list[j], IrAssignment):
+                rename_metadata(ir_list[j].irMetadata)
                 if not isinstance(ir_list[j].children[1], IrPhi):
-                    new_lhs = get_new_name(ir_list[j].children[0], node, False)
                     new_rhs = rename_expr(ir_list[j].children[1])
+                    new_lhs = get_new_name(ir_list[j].children[0], node, False)
                     ir_list[j].update_parent_child([new_lhs, new_rhs])
         if block.inner_jump is not None:
             new_cond = rename_expr(block.inner_jump[0])
@@ -425,6 +477,10 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
                 if len(stack[var])>0:
                     new_children = ir_list_successor[j].children[1].children + [stack[var][-1]]
                     ir_list_successor[j].children[1].update_parent_child(new_children)
+                    ir_list_successor[j].children[1].parent_nodes.append(node)
+                # else:
+                #     new_children = ir_list_successor[j].children[1].children + [None]
+                #     ir_list_successor[j].children[1].update_parent_child(new_children)
         for successor in dtree.successors[node]:
             rename(successor)
         for j in range(len(ir_list)):
@@ -441,13 +497,57 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
                 if isinstance(ir_list[j].children[1], IrPhi):
                     s = set(ir_list[j].children[1].children)
                     if len(s)<=1:
+                        print('From prune')
+                        print(ir_list[j].children[0].name)
                         new_children = [ir_list[j].children[0], list(s)[0]]
                         ir_list[j].update_parent_child(new_children)
     rename(entry_node)
-    for node in cfg.nodes:
-        prune(node)
+    # for node in cfg.nodes:
+    #     prune(node)
 
 
+def remove_cfg_block(block, node, cfg):
+    ir_list = block.children
+    remove_list = []
+    for count, i in enumerate(ir_list):
+        if isinstance(i, IrAssignment):
+            if isinstance(i.children[1], IrPhi):
+                remove_list.append(count)
+                for j in range(len(i.children[1].children)):
+                    predecessor = cfg.ir[i.children[1].parent_nodes[j]]
+                    # predecessor = cfg.ir[cfg.predecessors[node][j]]
+                    var = i.children[1].children[j]
+                    if var==None:
+                        continue
+                    new_assignment = IrAssignment(i.children[0], var)
+                    new_children = predecessor.children
+                    if not isinstance(new_children[-1], IrBreak):
+                        new_children.append(new_assignment)
+                    else:
+                        new_children.insert(-1, new_assignment)
+                    predecessor.update_parent_child(new_children)
+                for predecessors_node in cfg.predecessors[node]:
+                    if predecessors_node not in i.children[1].parent_nodes:
+                        predecessor = cfg.ir[predecessors_node]
+                        var = IrConst(0, 'Float')
+                        new_assignment = IrAssignment(i.children[0], var)
+                        new_children = predecessor.children
+                        if not isinstance(new_children[-1], IrBreak):
+                            new_children.append(new_assignment)  
+                        else:
+                            new_children.insert(-1, new_assignment)
+                        predecessor.update_parent_child(new_children)
+    for i in range(len(remove_list)-1, -1, -1):
+        del ir_list[remove_list[i]]
+        # ir_list.remove(remove_list[i])
+
+def remove_phi(ir):
+    for transformer in ir.tstore.keys():
+        for i in range(len(ir.tstore[transformer])):
+            cfg = ir.tstore[transformer][i].cfg
+            for node in cfg.nodes:
+                block = cfg.ir[node]
+                remove_cfg_block(block, node, cfg)
 
 
 def ssa(ir):
@@ -456,13 +556,13 @@ def ssa(ir):
             if i==1:
                 continue 
             cfg = ir.tstore[transformer][i].cfg
-            cfg.print()
+            # cfg.print()
             dtree = construct_dominator_tree(cfg)
             # dtree.print()
             df = compute_dominance_frontier(cfg, dtree)
-            print(df)
+            # print(df)
             phi_nodes = get_phi_nodes(cfg, df)
             vars_metadata = cfg.get_vars_metadata()
             convert_to_ssa(cfg, dtree, phi_nodes, vars_metadata)
-    return ir    
+    # return ir    
 
