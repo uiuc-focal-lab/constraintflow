@@ -54,13 +54,15 @@ def genAST(inputfile):
 
     representations.ssa(y)
     # cse.cse(y)
-    # copy_propagation.copy_proagate(y)
-    # cse.cse(y)
     copy_propagation.copy_proagate(y)
+    # cse.cse(y)
+    # copy_propagation.copy_proagate(y)
     poly_opt.poly_opt(y)
     rewrite.rewrite(y)
-    cse.cse(y)
+    # cse.cse(y)
+    # copy_propagation.copy_proagate(y)
     dce.dce(y)
+    # dce.dce(y)
     # cse.cse(y)
 
     # print("CSE", time.time()-ttime)

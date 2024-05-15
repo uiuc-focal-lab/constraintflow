@@ -72,6 +72,13 @@ def mult(x, y):
     sanityCheck(x, y)
     return x*y
 
+def inner_prod(x, y):
+    checkTypes(x, y)
+    if x.shape[1] != y.shape[0]:
+        print(x.shape, y.shape)
+        raise Exception('SHAPE MISMATCH')
+    return x@y
+
 def divide(x, y):
     sanityCheck(x, y)
     return x/y
@@ -102,6 +109,18 @@ def get_default_stop(shape):
     # vertices_stop_default[:, 0:input_size] = 1
     vertices_stop_default = vertices_stop_default.bool()
     return vertices_stop_default
+
+def get_default_stop2(shape):
+    global input_size
+    vertices_stop_default = torch.zeros(shape)
+    vertices_stop_default[:, 0:834] = 1
+    vertices_stop_default = vertices_stop_default.bool()
+    return vertices_stop_default
+
+def get_shape_1(x):
+    if not isinstance(x, torch.Tensor):
+        raise Exception('TYPE MISMATCH')
+    return x.shape[1]
 
 def get_shape_0(x):
     if not isinstance(x, torch.Tensor):

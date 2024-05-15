@@ -12,9 +12,9 @@ lt = (x < y).decl()
 le = (x <= y).decl()
 gt = (x > y).decl()
 ge = (x >= y).decl()
-eq = (x == y).decl()
+eqq = (x == y).decl()
 if_ = If(x>0, x, y).decl()
-comparison = [lt, le, gt, ge, eq]
+comparison = [lt, le, gt, ge, eqq]
 
 class Opt_solver:
     def __init__(self):
@@ -29,11 +29,16 @@ class Opt_solver:
 
 
     def check(self, lhs, rhs):
+        # print('CHECKING NOW')
+        # print(lhs)
+        # print()
+        # print(rhs)
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
         ret = s.check()
         # if(ret == sat):
         #     print(s.model())
+        # print('CHECKED')
         return (ret==unsat)
     
     def common_vars(self, a, b):
@@ -84,7 +89,10 @@ class Opt_solver:
         g = Opt_graph(lhs)
         l = g.get_sufficient_queries(rhs)
         l.sort(reverse=True, key=self.priority)
-        
+        # print(len(l))
+        # if len(l)==5:
+        #     for i in range(len(l)):
+        #         print(l[i])
         return l
 
     def get_sub_lemmas(self, rhs, default_order = False):
@@ -110,6 +118,14 @@ class Opt_solver:
                 m.append((left_[i], right_[i]))
             return m
         if len(left_)!=len(right_):
+            # if (len(left_)-1) % (len(right_)-1):
+            #     m.append((left_[-1], right_[-1]))
+            #     r = (len(left_)-1) / (len(right_)-1)
+            #     for i in range(len(right_)-1):
+            #         l = left_[i*r]
+            #         for j in range(1, r):
+            #             l += left_[i*r+j]
+            #         m.append((l, right_[i]))
             return None 
         for i in range(len(left_)):
             flag = False
@@ -201,19 +217,17 @@ class Opt_solver:
         if top_level in [le]:
             if le(rhs_left, rhs_right) in lhs_:
                 return True 
-            if eq(rhs_left, rhs_right) in lhs_:
+            if eqq(rhs_left, rhs_right) in lhs_:
                 return True 
         if top_level in [ge]:
             if ge(rhs_left, rhs_right) in lhs_:
                 return True 
-            if eq(rhs_left, rhs_right) in lhs_:
+            if eqq(rhs_left, rhs_right) in lhs_:
                 return True 
         return False
     
     def solve_temp(self, lhs, rhs):
-        # afj
         m = self.get_sufficient_formulae(lhs, rhs)
-        #m = [rhs]
         if m:
             # i=0
             # for r in m:

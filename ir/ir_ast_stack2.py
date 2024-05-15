@@ -1,9 +1,17 @@
 import copy
 from z3 import *
 
-POLYEXP_SIZE = Int('poly_size')
-CURR_SIZE = Int('curr_size')
-PREV_SIZE = Int('prev_size')
+# POLYEXP_SIZE = Int('poly_size')
+# CURR_SIZE = Int('curr_size')
+# PREV_SIZE = Int('prev_size')
+
+def collect_multiplicands(expr):
+    if not (isinstance(expr, IrMult) and (expr.op == '*')):
+        return [expr]
+    multiplicands = []
+    for child in expr.children:
+        multiplicands.extend(collect_multiplicands(child))
+    return multiplicands
 
 def check_eq(x, y):
     if isinstance(x, list) and isinstance(y, list):
@@ -20,13 +28,6 @@ def check_eq(x, y):
     if isinstance(x, IrVar):
         return x==y 
     if isinstance(x, IrMult):
-        def collect_multiplicands(expr):
-            if not (isinstance(expr, IrMult) and (expr.op == '*')):
-                return [expr]
-            multiplicands = []
-            for child in expr.children:
-                multiplicands.extend(collect_multiplicands(child))
-            return multiplicands
         x_multiplicands = collect_multiplicands(x)
         y_multiplicands = collect_multiplicands(y)
         if len(x_multiplicands) != len(y_multiplicands):
@@ -51,6 +52,29 @@ def mult_metadata(m1, m2):
         assert(m2==1)
         return m1 
     return IrMult(m1, m2, '*')
+
+def divide_metadata(m1, m2):
+    if isinstance(m1, int):
+        assert (m1==1) and (m2==1)
+        return m1
+    if isinstance(m2, int):
+        assert(m2==1)
+        return m1 
+    else:
+        lhs_multiplicands = collect_multiplicands(m1)
+        rhs_multiplicands = collect_multiplicands(m2)
+        new_metadata = []
+        for i in range(len(lhs_multiplicands)):
+            new_metadata.append(lhs_multiplicands[i])
+        for i in range(len(rhs_multiplicands)):
+            for j in range(len(new_metadata)-1,-1,-1):
+                if new_metadata[j] == rhs_multiplicands[i]:
+                    del new_metadata[j]
+                    break
+        new_metadata_elem = 1
+        for i in range(len(new_metadata)):
+            new_metadata_elem = mult_metadata(new_metadata_elem, new_metadata[i])
+        return new_metadata_elem
 
 class IrMetadataElement:
     def __init__(self, shape, type, broadcast, isConst = False):
@@ -92,16 +116,24 @@ def copy_metadata(irMetadata):
 #             return 1
 #     return 0 
 
-def checkEqualMetadata(irMetadata1, irMetadata2):
+def checkEqualMetadata(irMetadata1, irMetadata2, debug_flag = False):
     if len(irMetadata1) != len(irMetadata2):
+        if debug_flag:
+            print('here 1')
         return False
     for i in range(len(irMetadata1)):
         if len(irMetadata1[i].shape) != len(irMetadata2[i].shape):
+            if debug_flag:
+                print('here 2', i, len(irMetadata1[i].shape), len(irMetadata2[i].shape))
             return False 
         for j in range(len(irMetadata1[i].shape)):
             if not check_eq(irMetadata1[i].shape[j], irMetadata2[i].shape[j]):
+                if debug_flag:
+                    print('here 3')
                 return False
             if not check_eq(irMetadata1[i].broadcast[j], irMetadata2[i].broadcast[j]):
+                if debug_flag:
+                    print('here 3')
                 return False
     return True
 
@@ -359,6 +391,7 @@ class IrVar(IrExpression):
             IrAst.poly_size = IrVar('poly_size', [IrMetadataElement([1], 'Int', [1], True)])
             IrAst.curr_size = IrVar('curr_size', [IrMetadataElement([1], 'Int', [1], True)])
             IrAst.prev_size = IrVar('prev_size', [IrMetadataElement([1], 'Int', [1], True)])
+            # IrAst.trav_size = IrAst.poly_size
             IrAst.trav_size = IrVar('trav_size', [IrMetadataElement([1], 'Int', [1], True)])
         
     def __str__(self):
@@ -397,22 +430,58 @@ class IrPhi(IrExpression):
     def __hash__(self):
         return 0
 
-class IrRepeat(IrExpression):
-    def __init__(self, inputIr, irMetadata):
-        super().__init__()
-        assert(canRepeat(inputIr.irMetadata, irMetadata))
+# class IrRepeat(IrExpression):
+#     def __init__(self, inputIr, irMetadata):
+#         super().__init__()
+#         assert(canRepeat(inputIr.irMetadata, irMetadata))
         
-        self.irMetadata = irMetadata
-        repeat_dims = []
-        for i in range(len(inputIr.irMetadata)):
-            for j in range(len(inputIr.irMetadata[i].broadcast)):
-                # print(inputIr.irMetadata[i].broadcast[j], convert_z3_to_ir(inputIr.irMetadata[i].broadcast[j]))
-                # repeat_dims.append(convert_z3_to_ir(inputIr.irMetadata[i].broadcast[j]))
-                repeat_dims.append(inputIr.irMetadata[i].broadcast[j])
-        children = [inputIr] + repeat_dims
-        # print(repeat_dims)
-        # jf
-        self.update_parent_child(children)
+#         self.irMetadata = irMetadata
+#         repeat_dims = []
+#         for i in range(len(inputIr.irMetadata)):
+#             for j in range(len(inputIr.irMetadata[i].broadcast)):
+#                 # print(inputIr.irMetadata[i].broadcast[j], convert_z3_to_ir(inputIr.irMetadata[i].broadcast[j]))
+#                 # repeat_dims.append(convert_z3_to_ir(inputIr.irMetadata[i].broadcast[j]))
+#                 repeat_dims.append(inputIr.irMetadata[i].broadcast[j])
+#         children = [inputIr] + repeat_dims
+#         # print(repeat_dims)
+#         # jf
+#         self.update_parent_child(children)
+
+class IrRepeat(IrExpression):
+    def __init__(self, inputIr, irMetadata=None, repeat_dims = None):
+        super().__init__()
+        if irMetadata==None and repeat_dims==None:
+            self.irMetadata = copy_metadata(inputIr.irMetadata)
+            repeat_dims = []
+            for i in range(len(inputIr.irMetadata)):
+                for j in range(len(inputIr.irMetadata[i].broadcast)):
+                    repeat_dims.append(inputIr.irMetadata[i].broadcast[j])
+                    self.irMetadata[i].shape[j] = mult_metadata(self.irMetadata[i].shape[j], repeat_dims[-1])
+                    self.irMetadata[i].broadcast[j] = 1
+            children = [inputIr] + repeat_dims
+            self.update_parent_child(children)
+        
+        elif irMetadata==None:
+            self.irMetadata = copy_metadata(inputIr.irMetadata)
+            counter = 0
+            for i in range(len(self.irMetadata)):
+                for j in range(len(self.irMetadata[i].shape)):
+                    self.irMetadata[i].shape[j] = mult_metadata(self.irMetadata[i].shape[j], repeat_dims[counter])
+                    self.irMetadata[i].broadcast[j] = divide_metadata(self.irMetadata[i].broadcast[j], repeat_dims[counter])
+                    counter += 1
+            children = [inputIr] + repeat_dims
+            self.update_parent_child(children)
+
+        else:
+            assert(canRepeat(inputIr.irMetadata, irMetadata))
+            
+            repeat_dims = []
+            for i in range(len(inputIr.irMetadata)):
+                for j in range(len(inputIr.irMetadata[i].broadcast)):
+                    repeat_dims.append(divide_metadata(irMetadata[i].shape[j], inputIr.irMetadata[i].shape[j]))
+            children = [inputIr] + repeat_dims
+            self.irMetadata = irMetadata
+            self.update_parent_child(children)
 
 class IrConvertBoolToFloat(IrExpression):
     def __init__(self, inputIr):
@@ -422,20 +491,20 @@ class IrConvertBoolToFloat(IrExpression):
         self.irMetadata[-1].type = 'Float'
         self.update_parent_child([inputIr])
 
-class IrConvertToTensor(IrExpression):
-    def __init__(self, inputIr, irMetadata):
-        super().__init__()
-        self.irMetadata = irMetadata
+# class IrConvertToTensor(IrExpression):
+#     def __init__(self, inputIr, irMetadata):
+#         super().__init__()
+#         self.irMetadata = irMetadata
 
-        repeat_dims = []
-        for i in range(len(inputIr.irMetadata)):
-            for j in range(len(inputIr.irMetadata[i].shape)):
-                # print(inputIr.irMetadata[i].shape[j], convert_z3_to_ir(inputIr.irMetadata[i].shape[j]))
-                # repeat_dims.append(convert_z3_to_ir(inputIr.irMetadata[i].shape[j]))
-                repeat_dims.append(inputIr.irMetadata[i].shape[j])
+#         repeat_dims = []
+#         for i in range(len(inputIr.irMetadata)):
+#             for j in range(len(inputIr.irMetadata[i].shape)):
+#                 # print(inputIr.irMetadata[i].shape[j], convert_z3_to_ir(inputIr.irMetadata[i].shape[j]))
+#                 # repeat_dims.append(convert_z3_to_ir(inputIr.irMetadata[i].shape[j]))
+#                 repeat_dims.append(inputIr.irMetadata[i].shape[j])
 
-        new_children = [inputIr] + repeat_dims
-        self.update_parent_child(new_children)
+#         new_children = [inputIr] + repeat_dims
+#         self.update_parent_child(new_children)
 
 
 class IrGetDefaultStop(IrExpression):
@@ -471,6 +540,30 @@ class IrAddDimension(IrExpression):
         self.irMetadata.append(irMetadataElement) 
         self.update_parent_child([inputIr])
         
+class IrRemoveDimension(IrExpression):
+    def __init__(self, inputIr, numDim):
+        print(numDim)
+        super().__init__()
+        counter = 0
+        checked = False
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.numDim = numDim
+        for i in range(len(inputIr.irMetadata)):
+            for j in range(len(inputIr.irMetadata[i].shape)):
+                if counter == numDim:
+                    print('!!!!!!!!!!')
+                    print(counter, inputIr.irMetadata[i].shape[j])
+                    assert(inputIr.irMetadata[i].shape[j] == 1)
+                    del self.irMetadata[i].shape[j]
+                    del self.irMetadata[i].broadcast[j]
+                    checked = True
+                    # break
+                counter += 1
+        if not checked:
+            for i in range(len(inputIr.irMetadata)):
+                print(inputIr.irMetadata[i])
+        assert(checked)
+        self.update_parent_child([inputIr])
 
 
 class IrAddDimensionConst(IrExpression):
@@ -479,6 +572,22 @@ class IrAddDimensionConst(IrExpression):
             inputIr = inputIr.children[0]
         super().__init__()
         assert(inputIr.irMetadata[-1].isConst)
+
+
+        # assert(irMetadata!=None or repeat_dims!=None)
+        
+        # if irMetadata==None:
+        #     self.irMetadata = copy_metadata(inputIr.irMetadata)
+        #     counter = 0
+        #     for i in range(len(self.irMetadata)):
+        #         for j in range(len(self.irMetadata[i].shape)):
+        #             self.irMetadata[i].shape[j] = repeat_dims[counter]
+        #             self.irMetadata[i].broadcast[j] = 1
+        #             counter += 1
+        #     children = [inputIr] + repeat_dims
+        #     self.update_parent_child(children)
+
+        # else:
         for i in range(len(irMetadata)):
             assert(irMetadata[i].type == inputIr.irMetadata[-1].type)
 
@@ -488,11 +597,18 @@ class IrAddDimensionConst(IrExpression):
         for i in range(len(self.irMetadata)):
             for j in range(len(self.irMetadata[i].broadcast)):
                 # repeat_dims.append(convert_z3_to_ir(self.irMetadata[i].broadcast[j] * self.irMetadata[i].shape[j]))
-                repeat_dims.append(mult_metadata(self.irMetadata[i].broadcast[j], self.irMetadata[i].shape[j]))
+                repeat_dims.append(self.irMetadata[i].shape[j])
         new_children = [inputIr] + repeat_dims
 
         self.update_parent_child(new_children)
         self.irMetadata[-1].isConst = False
+
+
+
+
+
+
+        
 
 class IrConvertNeuronToPoly(IrExpression):
     def __init__(self, inputIr):
@@ -633,6 +749,14 @@ class IrMult(IrExpression):
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         new_type = 'Float' if lhsIrMetadata[-1].type!=rhsIrMetadata[-1].type else lhsIrMetadata[-1].type
         self.irMetadata[-1].type = new_type
+        self.update_parent_child([lhsIr, rhsIr])
+
+class IrInnerProduct(IrExpression):
+    def __init__(self, lhsIr, rhsIr):
+        super().__init__()
+        self.irMetadata = copy_metadata(lhsIr.irMetadata)
+        self.irMetadata[-1].shape[-1] = rhsIr.irMetadata[-1].shape[-1]
+        self.irMetadata[-1].broadcast[-1] = rhsIr.irMetadata[-1].broadcast[-1]
         self.update_parent_child([lhsIr, rhsIr])
 
 

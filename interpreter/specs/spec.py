@@ -146,6 +146,7 @@ def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transfor
     data = datasets.MNIST(root=data_name, train=train, download=False, transform=transform)
 
     image, _ = data[n]
+    image = torch.tensor([1,2])
     # print(list(image.shape))
     if list(image.shape) != shapes[0]:
         image = image.flatten()

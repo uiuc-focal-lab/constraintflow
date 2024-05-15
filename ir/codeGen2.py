@@ -268,6 +268,11 @@ class CodeGen(irVisitor.IRVisitor):
             ret += '.unsqueeze(' + str(size) + ')'
             size += 1
         return ret
+    
+    def visitIrRemoveDimension(self, node):
+        [inputIr] = node.children
+        ret = self.visit(inputIr) + '.squeeze('+str(node.numDim) + ')'
+        return ret
 
     def visitIrAddDimensionConst(self, node):
         assert(isinstance(node, IrAddDimensionConst))
@@ -325,6 +330,8 @@ class CodeGen(irVisitor.IRVisitor):
             op_name = 'boolNeg'
         elif node.op == 'any':
             op_name = 'any'
+        elif node.op == 'get_shape_1':
+            op_name = 'get_shape_1'
         elif node.op == 'get_shape_0':
             op_name = 'get_shape_0'
         else:
@@ -368,6 +375,12 @@ class CodeGen(irVisitor.IRVisitor):
             op_name = 'divide'
         else:
             op_name = node.op
+        
+        [lhsIr, rhsIr] = node.children
+        return op_name + '(' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
+    
+    def visitIrInnerProduct(self, node):
+        op_name = 'inner_prod'
         
         [lhsIr, rhsIr] = node.children
         return op_name + '(' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'

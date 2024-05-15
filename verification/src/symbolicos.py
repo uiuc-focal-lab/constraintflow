@@ -140,6 +140,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		self.tempC = []
 		self.hasE = False
 		self.arrayLens = arrayLens
+		# self.arrayLens = dict()
 
 	def getVname(self):
 		self.vname = self.vname + 1
@@ -182,7 +183,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToZono(right)
 
-		c = ADD(left.const, right.const)
+		c = create_add(left.const, right.const)
 		if isinstance(left.const, tuple):
 			if left.const[0]==0:
 				c = right.const 
@@ -193,7 +194,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = ADD(left.coeffs[leftn], right.coeffs[leftn])
+				n[leftn] = create_add(left.coeffs[leftn], right.coeffs[leftn])
 				# n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
 			else:
 				n[leftn] = left.coeffs[leftn]
@@ -203,7 +204,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				n[rightn] = right.coeffs[rightn]
 				# n[rightn] = (right.coeffs[rightn][0], "Float")
 
-		return ZonoExpValue(n, c)
+		return PolyExpValue(n, c)
 
 
 	def ADDZono(self, left, right):
@@ -219,7 +220,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToZono(right)
 
-		c = ADD(left.const, right.const)
+		c = create_add(left.const, right.const)
 		if isinstance(left.const, tuple):
 			if left.const[0]==0:
 				c = right.const 
@@ -230,7 +231,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = ADD(left.coeffs[leftn], right.coeffs[leftn])
+				n[leftn] = create_add(left.coeffs[leftn], right.coeffs[leftn])
 				# n[leftn] = (left.coeffs[leftn][0] + right.coeffs[leftn][0], "Float")
 			else:
 				n[leftn] = left.coeffs[leftn]
@@ -256,19 +257,19 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToPoly(right)
 
-		c = SUB(left.const, right.const)
+		c = create_sub(left.const, right.const)
 		
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = SUB(left.coeffs[leftn], right.coeffs[leftn])
+				n[leftn] = create_sub(left.coeffs[leftn], right.coeffs[leftn])
 				# n[leftn] = (left.coeffs[leftn][0] - right.coeffs[leftn][0], "Float")
 			else:
 				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = SUB((0, 'Float'), right.coeffs[rightn])
+				n[rightn] = create_sub((0, 'Float'), right.coeffs[rightn])
 
 		return PolyExpValue(n, c)
 
@@ -285,23 +286,23 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				right = self.ConstToZono(right)
 
-		c = SUB(left.const, right.const)
+		c = create_sub(left.const, right.const)
 		if isinstance(left.const, tuple):
 			if left.const[0]==0:
-				c = MULT(right.const, (-1, 'Float')) 
+				c = create_mult(right.const, (-1, 'Float')) 
 		if isinstance(right.const, tuple):
 			if right.const[0]==0:
 				c = left.const 
 		n = {}
 		for leftn in left.coeffs.keys():
 			if(leftn in right.coeffs.keys()):
-				n[leftn] = SUB(left.coeffs[leftn], right.coeffs[leftn])
+				n[leftn] = create_sub(left.coeffs[leftn], right.coeffs[leftn])
 			else:
 				n[leftn] = left.coeffs[leftn]
 
 		for rightn in right.coeffs.keys():
 			if(not rightn in n.keys()):
-				n[rightn] = SUB((0, 'Float'), right.coeffs[rightn])
+				n[rightn] = create_sub((0, 'Float'), right.coeffs[rightn])
 
 		return ZonoExpValue(n, c)
 
@@ -316,12 +317,12 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				return r 
 			if r[0]==1:
 				return l 
-		return MULT(l, r)
+		return create_mult(l, r)
 
 	def cond_mult(self, c, e):
-		e.const  = MULT(e.const, IF(c, 1, 0))
+		e.const  = create_mult(e.const, IF(c, 1, 0))
 		for i in e.coeffs:
-			e.coeffs[i] = MULT(e.coeffs[i], IF(c, 1, 0))
+			e.coeffs[i] = create_mult(e.coeffs[i], IF(c, 1, 0))
 		return e
 
 	def MULTZono(self, left, right):
@@ -337,13 +338,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return left 
 
 	def DIVZono(self, left, right):
-		left.const = DIV(left.const, right.const)
+		left.const = create_div(left.const, right.const)
 		for i in left.coeffs:
 			if isinstance(right.const, tuple):
 				if not right.const[0]==1:
-					left.coeffs[i] = DIV(left.coeffs[i], right.const)
+					left.coeffs[i] = create_div(left.coeffs[i], right.const)
 			else:
-				left.coeffs[i] = DIV(left.coeffs[i], right.const)
+				left.coeffs[i] = create_div(left.coeffs[i], right.const)
 		return left 
 
 	def MULTPoly(self, left, right):
@@ -359,13 +360,13 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			return left 
 
 	def DIVPoly(self, left, right):
-		left.const = DIV(left.const, right.const)
+		left.const = create_div(left.const, right.const)
 		for i in left.coeffs:
 			if isinstance(right.const, tuple):
 				if not right.const[0]==1:
-					left.coeffs[i] = DIV(left.coeffs[i], right.const)
+					left.coeffs[i] = create_div(left.coeffs[i], right.const)
 			else:
-				left.coeffs[i] = DIV(left.coeffs[i], right.const)
+				left.coeffs[i] = create_div(left.coeffs[i], right.const)
 		return left
 
 	def convertToPoly(self, node):
@@ -385,6 +386,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, MULT)):
 			left = self.convertToPoly(node.left)
 			right = self.convertToPoly(node.right)
+			# print('!!!!!!!!!!!!!!!', node.left, node.right)
 			return self.MULTPoly(left, right)
 		elif(isinstance(node, DIV)):
 			left = self.convertToPoly(node.left)
@@ -398,7 +400,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			else:
 				left = self.convertToPoly(node.left)
 				right = self.convertToPoly(node.right)
-				return self.ADDPoly(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
+				temp1 = self.cond_mult(node.cond, left)
+				temp2 = self.cond_mult(NOT(node.cond), right)
+				ret = self.ADDPoly(temp1, temp2)
+				return ret
 		else:
 			print(node)
 			assert False
@@ -431,11 +436,11 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			if self.get_type(node)=='Float':
 				return ZonoExpValue({}, node)
 			elif self.get_type(node) == 'Noise':
-				return ZonoExp({node : (1, 'Float')}, (0, 'Float'))
+				return ZonoExpValue({node : (1, 'Float')}, (0, 'Float'))
 			else:
 				left = self.convertToZono(node.left)
 				right = self.convertToZono(node.right)
-				return ADDZono(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
+				return self.ADDZono(self.cond_mult(node.cond, left), self.cond_mult(NOT(node.cond), right))
 
 		# elif(isinstance(node, MULT)):
 		# 	if(self.get_type(node.left) == "ZonoExp"):
@@ -597,6 +602,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			# 	y = Real('new_'+str(self.number.nextn()))
 			# 	self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
 			# 	return y
+			print(node.cond)
 			return If(c, l, r)
 		elif(isinstance(node, MAX)):
 			e = [self.convertToZ3(i) for i in node.e]
@@ -656,6 +662,14 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				self.arrayLens[str(listout)] = IF(LEQ(xr,xl), xr, xl)
 			return listout
 
+		if f==MULT:
+			return create_mult(left, right)
+		elif f==ADD:
+			return create_add(left, right)
+		elif f==SUB:
+			return create_sub(left, right)
+		elif f==DIV:
+			return create_div(left, right)
 		return f(left, right)
 		if isinstance(left, IF):
 			return IF(left.cond, self.get_binop(left.left, right, f), self.get_binop(left.right, right, f))
@@ -1038,22 +1052,22 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		return self.get_concat(left, right)
 	
 
-	def get_getElement(self, expr, name):
-		if isinstance(expr, IF):
-			return IF(expr.cond, self.get_getElement(expr.left, name), self.get_getElement(expr.right, name))
-		if isinstance(expr, list):
+	def get_getElement(self, val, name):
+		if isinstance(val, IF):
+			return IF(val.cond, self.get_getElement(val.left, name), self.get_getElement(val.right, name))
+		if isinstance(val, list):
 			out = []
-			for e in expr:
+			for e in val:
 				out.append(self.get_getElement(e, name))
-			if(str(expr) in self.arrayLens):
-				self.arrayLens[str(out)] = self.arrayLens[str(expr)]
+			if(str(val) in self.arrayLens):
+				self.arrayLens[str(out)] = self.arrayLens[str(val)]
 			return out 
 		else:
-			return self.V[expr[0]].symmap[name]
+			return self.V[val[0]].symmap[name]
 
 	def visitGetElement(self, node):
-		expr = self.visit(node.expr)
-		return self.get_getElement(expr, node.elem.name)
+		val = self.visit(node.expr)
+		return self.get_getElement(val, node.elem.name)
 		# if isinstance(elist, IF):
 		# 	return IF(elist.cond, self.visitGetElement(elist.left, node.elem.name))
 		# n = self.visit(node.expr)python experiments.py test_cases_correct/deeppoly_affine "1000 1000 1"
@@ -1100,7 +1114,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				#print(time.time())
 		else:
 			elist = node.arglist.exprlist
-
+			
 		if len(elist)==len(func.decl.arglist.arglist):
 
 			for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
@@ -1216,7 +1230,28 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					exp = self.visitFuncCall(fcall, True)
 					# exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					cond = self.get_binop(e.right, (0, "Float"), EQQ)
+					
+					
 					exp_temp = IF(cond, (0, "Float"), exp)
+					# OPTIMIZATION TO REMOVE IF
+					if isinstance(fname, str):
+						func = self.F[fname]
+					else:
+						func = self.F[fname.name]
+					func_expr = func.expr
+					func_args = func.decl.arglist.arglist
+					for i in range(len(func_args)):
+						if func_args[i][0].name == 'Float':
+							coeff = func_args[i][1]
+					if isinstance(func_expr, AST.BinOpNode) and func_expr.op=='*':
+						if func_expr.left == coeff or func_expr.right==coeff:
+							exp_temp = exp
+					elif isinstance(func_expr, AST.TernaryNode):
+						if isinstance(func_expr.left, AST.BinOpNode) and func_expr.left.op=='*':
+							if func_expr.left.left == coeff or func_expr.left.right==coeff:
+								if isinstance(func_expr.right, AST.BinOpNode) and func_expr.right.op=='*':
+									if func_expr.right.left == coeff or func_expr.right.right==coeff:
+										exp_temp = exp
 					# print(cond)
 					# skd
 					return exp_temp
@@ -1228,7 +1263,29 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					exp = self.visitFuncCall(fcall, True)
 					# exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					cond = self.get_binop(e.left, (0, "Float"), EQQ)
+
+
 					exp_temp = IF(cond, (0, "Float"), exp)
+					# OPTIMIZATION TO REMOVE IF
+					if isinstance(fname, str):
+						func = self.F[fname]
+					else:
+						func = self.F[fname.name]
+					func_expr = func.expr
+					func_args = func.decl.arglist.arglist
+					for i in range(len(func_args)):
+						if func_args[i][0].name == 'Float':
+							coeff = func_args[i][1]
+					if isinstance(func_expr, AST.BinOpNode) and func_expr.op=='*':
+						if func_expr.left == coeff or func_expr.right==coeff:
+							exp_temp = exp
+					elif isinstance(func_expr, AST.TernaryNode):
+						if isinstance(func_expr.left, AST.BinOpNode) and func_expr.left.op=='*':
+							if func_expr.left.left == coeff or func_expr.left.right==coeff:
+								if isinstance(func_expr.right, AST.BinOpNode) and func_expr.right.op=='*':
+									if func_expr.right.left == coeff or func_expr.right.right==coeff:
+										exp_temp = exp
+					
 					# print(cond)
 					# skd
 					# print(self.convertToZ3(exp_temp))
@@ -1246,7 +1303,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					fname = node.funcname
 
 				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
-					elist = AST.ExprListNode(elist + [e.left, DIV(1,e.right)])
+					elist = AST.ExprListNode(elist + [e.left, create_div(1,e.right)])
 					fcall = AST.FuncCallNode(fname, elist)
 					exp = self.get_binop(exp, self.visitFuncCall(fcall, True), ADD)
 					return exp
@@ -1266,7 +1323,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 					elist = AST.ExprListNode(elist + [e, 1])
 					fcall = AST.FuncCallNode(fname, elist)
 					temp = self.visitFuncCall(fcall, True)
-					exp = self.get_binop(exp, temp, ADD)
+					exp = temp
 					return exp
 				else:
 					return e
@@ -1305,8 +1362,8 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	# 		return exp
 
 	def visitMap(self, node: AST.MapNode):
-		e = self.visit(node.expr)
-		output = self.get_map(e, node)
+		val = self.visit(node.expr)
+		output = self.get_map(val, node)
 		#if self.flag:
 			#print('here6')
 			#print(time.time())
@@ -1354,6 +1411,9 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			s_name = node.stop.name
 		else:
 			s_name = self.visit(node.stop)
+		# print([i.hash() for i in self.M.keys()]) 
+		# print(TRAVERSE(e, node.direction, p_name, s_name, node.func.name).hash())
+		# print(s_name)
 		return self.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)]
 
 	def visitLp(self, node):

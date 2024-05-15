@@ -194,6 +194,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
             polyExpIr = new_polyExp_var
             seqIr += [new_polyExp_var_assignment]
             
+        if polyExpIr.irMetadata[-1].type=='Neuron':
+            polyExpIr = IrConvertNeuronToPoly(polyExpIr)
         coeffIr = IrMapCoeff(polyExpIr)
         neuronIr = IrMapNeuron(polyExpIr)
         constIr = IrExtractPolyConst(polyExpIr)
@@ -337,15 +339,17 @@ class ConvertToIr(astVisitor.ASTVisitor):
         self.counter += 1
         exprIr, exprSeqIr = self.visit(ast_node.expr)
 
-        rhs = IrUnaryOp(IrExtractPolyConst(exprIr), 'get_shape_0')
+        rhs = IrUnaryOp(IrExtractPolyCoeff(exprIr), 'get_shape_1')
         trav_size_var = IrVar('trav_size', rhs.irMetadata)
         trav_size_assignment = IrAssignment(trav_size_var, rhs)
         exprSeqIr.append(trav_size_assignment)
 
         new_name = 'trav_exp'+str(self.counter)
-        polyExpIr = IrVar(new_name, [IrMetadataElement([IrAst.trav_size], 'PolyExp', [1], False)])
+        # polyExpIr = IrVar(new_name, [IrMetadataElement([IrAst.curr_size], 'PolyExp', [1], False)])
+        polyExpIr = IrVar(new_name, exprIr.irMetadata)
         varIr = polyExpIr
         temp = IrAssignment(varIr, exprIr)
+
         exprSeqIr.append(temp)
 
         
@@ -405,7 +409,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
         tempFunc = IrAssignment(varIr, funcIr)
         funcSeqIr.append(tempFunc)
 
-        rhs = IrUnaryOp(IrExtractPolyConst(varIr), 'get_shape_0')
+        rhs = IrUnaryOp(IrExtractPolyCoeff(varIr), 'get_shape_1')
         # new_var = IrVar('trav_size', rhs.irMetadata)
         trav_size_assignment = IrAssignment(trav_size_var, rhs)
 
@@ -479,7 +483,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
     
     def visitOpStmt(self, ast_node):
         original_store = copy.deepcopy(self.store)
-        if ast_node.op.op_name == 'Relu':
+        if ast_node.op.op_name == 'Relu' or ast_node.op.op_name == 'Abs':
             self.store['curr'] = IrVar('curr', [IrMetadataElement([IrAst.curr_size], 'Neuron', [1], False)])
             self.store['prev'] = IrVar('prev', [IrMetadataElement([IrAst.curr_size], 'Neuron', [1], False)])
         elif ast_node.op.op_name == 'Affine':
