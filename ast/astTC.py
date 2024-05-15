@@ -581,12 +581,15 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(not isinstance(ftype, ArrowType)):
 			raise TypeMismatchException(name + " is not a function")
 		argstype = ftype.tleft
+		if not isinstance(argstype, list):
+			argstype = [argstype]
 		exprstype = self.visit(node.arglist)
 		i = 0
 		while i < len(exprstype):
 			if(i == len(argstype)):
 				raise TypeMismatchException("Arguments of " + name + " are not the correct type(s)")
 			if(not self.isSubType(exprstype[i], argstype[i])):
+				print(i, exprstype[i], argstype[i])
 				raise TypeMismatchException("Arguments of " + name + " are not the correct type(s)")
 			i += 1
 		if(i == len(argstype)):
@@ -771,6 +774,7 @@ class ASTTC(astVisitor.ASTVisitor):
 
 		for ov in oldvalues.keys():
 			self.Gamma[ov] = oldvalues[ov]
+
 
 		self.Gamma[fname] = ArrowType(argstype, exprtype)
 		node.type = ArrowType(argstype, exprtype)

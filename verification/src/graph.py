@@ -126,12 +126,30 @@ class Opt_graph():
     def get_queries_left(self, top_level, m , lhs):
         return [top_level(lhs, self.num_form[i]) for i in m]
     
+
+
     def get_sufficient_queries(self, query):
         top_level = query.decl()
         if(len(query.children()) == 2):
             lhs, rhs = query.children()
             # if lhs in self.form_num.keys() and rhs in self.form_num.keys():
-
+            if str(lhs.decl()) == '+':
+                lhs_summands = get_summands(lhs)
+                if len(lhs_summands)>0:
+                    new_summands = []
+                    num_changed = 0
+                    for i in range(len(lhs_summands)):
+                        new_simple_expr, changed = self.get_easy_expr_if(lhs_summands[i], top_level)
+                        num_changed += changed
+                        new_summands.append(new_simple_expr)
+                    if num_changed >= 2:
+                        new_lhs = new_summands[0]
+                        for i in range(1, len(new_summands)):
+                            new_lhs += new_summands[i]
+                        return [top_level(new_lhs, rhs)]
+                        # if (top_level == lt) or (top_level == le):
+                        # elif (top_level == gt) or (top_level == ge):
+                        #     return [top_level(new_lhs, rhs)]
             if lhs in self.form_num.keys():
                 num_lhs = self.form_num[lhs]
                 if (top_level == lt) or (top_level == le):
@@ -154,3 +172,59 @@ class Opt_graph():
                     self.travel_up(num_rhs)
                     return self.get_queries_left(top_level, self.up, lhs)
         return []
+    def get_easy_expr_if(self, expr, top_level):
+        if str(expr.decl())=='If':
+            lhs, rhs = expr.children()[1], expr.children()[2]
+            if str(lhs.decl())=='*' and str(rhs.decl())=='*':
+                common = []
+                if simplify(lhs.children()[0] == rhs.children()[0]):
+                    common = lhs.children()[0]
+                    lhs_substrate = lhs.children()[1]
+                    rhs_substrate = rhs.children()[1]
+                elif simplify(lhs.children()[1] == rhs.children()[0]):
+                    common = lhs.children()[1]
+                    lhs_substrate = lhs.children()[0]
+                    rhs_substrate = rhs.children()[1]
+                elif simplify(lhs.children()[1] == rhs.children()[1]):
+                    common = lhs.children()[1]
+                    lhs_substrate = lhs.children()[0]
+                    rhs_substrate = rhs.children()[0]
+                elif simplify(lhs.children()[0] == rhs.children()[1]):
+                    common = lhs.children()[0]
+                    lhs_substrate = lhs.children()[1]
+                    rhs_substrate = rhs.children()[0]
+                else:
+                    return expr, 0
+                if lhs_substrate in self.form_num.keys() and rhs_substrate in self.form_num.keys():
+                    num_lhs_substrate = self.form_num[lhs_substrate]
+                    num_rhs_substrate = self.form_num[rhs_substrate]
+                    self.up.clear()
+                    self.down.clear()
+                    if simplify(expr.children()[0] == (common >= 0)):
+                        if str(top_level) == '<=':
+                            self.travel_up(num_lhs_substrate)
+                            self.travel_down(num_rhs_substrate)
+                        elif str(top_level) == '>=':
+                            self.travel_up(num_rhs_substrate)
+                            self.travel_down(num_lhs_substrate)
+                    elif simplify(expr.children()[0] == (common <= 0)):
+                        if str(top_level) == '>=':
+                            self.travel_up(num_lhs_substrate)
+                            self.travel_down(num_rhs_substrate)
+                        elif str(top_level) == '<=':
+                            self.travel_up(num_rhs_substrate)
+                            self.travel_down(num_lhs_substrate)
+                    l1 = list(self.up)
+                    l2 = list(self.down)
+                    for i in range(len(l1)):
+                        for j in range(len(l2)):
+                            if simplify(self.num_form[l1[i]] == self.num_form[l2[j]]):
+                                return common * self.num_form[l1[i]], 1
+        return expr, 0
+
+def get_summands(expr):
+    if str(expr.decl()) == '+':
+        return get_summands(expr.children()[0]) + get_summands(expr.children()[1])
+    else:
+        return [expr]
+    

@@ -130,7 +130,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = newvar_list
-						self.os.arrayLens[str(newvar_list)] = prevLength
+						self.os.arrayLens[str(newvar_list)] = self.prevLength
 					elif(node.metadata.name == "layer"):
 						newvar = (Int('X' + str(self.number.nextn())), "Int")
 					elif(node.metadata.name == "serial"):
@@ -142,7 +142,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "PolyExp")
 						newvar = newvar_list
-						self.os.arrayLens[str(newvar_list)] = prevLength
+						self.os.arrayLens[str(newvar_list)] = self.prevLength
 					self.V[n[0]].symmap[node.metadata.name] = newvar
 			else:
 				for ni in n:
@@ -181,52 +181,87 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def visitGetElementAtIndex(self, node):
 		self.visit(node.expr)
-		# n = self.os.visit(node.expr)
-		# self.get_getElement(n, node)
 
 	def visitExprList(self, node):
 		for e in node.exprlist:
 			self.visit(e)
 			
 	def get_map(self, val, node):
-		#print('jhsgdjfhakjshdgfkjhaskdhfg')
-		#print(time.time())
 		if isinstance(val, IF):
 			self.get_map(val.left, node)
 			self.get_map(val.right, node)
 		else:
-			#print(time.time())
-			u_type = self.os.get_type(val)
-			#print(uiuiui)
-			if u_type=='PolyExp' or u_type=='Neuron':
-				expr = self.os.convertToPoly(val)
-			else:
-				expr = self.os.convertToZono(val)
-			# print('jhsgdjfhakjshdgfkjhaskdhfg')
-			#print(time.time())
+			# u_type = self.os.get_type(val)
+			# if u_type=='PolyExp' or u_type=='Neuron':
+			# 	expr = self.os.convertToPoly(val)
+			# else:
+			# 	expr = self.os.convertToZono(val)
 
-			for n in expr.coeffs.keys():
+			# for n in expr.coeffs.keys():
+			# 	if isinstance(node.func, AST.VarNode):
+			# 		elist = []
+			# 	else:	
+			# 		elist = self.os.visit(node.func)
+			# 	elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
+			# 	print(elist.exprlist)
+			# 	jf
+			# 	fcall = AST.FuncCallNode(node.func, elist)
+			# 	self.visitFuncCall(fcall, True)
+			if isinstance(val, ADD) or isinstance(val, SUB):
+				self.get_map(val.left, node)
+				self.get_map(val.right, node)
+			elif isinstance(val, MULT):
+				lhstype = self.os.get_type(val.left)
+				rhstype = self.os.get_type(val.right)
+
 				if isinstance(node.func, AST.VarNode):
 					elist = []
+					fname = node.func
 				else:	
-					elist = self.os.visit(node.func)
-				elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
-				fcall = AST.FuncCallNode(node.func, elist)
-				# if i==0: 
-				# 	print('jhsdgjhfgjhsdgf')
-				# 	print(time.time())
-				self.visitFuncCall(fcall, True)
-				# if i==0:
-			#print(time.time())
+					elist = self.visit(node.func)
+					fname = node.func
 
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.left, val.right])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp' or rhstype == 'Neuron' or rhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.right, val.left])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+			elif isinstance(val, DIV):
+				lhstype = self.os.get_type(val.left)
+				if isinstance(node.func, AST.VarNode):
+					elist = []
+					fname = node.func
+				else:	
+					elist = self.visit(node.func)
+					fname = node.func
 
-				# i = i+1
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.left, DIV(1,val.right)])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+			else: 
+				if(val[1] == 'Neuron' or val[1] == 'Noise'):
+					if isinstance(node.func, AST.VarNode):
+						elist = []
+						fname = node.func
+					else:	
+						elist = self.visit(node.func)
+						fname = node.func
+
+					elist = AST.ExprListNode(elist + [val, 1])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
 
 	def visitMap(self, node):
-		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		self.visit(node.expr)
+		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		p = self.os.visit(node.expr)
+		print('2', type(p))
 		self.get_map(p, node)
+		
 
 	def get_maplist(self, val, node):
 		if isinstance(val, IF):
@@ -263,6 +298,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			elist = self.os.visit(node.arglist)
 		else:
 			elist = node.arglist.exprlist
+			if isinstance(elist[0], ADD):
+				print(elist[0].left, elist[0].right)
 
 		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 			if arg.name in self.store.keys():
@@ -340,6 +377,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				elist_stop = self.os.visit(node.stop)
 			if(isinstance(node.stop, AST.VarNode)):
 				self.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
+			elif(isinstance(node.stop, AST.FuncCallNode)):
+				self.visitFuncCall(AST.FuncCallNode(node.stop.name, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			
 			if isinstance(node.func, AST.VarNode):
 				elist_func = []
@@ -348,8 +387,11 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			if(isinstance(node.func, AST.VarNode)):
 				self.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode(elist_func + [(neuron.name, "Neuron"), coeff])), True)
 
+			print(type(node.stop))
 			if(isinstance(node.stop, AST.VarNode)):
 				val_stop = self.os.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
+			elif(isinstance(node.stop, AST.FuncCallNode)):
+				val_stop = self.os.visitFuncCall(AST.FuncCallNode(node.stop.name, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			else: #expression like True
 				val_stop = self.os.visit(node.stop)
 
@@ -495,7 +537,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		else:
 			s_name = self.os.visit(node.stop)
 
-		self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output  
+		self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output 
+		# self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output 
 
 	def visitTransRetBasic(self, node):
 		self.visit(node.exprlist)
@@ -571,8 +614,88 @@ class checkPoly(astVisitor.ASTVisitor):
 	def visitListOp(self, node: AST.ListOpNode):
 		self.visit(node.expr)
 
-	def visitMap(self, node: AST.MapNode):
+	# def visitMap(self, node: AST.MapNode):
+	# 	self.visit(node.expr)
+	# 	val = self.os.visit(node.expr)
+		
+	# 	u_type = self.os.get_type(val)
+	# 	if u_type=='PolyExp' or u_type=='Neuron':
+	# 		expr = self.os.convertToPoly(val)
+	# 	else:
+	# 		expr = self.os.convertToZono(val)
+
+	# 	for n in expr.coeffs.keys():
+	# 		if isinstance(node.func, AST.VarNode):
+	# 			elist = []
+	# 		else:	
+	# 			elist = self.os.visit(node.func)
+	# 		elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
+	# 		fcall = AST.FuncCallNode(node.func, elist)
+	# 		self.visitFuncCall(fcall, True)
+ 
+	def get_map(self, val, node):
+		if isinstance(val, IF):
+			self.get_map(val.left, node)
+			self.get_map(val.right, node)
+		else:
+			if isinstance(val, ADD) or isinstance(val, SUB):
+				self.get_map(val.left, node)
+				self.get_map(val.right, node)
+			elif isinstance(val, MULT):
+				lhstype = self.os.get_type(val.left)
+				rhstype = self.os.get_type(val.right)
+
+				if isinstance(node.func, AST.VarNode):
+					elist = []
+					fname = node.func
+				else:	
+					elist = self.visit(node.func)
+					fname = node.func
+
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.left, val.right])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+				elif(rhstype == 'PolyExp' or rhstype == 'ZonoExp' or rhstype == 'Neuron' or rhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.right, val.left])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+			elif isinstance(val, DIV):
+				lhstype = self.os.get_type(val.left)
+				if isinstance(node.func, AST.VarNode):
+					elist = []
+					fname = node.func
+				else:	
+					elist = self.visit(node.func)
+					fname = node.func
+
+				if(lhstype == 'PolyExp' or lhstype == 'ZonoExp' or lhstype == 'Neuron' or lhstype=='Noise'):
+					elist = AST.ExprListNode(elist + [val.left, DIV(1,val.right)])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+			else: 
+				if(val[1] == 'Neuron' or val[1] == 'Noise'):
+					if isinstance(node.func, AST.VarNode):
+						elist = []
+						fname = node.func
+					else:	
+						elist = self.visit(node.func)
+						fname = node.func
+
+					elist = AST.ExprListNode(elist + [val, 1])
+					fcall = AST.FuncCallNode(fname, elist)
+					self.visitFuncCall(fcall, True)
+
+	def visitMap(self, node):
 		self.visit(node.expr)
+		val = self.os.visit(node.expr)
+		self.get_map(val, node)
+
+
+
+
+
+
 
 	def visitDot(self, node: AST.DotNode):
 		self.visit(node.left)
@@ -582,10 +705,42 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(node.left)
 		self.visit(node.right)
 	
-	def visitFuncCall(self, node: AST.FuncCallNode):
+	def visitFuncCall(self, node: AST.FuncCallNode, preeval=False):
+		# name = node.name.name
+		# self.visit(self.os.F[name].expr)
+		# self.visit(node.arglist)
+
 		name = node.name.name
-		self.visit(F[name].expr)
-		self.visit(node.arglist)
+		if(isinstance(name, str)): 
+			func = self.os.F[node.name.name]
+		else:
+			func = self.os.F[node.name.name.name]
+
+		newvars = []
+		oldvalues = {}
+
+		if(not preeval):
+			self.visit(node.arglist)
+			elist = self.os.visit(node.arglist)
+		else:
+			elist = node.arglist.exprlist
+
+		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
+			if arg.name in self.os.store.keys():
+				oldvalues[arg.name] = self.os.store[arg.name]
+			else:
+				newvars.append(arg.name)
+
+			self.os.store[arg.name] = exp
+
+		self.visit(func.expr)
+		
+		for v in newvars:
+			del self.os.store[v]
+
+		for ov in oldvalues.keys():
+			self.os.store[ov] = oldvalues[ov]
+
 
 	def get_getMetadata(self, val, node):
 		if isinstance(val, list):
@@ -638,7 +793,7 @@ class checkPoly(astVisitor.ASTVisitor):
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 					for i in range(self.Nzono):
-						if len(self.os.old_neurons == i):
+						if len(self.os.old_neurons) == i:
 							neuron = Vertex('V' + str(self.number.nextn()))
 							self.os.old_neurons.append(neuron)
 							self.os.V[neuron.name] = neuron

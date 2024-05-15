@@ -236,6 +236,7 @@ class Verify(astVisitor.ASTVisitor):
 					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
+					# exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
 					exptemp = ADD(exptemp, IF(LEQ(i+1,prevLength),(MULT(prev[i], curr.symmap["weight"][i])),(0, "Int")))
 
 				exptemp = s.os.convertToZ3(exptemp)
@@ -465,7 +466,7 @@ class Verify(astVisitor.ASTVisitor):
 			for one_cons in conslist:
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
 				# print('here')
-				print(c)
+				# print(c)
 				z3constraint = s.os.convertToZ3(c)
 				if(isinstance(z3constraint, bool)):
 					z3constraint = BoolSort().cast(z3constraint)
@@ -508,10 +509,12 @@ class Verify(astVisitor.ASTVisitor):
 				# print(rhs)
 				# print()
 				# fc
+				print('!!!!!!!!!!!!!!!!')
 				w = self.solver.solve(lhs, rhs)
-				print(lhs)
-				print()
-				print(rhs)
+				print('@@@@@@@@@@@@@@@')
+				# print(lhs)
+				# print()
+				# print(rhs)
 				if(not w):
 					print(lhs)
 					print()

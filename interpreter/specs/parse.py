@@ -30,6 +30,7 @@ def forward_layers(net, relu_mask, transformers):
 
 
 def parse_onnx_layers(net):
+    # weights = [torch.tensor([1,-1], [1,-1])]
     input_shape = [dim.dim_value for dim in net.graph.input[0].type.tensor_type.shape.dim]
     if len(input_shape)==3:
         input_shape = [1] + input_shape

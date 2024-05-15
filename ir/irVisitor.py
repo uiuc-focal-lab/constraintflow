@@ -17,8 +17,8 @@ class IRVisitor:
         elif isinstance(node, IR.IrConvertBoolToFloat):
             return self.visitIrConvertBoolToFloat(node)
         
-        elif isinstance(node, IR.IrConvertToTensor):
-            return self.visitIrConvertToTensor(node)
+        # elif isinstance(node, IR.IrConvertToTensor):
+        #     return self.visitIrConvertToTensor(node)
         
         elif isinstance(node, IR.IrGetDefaultStop):
             return self.visitIrGetDefaultStop(node)
@@ -28,6 +28,9 @@ class IRVisitor:
         
         elif isinstance(node, IR.IrAddDimension):
             return self.visitIrAddDimension(node)
+        
+        elif isinstance(node, IR.IrRemoveDimension):
+            return self.visitIrRemoveDimension(node)
         
         elif isinstance(node, IR.IrAddDimensionConst):
             return self.visitIrAddDimensionConst(node)
@@ -40,6 +43,9 @@ class IRVisitor:
         
         elif isinstance(node, IR.IrMult):
             return self.visitIrMult(node)
+        
+        elif isinstance(node, IR.IrInnerProduct):
+            return self.visitIrInnerProduct(node)
         
         elif isinstance(node, IR.IrDot):
             return self.visitIrDot(node)

@@ -5,7 +5,7 @@
 #C is a list of z3 symbolic constraints
 #V is a dictionary from a symbolic variable to the Vertex class of the neuron it represents
 
-
+from z3 import *
 
 class TerminalValue:
 	def __init__(self):
@@ -53,6 +53,108 @@ class MULT(TerminalValue):
 
 	def __hash__(self):
 		return hash(("MULT", self.left, self.right))
+
+def get_multiplicands(val):
+	if isinstance(val, MULT):
+		return get_multiplicands(val.left) + get_multiplicands(val.right)
+	return [val]
+
+def get_type(val):
+	if(isinstance(val, tuple)):
+		return val[1]
+	else:
+		l = get_type(val.left)
+		if isinstance(val, ADD) or isinstance(val, SUB) or isinstance(val, MULT) or isinstance(val, DIV):
+			if l=='Neuron' or l=='PolyExp':
+				return 'PolyExp'
+			elif l=='Noise' or l=='ZonoExp':
+				return 'ZonoExp'
+			else:
+				return get_type(val.right)
+		if isinstance(val, IF):
+			r = get_type(val.right)
+			if l=='Float' and r=='Float':
+				return 'Float'
+			if l=='Int' and r=='Int':
+				return 'Int'
+			if l=='Bool' and r=='Bool':
+				return 'Bool'
+			if l=='ZonoExp' or r=='ZonoExp' or l=='Noise' or r=='Noise':
+				return 'ZonoExp'
+			if l=='PolyExp' or r=='PolyExp' or l=='Neuron' or r=='Neuron':
+				return 'PolyExp'
+
+def create_add(left, right):
+	if isinstance(left, tuple) and isinstance(right, tuple):
+		if get_type(left)=='Float' and get_type(right)=='Float':
+			return (left[0]+right[0], 'Float')
+	return ADD(left, right)
+
+def create_sub(left, right):
+	if isinstance(left, tuple) and isinstance(right, tuple):
+		if get_type(left)=='Float' and get_type(right)=='Float':
+			return (left[0]-right[0], 'Float')
+	return SUB(left, right)
+
+def create_div(left, right):
+	if isinstance(left, tuple) and isinstance(right, tuple):
+		if get_type(left)=='Float' and get_type(right)=='Float':
+			return (left[0]/right[0], 'Float')
+	return DIV(left, right)
+
+def create_mult(left, right):
+	# return MULT(left, right)
+	if isinstance(left, tuple) and isinstance(right, tuple):
+		if get_type(left)=='Float' and get_type(right)=='Float':
+			return (left[0]*right[0], 'Float')
+		return MULT(left, right)
+	
+	# left is base case
+	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, ADD):
+		lhs = create_mult(left, right.left)
+		rhs = create_mult(left, right.right)
+		return create_add(lhs, rhs)
+	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, SUB):
+		return create_sub(create_mult(left, right.left), create_mult(left, right.right))
+	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, IF):
+		return IF(right.cond, create_mult(left, right.left), create_mult(left, right.right))
+	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, MULT):
+		multiplicands = [left] + get_multiplicands(right)
+		coeff = 1
+		others = []
+		for i in range(len(multiplicands)):
+			if isinstance(multiplicands[i], tuple):
+				if multiplicands[i][1] == 'Float':
+					coeff = coeff * multiplicands[i][0]
+					# coeff = simplify(coeff)
+				else:
+					others.append(multiplicands[i])
+		if len(others)==0:
+			return (coeff, 'Float')
+		if len(others)==1:
+			return MULT((coeff, 'Float'), others[0])
+		else:
+			coeff = (coeff, 'Float')
+			for i in range(len(others)):
+				coeff = MULT(coeff, others[i])
+			return coeff 
+		
+	# right is base case
+	elif isinstance(left, ADD) and (isinstance(right, tuple) or get_type(right) == 'Float'):
+		return create_add(create_mult(left.left, right), create_mult(left.right, right))
+	elif isinstance(left, SUB) and (isinstance(right, tuple) or get_type(right) == 'Float'):
+		return create_sub(create_mult(left.left, right), create_mult(left.right, right))
+	elif isinstance(left, IF) and (isinstance(right, tuple) or get_type(right) == 'Float'):
+		return IF(left.cond, create_mult(left.left, right), create_mult(left.right, right))
+	elif isinstance(left, MULT) and (isinstance(right, tuple) or get_type(right) == 'Float'):
+		return create_mult(right, left)
+	
+
+	else:
+		return MULT(left, right)
+		# print(left, right)
+		# raise Exception('IMPLEMENT THIS')
+	
 
 class DIV(TerminalValue):
 
@@ -342,7 +444,8 @@ class TRAVERSE(NonTerminalValue):
 			return False
 
 	def __hash__(self):
-		return hash(("TRAVERSE", self.e, self.d, self.f1, self.f2, self.f3))
+		return 0
+		return hash(("TRAVERSE", str(self.e), str(self.d), str(self.f1), str(self.f2), str(self.f3)))
 
 class LP(NonTerminalValue):
 

@@ -16,8 +16,9 @@ def compute_size(shape):
         shape = shape[1:]
     return s
 
+
+net = get_net(net_name='sample_model.pth')
 # net = get_net(net_name='nets/mnist_relu_3_50.onnx')
-net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # net = get_net(net_name='nets/mnist_0.1.onnx')
 
 neighbours = dict()
@@ -28,11 +29,11 @@ for layer in net:
 
 t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.01)
 temp_save = [t, l, u, L, U]
-# file_path = 'specs_eps001.pkl'
-# with open(file_path, 'wb') as file:
-#     pickle.dump(temp_save, file)
+file_path = 'specs_sample_model.pkl'
+with open(file_path, 'wb') as file:
+    pickle.dump(temp_save, file)
 
-# jdfg
+jdfg
 # t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.0)
 
 # abs_elem = Abs_elem({'t': t, 'l': l, 'u': u}, {'t': 'bool', 'l': 'float', 'u': 'float'}, shapes)
