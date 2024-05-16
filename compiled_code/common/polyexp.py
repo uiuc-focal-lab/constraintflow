@@ -181,3 +181,44 @@ class PolyExp:
         elif self.const == None:
             return 0.0
         return self.const
+    
+class SymExp:
+    count = 0
+    def __init__(self, rows, cols, mat, const, start, end):
+        if SymExp.count < len(mat) :
+            SymExp.count = len(mat)
+        self.rows = rows
+        self.cols = cols
+        self.mat = mat 
+        self.const = const
+        self.start = start 
+        self.end = end
+        self.debug_flag = False 
+
+    def add_exps(self, num):
+        SymExp.count += num
+    
+    def copy(self):
+        return copy.deepcopy(self)
+
+    def get_mat(self, sym_size):
+        assert(sym_size <= SymExp.count)
+        if self.mat == None and  isinstance(self.const, torch.Tensor):
+            return torch.zeros(self.rows, sym_size)
+        elif not isinstance(self.mat, torch.Tensor) and  isinstance(self.const, torch.Tensor):
+            return torch.ones(self.rows, sym_size)*self.mat
+        elif self.mat == None:
+            return 0.0
+        elif self.mat.shape[1]<sym_size:
+            temp = torch.zeros(self.rows, sym_size-self.mat.shape[1])
+            return torch.concat([self.mat, temp], dim=1)
+        return self.mat[:, :sym_size]
+    
+    def get_const(self):
+        if self.const == None and  isinstance(self.mat, torch.Tensor):
+            return torch.zeros(self.rows)
+        elif not isinstance(self.const, torch.Tensor) and  isinstance(self.mat, torch.Tensor):
+            return torch.ones(self.rows)*self.const
+        elif self.const == None:
+            return 0.0
+        return self.const

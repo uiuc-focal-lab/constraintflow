@@ -4,6 +4,7 @@ func deepz_lower(Noise n, Float c) = (c >= 0) ? -1 : 1;
 func deepz_upper(Noise n, Float c) = (c >= 0) ? 1 : 1;
 
 func priority(Neuron n) = n[layer];
+func stop(Neuron n) = true;
 
 
 transformer zono{
@@ -11,4 +12,4 @@ transformer zono{
     Affine -> (prev[Z].dot(curr[weight]) + (curr[bias]).map(deepz_lower), prev[Z].dot(curr[weight]) + (curr[bias]).map(deepz_upper), prev[Z].dot(curr[weight]) + (curr[bias]));
 }
 
-flow(forward, priority, true, zono);
+flow(forward, priority, stop, zono);

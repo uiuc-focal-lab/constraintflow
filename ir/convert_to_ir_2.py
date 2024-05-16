@@ -37,6 +37,9 @@ class ConvertToIr(astVisitor.ASTVisitor):
     def visitVar(self, ast_node: AST.VarNode):
         return self.store[ast_node.name], []
     
+    def visitEpsilon(self, ast_node: AST.EpsilonNode):
+        return IrEpsilon(), []
+    
     def visitUnOp(self, ast_node):
         exprIr, exprSeqIr = self.visit(ast_node.expr)
         return IrUnaryOp(exprIr, ast_node.op), exprSeqIr
@@ -101,6 +104,60 @@ class ConvertToIr(astVisitor.ASTVisitor):
                     new_rhsIr = IrBinaryOp(IrExtractPolyConst(lhsIr), IrExtractPolyConst(rhsIr), op)
                 
                 return IrCombineToPoly(new_lhsIr, new_rhsIr), seqIr
+            
+        elif ast_node_type == 'ZonoExp':
+            if(lhsIr.irMetadata[-1].type == "Noise"):
+                lhsIr = IrConvertNoiseToSym(lhsIr)
+            if(rhsIr.irMetadata[-1].type == "Noise"):
+                rhsIr = IrConvertNoiseToSym(rhsIr)
+
+            if lhsIr.irMetadata[-1].type == 'ZonoExp':
+                new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
+                new_lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
+                seqIr.append(new_lhs_assignment)
+                lhsIr = new_lhs_var
+            if rhsIr.irMetadata[-1].type == 'ZonoExp':
+                new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
+                new_rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
+                seqIr.append(new_rhs_assignment)
+                rhsIr = new_rhs_var
+
+            
+            if(op in ["*", "/"] ):
+                
+                    
+
+                lhsIrMetadata = lhsIr.irMetadata
+                rhsIrMetadata = rhsIr.irMetadata
+
+                if(lhsIrMetadata[-1].type == "Float" or lhsIrMetadata[-1].type == "Int"):
+                    new_lhsIr = IrMult(lhsIr, IrExtractSymCoeff(rhsIr), op)
+                    new_rhsIr = IrMult(lhsIr, IrExtractSymConst(rhsIr), op)
+                    
+                elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
+                    new_lhsIr = IrMult(IrExtractSymCoeff(lhsIr), rhsIr, op)
+                    new_rhsIr = IrMult(IrExtractSymConst(lhsIr), rhsIr, op)
+                return IrCombineToSym(new_lhsIr, new_rhsIr), seqIr
+            else:
+                
+
+                lhsIrMetadata = lhsIr.irMetadata
+                rhsIrMetadata = rhsIr.irMetadata
+
+                if(lhsIrMetadata[-1].type == "Float" or lhsIrMetadata[-1].type == "Int"):
+                    new_lhsIr = IrExtractSymCoeff(rhsIr)
+                    new_rhsIr = IrBinaryOp(lhsIr, IrExtractSymConst(rhsIr), op)
+
+                elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
+                    new_lhsIr = IrExtractSymCoeff(lhsIr)
+                    new_rhsIr = IrBinaryOp(rhsIr, IrExtractSymConst(lhsIr), op)
+                    
+                else:
+                    new_lhsIr = IrBinaryOp(IrExtractSymCoeff(lhsIr), IrExtractSymCoeff(rhsIr), op)
+                    new_rhsIr = IrBinaryOp(IrExtractSymConst(lhsIr), IrExtractSymConst(rhsIr), op)
+                
+                return IrCombineToSym(new_lhsIr, new_rhsIr), seqIr
+            
         else:
             if(op in ["*", '/']):
                 return IrMult(lhsIr, rhsIr, op), seqIr
@@ -183,27 +240,74 @@ class ConvertToIr(astVisitor.ASTVisitor):
         self.store = original_store
         return retIr, seqIr + retSeqIr 
     
-    def visitMap(self, ast_node, polyExpIr=None, polyExpSeqIr = None, name=None, reduce=True):
-        if polyExpIr == None:
-            polyExpIr, polyExpSeqIr = self.visit(ast_node.expr)
-            name = ast_node.func
-        seqIr = polyExpSeqIr
-        if (not isinstance(polyExpIr, IrVar)) and (not isinstance(polyExpIr, IrSymbolic)) and (not isinstance(polyExpIr, IrConst)):
-            new_polyExp_var = IrVar(self.get_var(), polyExpIr.irMetadata)
-            new_polyExp_var_assignment = IrAssignment(new_polyExp_var, polyExpIr)
-            polyExpIr = new_polyExp_var
-            seqIr += [new_polyExp_var_assignment]
+    # def visitMap(self, ast_node, polyExpIr=None, polyExpSeqIr = None, name=None, reduce=True):
+    #     if polyExpIr == None:
+    #         polyExpIr, polyExpSeqIr = self.visit(ast_node.expr)
+    #         name = ast_node.func
+    #     seqIr = polyExpSeqIr
+    #     if (not isinstance(polyExpIr, IrVar)) and (not isinstance(polyExpIr, IrSymbolic)) and (not isinstance(polyExpIr, IrConst)):
+    #         new_polyExp_var = IrVar(self.get_var(), polyExpIr.irMetadata)
+    #         new_polyExp_var_assignment = IrAssignment(new_polyExp_var, polyExpIr)
+    #         polyExpIr = new_polyExp_var
+    #         seqIr += [new_polyExp_var_assignment]
             
-        if polyExpIr.irMetadata[-1].type=='Neuron':
-            polyExpIr = IrConvertNeuronToPoly(polyExpIr)
-        coeffIr = IrMapCoeff(polyExpIr)
-        neuronIr = IrMapNeuron(polyExpIr)
-        constIr = IrExtractPolyConst(polyExpIr)
+    #     if polyExpIr.irMetadata[-1].type=='Neuron':
+    #         polyExpIr = IrConvertNeuronToPoly(polyExpIr)
+    #     coeffIr = IrMapCoeff(polyExpIr)
+    #     neuronIr = IrMapNeuron(polyExpIr)
+    #     constIr = IrExtractPolyConst(polyExpIr)
+    #     original_store = copy.deepcopy(self.store)
+    #     func_ast_node = self.ast_fstore[name.name]
+    #     assert(len(func_ast_node.decl.arglist.arglist) == 2)
+    #     for (type_node, var_node) in func_ast_node.decl.arglist.arglist:
+    #         if type_node == AST.BaseTypeNode('Neuron'):
+    #             self.store[var_node.name] = neuronIr
+    #         else:
+    #             self.store[var_node.name] = coeffIr
+    #     funcIr, funcSeqIr = self.visit(func_ast_node.expr)
+    #     self.store = original_store
+    #     seqIr += funcSeqIr
+    #     if reduce:
+    #         if funcIr.irMetadata[-1].type == 'PolyExp':
+    #             redCoeffIr = IrReduce(IrExtractPolyCoeff(funcIr))
+    #             redConstIr = IrReduce(IrExtractPolyConst(funcIr))
+    #             redIr = IrCombineToPoly(redCoeffIr, redConstIr)
+    #         else:
+    #             redIr = IrReduce(funcIr)
+    #         binopIr, binopSeqIr = self.visitBinOp(None, redIr, constIr, redIr.irMetadata[-1].type, '+')
+    #         return binopIr, seqIr + binopSeqIr
+    #     else:
+    #         return funcIr, seqIr
+
+    def visitMap(self, ast_node, inputExpIr=None, inputExpSeqIr = None, name=None, reduce=True):
+        if inputExpIr == None:
+            inputExpIr, inputExpSeqIr = self.visit(ast_node.expr)
+            name = ast_node.func
+        seqIr = inputExpSeqIr
+        if (not isinstance(inputExpIr, IrVar)) and (not isinstance(inputExpIr, IrConst)):
+            new_inputExp_var = IrVar(self.get_var(), inputExpIr.irMetadata)
+            new_inputExp_var_assignment = IrAssignment(new_inputExp_var, inputExpIr)
+            inputExpIr = new_inputExp_var
+            seqIr += [new_inputExp_var_assignment]
+            
+        if inputExpIr.irMetadata[-1].type=='Neuron':
+            inputExpIr = IrConvertNeuronToPoly(inputExpIr)
+        elif inputExpIr.irMetadata[-1].type=='Noise':
+            inputExpIr = IrConvertNoiseToSym(inputExpIr)
+        coeffIr = IrMapCoeff(inputExpIr)
+        if inputExpIr.irMetadata[-1].type == 'PolyExp':
+            neuronIr = IrMapNeuron(inputExpIr)
+            constIr = IrExtractPolyConst(inputExpIr)
+        elif inputExpIr.irMetadata[-1].type == 'ZonoExp':
+            neuronIr = IrMapNoise(inputExpIr)
+            constIr = IrExtractSymConst(inputExpIr)
         original_store = copy.deepcopy(self.store)
         func_ast_node = self.ast_fstore[name.name]
         assert(len(func_ast_node.decl.arglist.arglist) == 2)
         for (type_node, var_node) in func_ast_node.decl.arglist.arglist:
             if type_node == AST.BaseTypeNode('Neuron'):
+                self.store[var_node.name] = neuronIr
+            elif type_node == AST.BaseTypeNode('Noise'):
                 self.store[var_node.name] = neuronIr
             else:
                 self.store[var_node.name] = coeffIr
@@ -215,6 +319,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 redCoeffIr = IrReduce(IrExtractPolyCoeff(funcIr))
                 redConstIr = IrReduce(IrExtractPolyConst(funcIr))
                 redIr = IrCombineToPoly(redCoeffIr, redConstIr)
+            elif funcIr.irMetadata[-1].type == 'ZonoExp':
+                redCoeffIr = IrReduce(IrExtractSymCoeff(funcIr))
+                redConstIr = IrReduce(IrExtractSymConst(funcIr))
+                redIr = IrCombineToSym(redCoeffIr, redConstIr)
             else:
                 redIr = IrReduce(funcIr)
             binopIr, binopSeqIr = self.visitBinOp(None, redIr, constIr, redIr.irMetadata[-1].type, '+')
@@ -466,6 +574,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
                     new_type = 'Float'
                 elif (lhs.exprlist.exprlist[i].type in ['Neuron', 'Float', 'Int', 'PolyExp']) and (rhs.exprlist.exprlist[i].type in ['Neuron', 'Float', 'Int', 'PolyExp']):
                     new_type = 'PolyExp'
+                elif (lhs.exprlist.exprlist[i].type in ['Noise', 'Float', 'Int', 'ZonoExp']) and (rhs.exprlist.exprlist[i].type in ['Noise', 'Float', 'Int', 'ZonoExp']):
+                    new_type = 'ZonoExp'
                 else:
                     assert(False)
             expr.type = new_type
