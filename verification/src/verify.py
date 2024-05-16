@@ -122,7 +122,7 @@ class Verify(astVisitor.ASTVisitor):
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
 			op_ = op.op.op_name
-			if(op_ == "Relu" or op_ == "Abs" or op_=='rev_Relu' or op_ == 'rev_Maxpool'):
+			if(op_ == "Relu" or op_ == "Abs" or op_=='rev_Relu' or op_ == 'rev_Maxpool' or op_ == "HardTanh"):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
@@ -136,6 +136,7 @@ class Verify(astVisitor.ASTVisitor):
 			required_neurons = []
 			is_list = True 
 			# op_ = node.oplist.olist[op_i].op.op_name
+
 			if op_ == 'Affine':
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'rev_Affine':
@@ -144,6 +145,9 @@ class Verify(astVisitor.ASTVisitor):
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Abs' or op_ == 'rev_Abs':
+				is_list = False 
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'HardTanh':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool':
@@ -273,6 +277,15 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, NEG(exptemp))
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "HardTanh"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				exptemp = IF(LEQ(exptemp, (-1, 'Float')), -1, IF(GEQ(exptemp, (1, 'Float')), 1, exptemp))
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)

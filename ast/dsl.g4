@@ -31,7 +31,8 @@ trans_decl : TRANSFORMER VAR;
 operator :
     AFFINE    
     | RELU
-    | ABS     
+    | ABS  
+    | HARDTANH   
     | MAXPOOL   
     | NEURON_MULT
     | NEURON_ADD
@@ -201,6 +202,7 @@ LAYER: 'layer' ;
 AFFINE: 'Affine' ;
 RELU: 'Relu' ;
 ABS: 'Abs' ;
+HARDTANH: 'HardTanh' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
