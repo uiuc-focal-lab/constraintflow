@@ -76,7 +76,7 @@ def genAST(inputfile):
     ttime = time.time()
 
 if(len(sys.argv) <= 1):
-    filename = '../compiled_code/testcases/deeppoly'
+    filename = '../compiled_code/testcases/zono'
 else:
     filename = sys.argv[1]
 genAST(filename)

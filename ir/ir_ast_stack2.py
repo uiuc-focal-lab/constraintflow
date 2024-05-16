@@ -199,18 +199,25 @@ def canRepeat(irMetadata1, irMetadata2):
 
 def canAddDimension(irMetadataElement1, irMetadataElement2):
     if len(irMetadataElement1.shape) >= len(irMetadataElement2.shape):
+        print('here1')
         return False 
     for i in range(len(irMetadataElement1.shape)):
         if not check_eq(irMetadataElement1.shape[i], irMetadataElement2.shape[i]):
+            print(irMetadataElement1.shape[i], irMetadataElement2.shape[i], irMetadataElement2.type)
+            print('here2', i)
             return False
         if not check_eq(irMetadataElement1.broadcast[i], irMetadataElement2.broadcast[i]):
+            print('here3', i)
             return False
     for i in range(len(irMetadataElement1.shape), len(irMetadataElement2.shape)):
         if irMetadataElement2.shape[i]!=1:
+            print('here4', i)
             return False
     return True
 
 def matchDims(lhsIr, rhsIr):
+    # print(type(lhsIr), type(rhsIr), lhsIr.identifier, lhsIr.irMetadata[-1].isConst, rhsIr.irMetadata[-1].isConst)
+    # print(lhsIr.irMetadata[-1].type, type(lhsIr), lhsIr.irMetadata[-1].isConst, rhsIr.irMetadata[-1].type)
     lhsIrMetadata = lhsIr.irMetadata
     rhsIrMetadata = rhsIr.irMetadata
     if checkEqualMetadata(lhsIr.irMetadata, rhsIr.irMetadata):
@@ -255,6 +262,7 @@ def matchDims(lhsIr, rhsIr):
         rhsIr = IrAddDimensionConst(rhsIr, updated_irMetadata) 
         return lhsIr, rhsIr
 
+    # TODO: CHECK THIS ASSERT
     assert(len(lhsIrMetadata) == len(rhsIrMetadata))
 
     if len(lhsIrMetadata[-1].shape) < len(rhsIrMetadata[-1].shape):
@@ -291,6 +299,7 @@ def matchDims(lhsIr, rhsIr):
 class IrAst:
     counter = 0
     poly_size = None
+    sym_size = None
     curr_size = None
     prev_size = None
     trav_size = None
@@ -392,6 +401,7 @@ class IrVar(IrExpression):
             IrAst.curr_size = IrVar('curr_size', [IrMetadataElement([1], 'Int', [1], True)])
             IrAst.prev_size = IrVar('prev_size', [IrMetadataElement([1], 'Int', [1], True)])
             # IrAst.trav_size = IrAst.poly_size
+            IrAst.sym_size = IrVar('sym_size', [IrMetadataElement([1], 'Int', [1], True)])
             IrAst.trav_size = IrVar('trav_size', [IrMetadataElement([1], 'Int', [1], True)])
         
     def __str__(self):
@@ -411,6 +421,15 @@ class IrVar(IrExpression):
         self.hash_str = str(type(self))
         self.hash_str += self.name 
         return self.hash_str
+    
+class IrEpsilon(IrExpression):
+    def __init__(self, num=None):
+        super().__init__()
+        if num==None:
+            num = IrAst.curr_size
+        self.num = num
+        self.irMetadata = [IrMetadataElement([num], 'Noise', [1], False)]
+        
     
 class IrPhi(IrExpression):
     def __init__(self, original_name, vars, irMetadata):
@@ -620,6 +639,17 @@ class IrConvertNeuronToPoly(IrExpression):
         self.irMetadata = copy_metadata(inputIr.irMetadata)
         self.irMetadata[-1].type = 'PolyExp'
         self.update_parent_child([inputIr])
+
+class IrConvertNoiseToSym(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        assert(inputIr.irMetadata[-1].type == 'Noise')
+
+        # self.inputIr = inputIr 
+        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.irMetadata[-1].type = 'ZonoExp'
+        self.update_parent_child([inputIr])
     
     
 
@@ -653,11 +683,37 @@ class IrExtractPolyCoeff(IrExpression):
         self.irMetadata[-1].broadcast.append(1)
         self.update_parent_child([inputIr])
 
+class IrExtractSymCoeff(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        if(inputIr.irMetadata[-1].type != 'ZonoExp'):
+            print(inputIr.irMetadata[-1].type)
+        assert(inputIr.irMetadata[-1].type == 'ZonoExp')
+
+        # self.inputIr = inputIr 
+        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.irMetadata[-1].type = 'Float'
+        self.irMetadata[-1].shape.append(IrAst.sym_size)
+        self.irMetadata[-1].broadcast.append(1)
+        self.update_parent_child([inputIr])
+
 
 class IrExtractPolyConst(IrExpression):
     def __init__(self, inputIr):
         super().__init__()
         assert(inputIr.irMetadata[-1].type == 'PolyExp')
+
+        self.inputIr = inputIr 
+        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.irMetadata[-1].type = 'Float'
+        self.update_parent_child([inputIr])
+
+class IrExtractSymConst(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        assert(inputIr.irMetadata[-1].type == 'ZonoExp')
 
         self.inputIr = inputIr 
         # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
@@ -740,8 +796,10 @@ class IrMult(IrExpression):
     def __init__(self, lhsIr, rhsIr, op):
         super().__init__()
         self.op = op 
-
+        # print('#############VISITING MULT#############')
+        # print(type(lhsIr), type(rhsIr), lhsIr.irMetadata[-1].isConst, rhsIr.irMetadata[-1].isConst, op)
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
+        # print(type(lhsIr), type(rhsIr), lhsIr.irMetadata[-1].isConst, rhsIr.irMetadata[-1].isConst, op)
         lhsIrMetadata = lhsIr.irMetadata
         rhsIrMetadata = rhsIr.irMetadata
 
@@ -750,6 +808,7 @@ class IrMult(IrExpression):
         new_type = 'Float' if lhsIrMetadata[-1].type!=rhsIrMetadata[-1].type else lhsIrMetadata[-1].type
         self.irMetadata[-1].type = new_type
         self.update_parent_child([lhsIr, rhsIr])
+        # print(self.irMetadata[-1].type, self.irMetadata[-1].isConst, self.identifier)
 
 class IrInnerProduct(IrExpression):
     def __init__(self, lhsIr, rhsIr):
@@ -779,7 +838,7 @@ class IrTernary(IrExpression):
 class IrDot(IrExpression):
     def __init__(self, lhsIr, rhsIr):
         super().__init__()
-        assert(lhsIr.irMetadata[-1].type == 'Neuron')
+        # assert(lhsIr.irMetadata[-1].type == 'Neuron')
         assert(rhsIr.irMetadata[-1].type == 'Float')
         assert(len(lhsIr.irMetadata[-1].shape) == 2)
         # assert(check_eq(lhsIr.irMetadata[-1].shape[0]*lhsIr.irMetadata[-1].broadcast[0], rhsIr.irMetadata[-1].shape[0]*rhsIr.irMetadata[-1].broadcast[0]))
@@ -791,7 +850,13 @@ class IrDot(IrExpression):
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         self.irMetadata[-1].shape = [mult_metadata(lhsIr.irMetadata[-1].shape[0], lhsIr.irMetadata[-1].broadcast[0])]
         self.irMetadata[-1].broadcast = [1]
-        self.irMetadata[-1].type = 'PolyExp'
+        if lhsIr.irMetadata[-1].type == 'Neuron' or lhsIr.irMetadata[-1].type == 'PolyExp':
+            self.irMetadata[-1].type = 'PolyExp'
+        elif lhsIr.irMetadata[-1].type == 'Noise' or lhsIr.irMetadata[-1].type == 'ZonoExp' or lhsIr.irMetadata[-1].type == 'ZonoExp':
+            self.irMetadata[-1].type = 'ZonoExp'
+        else:
+            print(lhsIr.irMetadata[-1].type)
+            assert False
         self.update_parent_child([lhsIr, rhsIr])
 
 
@@ -807,6 +872,23 @@ class IrCombineToPoly(IrExpression):
         # self.irMetadata = copy.deepcopy(constIr.irMetadata)
         self.irMetadata = copy_metadata(constIr.irMetadata)
         self.irMetadata[-1].type = 'PolyExp'
+        new_children = [coeffIr, constIr, constIr.irMetadata[-1].shape[0]]
+        # new_children = [coeffIr, constIr, convert_z3_to_ir(constIr.irMetadata[-1].shape[0])]
+        self.update_parent_child(new_children)
+
+
+class IrCombineToSym(IrExpression):
+    def __init__(self, coeffIr, constIr):
+        super().__init__()
+        if not check_eq(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape):
+            print(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape)
+        assert(check_eq(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape))
+        assert(check_eq(coeffIr.irMetadata[-1].broadcast[:-1], constIr.irMetadata[-1].broadcast))
+        assert(coeffIr.irMetadata[-1].isConst == constIr.irMetadata[-1].isConst)
+
+        # self.irMetadata = copy.deepcopy(constIr.irMetadata)
+        self.irMetadata = copy_metadata(constIr.irMetadata)
+        self.irMetadata[-1].type = 'ZonoExp'
         new_children = [coeffIr, constIr, constIr.irMetadata[-1].shape[0]]
         # new_children = [coeffIr, constIr, convert_z3_to_ir(constIr.irMetadata[-1].shape[0])]
         self.update_parent_child(new_children)
@@ -839,7 +921,7 @@ class IrReduce(IrExpression):
 class IrMapCoeff(IrExpression):
     def __init__(self, inputIr):
         super().__init__()
-        assert(inputIr.irMetadata[-1].type == 'PolyExp')
+        assert(inputIr.irMetadata[-1].type == 'PolyExp' or inputIr.irMetadata[-1].type == 'ZonoExp')
         
         # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.irMetadata = copy_metadata(inputIr.irMetadata)
@@ -862,6 +944,24 @@ class IrMapNeuron(IrExpression):
                 self.irMetadata[i].shape[j] = 1
 
         irMetadataElement = IrMetadataElement([IrAst.poly_size], 'Neuron', [1], False)
+        self.irMetadata.append(irMetadataElement)
+        self.update_parent_child([inputIr])
+
+class IrMapNoise(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        assert(inputIr.irMetadata[-1].type == 'ZonoExp')
+        
+        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        
+        for i in range(len(self.irMetadata)):
+            for j in range(len(self.irMetadata[i].shape)):
+                self.irMetadata[i].broadcast[j] = mult_metadata(self.irMetadata[i].broadcast[j], self.irMetadata[i].shape[j])
+                # self.irMetadata[i].broadcast[j] *= self.irMetadata[i].shape[j]
+                self.irMetadata[i].shape[j] = 1
+
+        irMetadataElement = IrMetadataElement([IrAst.sym_size], 'Noise', [1], False)
         self.irMetadata.append(irMetadataElement)
         self.update_parent_child([inputIr])
 
