@@ -1,0 +1,27 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+
+func s1(Float x1, Float x2) = ((x1 * (x1 + 3))-(x2 * (x2 + 3))) / (6 * (x1-x2));
+func i1(Float x1, Float x2) = x1 * ((x1 + 3) / 6) - (s1(x1, x2) * x1);
+
+func s2(Float x1, Float x2) = ((x1 * 6)-(x2 * (x2 + 3))) / (6 * (x1-x2));
+func i2(Float x1, Float x2) = 3 - (s2(x1, x2) * 3);
+
+transformer deeppoly{
+    HardSwish -> ((prev[l]) >= 3) ? 
+                (prev[l], prev[u], prev, prev) : 
+                (((prev[u]) <= -3) ? 
+                    (0, 0, 0, 0) : 
+                    ((prev[l] >= -3) and (prev[u] <= 3) ? 
+                        (-3/8,max(prev[l], prev[u]), -3/8, s1(prev[u], prev[l]) * prev + i1(prev[u], prev[l])) : 
+                        (prev[l] > -3 ? 
+                            (prev[l], 6, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 6) : 
+                            (prev[u] < 6 ? 
+                                (0, (prev[u]), (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[u], prev[l]))), (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
+                                (0, 6, (6 / (prev[u] - prev[l])) * prev, (6 / (prev[u] - prev[l])) * prev + ((6 * (prev[u] - prev[l] - 6)) / (prev[u] - prev[l])))
+                                ))));
+}
+
+
+flow(forward, priority, true, deeppoly);

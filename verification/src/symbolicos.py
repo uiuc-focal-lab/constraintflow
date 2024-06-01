@@ -63,7 +63,7 @@ def get_all_combs(E, es, i):
 		temp_2 = substitute(e, (eps, minus_one))
 		es_new.append(temp_1)
 		es_new.append(temp_2)
-	return es_new
+	return get_all_combs(E, es_new, i+1)
 
 def get_z3max_eps(E, e):
 	es = get_all_combs(E, [e], 0)
@@ -405,7 +405,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 				ret = self.ADDPoly(temp1, temp2)
 				return ret
 		else:
-			print(node)
+			# print(node)
 			assert False
 
 	
@@ -450,7 +450,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		# elif(isinstance(node, DIV)):
 		# 	return ZonoExpValue({node.left: (1 / (self.convertToZono(node.right).const))}, (0, "Float"))
 		else:
-			print(node)
 			assert False
 	
 	def convertToZ3(self, node):
@@ -557,8 +556,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, EQQ)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			# print(l)
-			# print(r)
 			return l == r
 		elif(isinstance(node, NEQ)):
 			l = self.convertToZ3(node.left)
@@ -567,8 +564,6 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		elif(isinstance(node, AND)):
 			l = self.convertToZ3(node.left)
 			r = self.convertToZ3(node.right)
-			# print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1')
-			# print(type(r))
 			if isinstance(l, bool):
 				if l:
 					return r 
@@ -602,7 +597,7 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 			# 	y = Real('new_'+str(self.number.nextn()))
 			# 	self.tempC.append(Or([And(c, y == l), And(Not(c), y == r)]))
 			# 	return y
-			print(node.cond)
+			# print(node.cond)
 			return If(c, l, r)
 		elif(isinstance(node, MAX)):
 			e = [self.convertToZ3(i) for i in node.e]
@@ -702,9 +697,10 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 	def visitEpsilon(self, node: AST.EpsilonNode):
 		self.hasE = True
 		eps = Real('Eps_'+str(self.number.nextn()))
-		# self.C.append(eps <= 1)
-		# self.C.append(eps >= -1)
+		self.C.append(eps <= 1)
+		self.C.append(eps >= -1)
 		self.E.append(eps)
+		# print(self.E)
 		return (eps, 'Noise')
 		# return self.M[Epsilon(node.identifier)]
 	
