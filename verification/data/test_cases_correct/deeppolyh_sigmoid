@@ -8,30 +8,29 @@ func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coe
 
 func priority(Neuron n) = n[layer];
 func priority2(Neuron n) = -n[layer];
-func slopeL(Float l, Float u) = (1 - l) / (u - l);
-func slopeU(Float l, Float u) = (u + 1) / (u - l);
 
 func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_lower){e <= n}).map(simplify_lower);
 func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_upper){e >= n}).map(simplify_upper);
 
 func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+func abs(Float x) = x > 0 ? x : (-x);
+
+func slopeL(Float l, Float u) = (1 - l) / (2*(u - l));
+func slopeU(Float l, Float u) = (u + 1) / (2*(u - l));
 
 transformer deeppoly{
-    HardTanh -> ((prev[l]) >= 1) ? 
+    HardSigmoid -> ((prev[l]) >= 1) ? 
                     (1, 1, 1, 1) : 
                     (((prev[u]) <= -1) ? 
-                        (-1, -1, -1, -1) : 
+                        (0, 0, 0, 0) : 
                         ((prev[l] >= -1) and (prev[u] <= 1) ? 
-                            (prev[l],prev[u], prev, prev) : 
+                            ((prev[l] + 1)/2,(prev[u] + 1)/2, (1+prev)/2, (1+prev)/2) : 
                             (prev[l] > -1 ? 
-                                (prev[l], 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 1) : 
+                                ((prev[l] + 1)/2, 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), (prev[u]+prev[l] > 2) ? 1 : (prev + 1)/2) : 
                                 (prev[u] < 1 ? 
-                                    (-1, (prev[u]), (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[u], prev[l]))), (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
-                                    (-1, 1, (2 / (prev[u] - prev[l])) * prev - ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])), (2 / (prev[u] - prev[l])) * prev + ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])))
+                                    (-1, (prev[u] + 1)/2, (prev[u]+prev[l] < -2) ? 0 : (prev + 1)/2, (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[l], prev[u])*prev[l])) ) :
+                                    (-1, 1, (1 / (prev[u] - prev[l])) * (prev + 1), (1 / (prev[u] - prev[l])) * (prev - 1) + 1)
                                     ))));
 }
 
 flow(forward, priority, true, deeppoly);
-
-
-

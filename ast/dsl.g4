@@ -31,8 +31,11 @@ trans_decl : TRANSFORMER VAR;
 operator :
     AFFINE    
     | RELU
+    | RELU6
     | ABS  
     | HARDTANH   
+    | HARDSIGMOID   
+    | HARDSWISH   
     | MAXPOOL   
     | NEURON_MULT
     | NEURON_ADD
@@ -41,6 +44,7 @@ operator :
     | NEURON_LIST_MULT
     | REVAFFINE   
     | REVRELU      
+    | REVRELU6      
     | REVMAXPOOL
     | REVNEURON_MULT
     | REVNEURON_ADD
@@ -201,8 +205,11 @@ BIAS: 'bias' ;
 LAYER: 'layer' ;
 AFFINE: 'Affine' ;
 RELU: 'Relu' ;
+RELU6: 'Relu6' ;
 ABS: 'Abs' ;
 HARDTANH: 'HardTanh' ;
+HARDSIGMOID: 'HardSigmoid' ;
+HARDSWISH: 'HardSwish' ;
 MAXPOOL: 'Maxpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
@@ -211,6 +218,7 @@ NEURON_MAX: 'Neuron_max' ;
 NEURON_MIN: 'Neuron_min' ;
 NEURON_LIST_MULT: 'Neuron_list_mult' ;
 REVRELU: 'rev_Relu' ;
+REVRELU6: 'rev_Relu6' ;
 REVMAXPOOL: 'rev_Maxpool' ;
 REVNEURON_MULT: 'rev_Neuron_mult' ;
 REVNEURON_ADD: 'rev_Neuron_add' ;

@@ -1,0 +1,14 @@
+def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+
+func hs(Float r) = max(0, min(1, (r + 1)/2));
+
+transformer ibp{
+    HardSigmoid -> (hs(prev[l]), hs(prev[u]));
+}
+
+flow(forward, priority, true, ibp);

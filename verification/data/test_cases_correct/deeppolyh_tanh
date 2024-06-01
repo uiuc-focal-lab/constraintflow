@@ -24,9 +24,9 @@ transformer deeppoly{
                         ((prev[l] >= -1) and (prev[u] <= 1) ? 
                             (prev[l],prev[u], prev, prev) : 
                             (prev[l] > -1 ? 
-                                (prev[l], 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 1) : 
+                                (prev[l], 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), (prev[u]+prev[l] > 2) ? 1 : prev) : 
                                 (prev[u] < 1 ? 
-                                    (-1, (prev[u]), (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[u], prev[l]))), (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
+                                    (-1, (prev[u]), (prev[u]+prev[l] < -2) ? -1 : prev, (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
                                     (-1, 1, (2 / (prev[u] - prev[l])) * prev - ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])), (2 / (prev[u] - prev[l])) * prev + ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])))
                                     ))));
 }

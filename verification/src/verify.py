@@ -122,7 +122,7 @@ class Verify(astVisitor.ASTVisitor):
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
 			op_ = op.op.op_name
-			if(op_ == "Relu" or op_ == "Abs" or op_=='rev_Relu' or op_ == 'rev_Maxpool' or op_ == "HardTanh"):
+			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "HardSigmoid" or op_ == "HardSwish"):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
@@ -141,13 +141,19 @@ class Verify(astVisitor.ASTVisitor):
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'rev_Affine':
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'Relu' or op_ == 'rev_Relu':
+			elif op_ == 'Relu' or op_ == 'rev_Relu' or op_ == 'Relu6' or op_ == 'rev_Relu6':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Abs' or op_ == 'rev_Abs':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'HardTanh':
+				is_list = False 
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'HardSigmoid':
+				is_list = False 
+				required_neurons = ['curr', 'prev']
+			elif op_ == 'HardSwish':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool':
@@ -160,9 +166,6 @@ class Verify(astVisitor.ASTVisitor):
 				is_list = False 
 			elif op_ == 'Neuron_list_mult':
 				required_neurons = ['curr', 'prev_0', 'prev_1']
-			elif op_ == 'rev_Relu':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
 			if("curr" in required_neurons):
 				curr = Vertex('Curr')
 				self.V[curr.name] =  curr 
@@ -272,6 +275,16 @@ class Verify(astVisitor.ASTVisitor):
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
+			elif(op_ == "Relu6"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
+				exptemp = IF(LEQ(exptemp, (6, 'Float')), exptemp, (6, 'Float'))
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
 			elif(op_ == "Abs"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
@@ -288,6 +301,26 @@ class Verify(astVisitor.ASTVisitor):
 				exptemp = IF(LEQ(exptemp, (-1, 'Float')), -1, IF(GEQ(exptemp, (1, 'Float')), 1, exptemp))
 
 				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "HardSigmoid"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = If(If((exptemp + 1)/2 > 1, 1, (exptemp + 1)/2) < 0, 0, If((exptemp + 1)/2 > 1, 1, (exptemp + 1)/2))
+				
+				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "HardSwish"):
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = If(exptemp <= -3, 0, If(exptemp >= 3, exptemp, exptemp * (exptemp+3)/6))
+				
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Neuron_mult"):
@@ -338,6 +371,17 @@ class Verify(astVisitor.ASTVisitor):
 				
 				exptemp = s.os.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+
+			elif(op_ == "rev_Relu6"):
+
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
+				prevexp = IF(LEQ(curr.name, (6, 'Float')), prevexp, (6, 'Float'))
 				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "Maxpool"):
@@ -478,6 +522,8 @@ class Verify(astVisitor.ASTVisitor):
 			set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
 			for one_cons in conslist:
 				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
+				
+				# jfhd
 				# print('here')
 				# print(c)
 				z3constraint = s.os.convertToZ3(c)
@@ -492,6 +538,8 @@ class Verify(astVisitor.ASTVisitor):
 				# print(self.E)
 				# print(z3_vars(z3constraint, True))
 				eps_constraints = []
+				# print(self.E)
+				# kjf
 				for eps in self.E:
 					eps_constraints.append(eps >= -1)
 					eps_constraints.append(eps <= 1)
@@ -510,7 +558,7 @@ class Verify(astVisitor.ASTVisitor):
 				#solver.set(timeout=30)
 				# leftC += s.os.C 
 				# print(leftC)
-				newLeftC = leftC + s.os.tempC + eps_constraints
+				newLeftC = leftC + s.os.tempC + eps_constraints + s.os.C
 
 				
 				print("gen",time.time())

@@ -158,9 +158,13 @@ class ASTTC(astVisitor.ASTVisitor):
 		if (isinstance(ltype, ArrayType) and isinstance(rtype, ArrayType)):
 			raise Exception('Not possible')
 		if(op == "+" or op == "-"):
+			# if((self.isSubType(ltype, "ZonoExp") and self.isSubType(rtype, "PolyExp")) or (self.isSubType(rtype, "ZonoExp") and self.isSubType(ltype, "PolyExp"))):
+			# 	return 'PolyExp'
 			if(ltype in accepted and rtype in accepted):
 				if(self.lub_type(ltype, rtype) != "Top"):
 					return self.lub_type(ltype, rtype)
+				if((self.isSubType(ltype, "ZonoExp") and self.isSubType(rtype, "PolyExp")) or (self.isSubType(rtype, "ZonoExp") and self.isSubType(ltype, "PolyExp"))):
+					return 'PolyExp'
 				else:
 					raise TypeMismatchException(str(ltype) + " and " + str(rtype) + " are not comparable")
 			else:
@@ -259,9 +263,15 @@ class ASTTC(astVisitor.ASTVisitor):
 	def visitUnOp(self, node: AST.UnOpNode):
 		t = self.visit(node.expr)
 		if(node.op == "-"):
-			if(t == "Int" or t =="Float"):
+			if(t == "Int" or t =="Float" or t == "PolyExp" or t =="ZonoExp"):
 				node.type = t
 				return t
+			if(t == "Neuron"):
+				node.type = "PolyExp"
+				return "PolyExp"
+			if(t == "Noise"):
+				node.type = "ZonoExp"
+				return "ZonoExp"
 			else:
 				raise TypeMismatchException("- not defined on " + str(t))
 		elif(node.op == "!"):
@@ -642,11 +652,19 @@ class ASTTC(astVisitor.ASTVisitor):
 			self.Gamma['prev'] = ArrayType('Neuron')
 		elif node.op.op_name == 'Relu':
 			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'Relu6':
+			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'Abs':
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'HardTanh':
 			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'HardSigmoid':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'HardSwish':
+			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'rev_Relu':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'rev_Relu6':
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'rev_Affine':
 			self.Gamma['curr_list'] = ArrayType('Neuron')

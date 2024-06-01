@@ -46,7 +46,7 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 		visitedc = os.visit(cons)
 		if(not flag):
 			os.flag = True
-
+		# print(os.E)
 		Ctemp.append(os.convertToZ3(visitedc))
 		if(not flag):
 			os.flag = False
@@ -259,7 +259,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.expr)
 		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		p = self.os.visit(node.expr)
-		print('2', type(p))
+		# print('2', type(p))
 		self.get_map(p, node)
 		
 
@@ -298,8 +298,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			elist = self.os.visit(node.arglist)
 		else:
 			elist = node.arglist.exprlist
-			if isinstance(elist[0], ADD):
-				print(elist[0].left, elist[0].right)
+			# if isinstance(elist[0], ADD):
+			# 	print(elist[0].left, elist[0].right)
 
 		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 			if arg.name in self.store.keys():
@@ -387,7 +387,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			if(isinstance(node.func, AST.VarNode)):
 				self.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode(elist_func + [(neuron.name, "Neuron"), coeff])), True)
 
-			print(type(node.stop))
+			# print(type(node.stop))
 			if(isinstance(node.stop, AST.VarNode)):
 				val_stop = self.os.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			elif(isinstance(node.stop, AST.FuncCallNode)):
@@ -810,7 +810,7 @@ class checkPoly(astVisitor.ASTVisitor):
 
 					for i in range(self.Nzono):
 						# epsilon = Real('eps' + str(self.number.nextn()))
-						if len(self.os.old_eps == i):
+						if len(self.os.old_eps) == i:
 							epsilon = Real('eps_'+str(self.number.nextn()))
 							self.os.old_eps.append(epsilon)
 							self.os.C.append(epsilon <= 1)
