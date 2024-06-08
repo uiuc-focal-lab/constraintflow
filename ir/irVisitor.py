@@ -11,6 +11,9 @@ class IRVisitor:
         elif isinstance(node, IR.IrVar):
             return self.visitIrVar(node)
         
+        elif isinstance(node, IR.IrEpsilon):
+            return self.visitIrEpsilon(node)
+        
         elif isinstance(node, IR.IrPhi):
             return self.visitIrPhi(node)
         
@@ -56,11 +59,20 @@ class IRVisitor:
         elif isinstance(node, IR.IrCombineToPoly):
             return self.visitIrCombineToPoly(node)
         
+        elif isinstance(node, IR.IrCombineToSym):
+            return self.visitIrCombineToSym(node)
+        
         elif isinstance(node, IR.IrExtractPolyCoeff):
             return self.visitIrExtractPolyCoeff(node)
         
+        elif isinstance(node, IR.IrExtractSymCoeff):
+            return self.visitIrExtractSymCoeff(node)
+        
         elif isinstance(node, IR.IrExtractPolyConst):
             return self.visitIrExtractPolyConst(node)
+        
+        elif isinstance(node, IR.IrExtractSymConst):
+            return self.visitIrExtractSymConst(node)
         
         elif isinstance(node, IR.IrConvertNeuronToPoly):
             return self.visitIrConvertNeuronToPoly(node)

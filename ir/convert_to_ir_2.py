@@ -38,7 +38,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return self.store[ast_node.name], []
     
     def visitEpsilon(self, ast_node: AST.EpsilonNode):
-        return IrEpsilon(), []
+        irEps = IrEpsilon()
+        return irEps, []
     
     def visitUnOp(self, ast_node):
         exprIr, exprSeqIr = self.visit(ast_node.expr)
@@ -209,6 +210,24 @@ class ConvertToIr(astVisitor.ASTVisitor):
     def visitDot(self, ast_node):
         lhsIr, lhsSeqIr = self.visit(ast_node.left)
         rhsIr, rhsSeqIr = self.visit(ast_node.right)
+        if lhsIr.irMetadata[-1].type == 'PolyExp':
+            coeff = IrExtractPolyCoeff(lhsIr)
+            const = IrExtractPolyConst(lhsIr)
+            return IrCombineToPoly(IrDot(coeff, rhsIr), IrDot(const, rhsIr)), lhsSeqIr + rhsSeqIr
+        elif lhsIr.irMetadata[-1].type == 'ZonoExp':
+            coeff = IrExtractSymCoeff(lhsIr)
+            const = IrExtractSymConst(lhsIr)
+            print('@@@@@@@@@@@@@@')
+            print(coeff.irMetadata[-1].shape[0], coeff.irMetadata[-1].shape[1], coeff.irMetadata[-1].shape[2])
+            print(const.irMetadata[-1].shape[0], const.irMetadata[-1].shape[1])
+            print(rhsIr.irMetadata[-1].shape[0], rhsIr.irMetadata[-1].shape[1])
+            temp1 = IrTranspose(coeff)
+            temp2 = IrTranspose(rhsIr)
+            temp3 = IrTranspose(const)
+            print(temp1.irMetadata[-1].shape[0], temp1.irMetadata[-1].shape[1], temp1.irMetadata[-1].shape[2])
+            print(temp3.irMetadata[-1].shape[0], temp3.irMetadata[-1].shape[1])
+            print(temp2.irMetadata[-1].shape[0], temp2.irMetadata[-1].shape[1])
+            return IrCombineToSym(IrTranspose(IrDot(temp1, temp2)), IrTranspose(IrDot(temp3, temp2))), lhsSeqIr + rhsSeqIr
         return IrDot(lhsIr, rhsIr), lhsSeqIr + rhsSeqIr
     
     def visitGetElement(self, ast_node: AST.GetElementNode):

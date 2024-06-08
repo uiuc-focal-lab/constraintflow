@@ -1,0 +1,14 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+
+func priority(Neuron n) = n[layer];
+
+transformer deeppoly{
+    Neuron_min -> (prev_0[u] < prev_1[l]) ? 
+                    (prev_0[l], prev_0[u], prev_0, prev_0) : 
+                    ((prev_1[u] < prev_0[l]) ? 
+                        (prev_1[l], prev_1[u], prev_1, prev_1) : 
+                        (min(prev_0[l], prev_1[l]), min(prev_0[u], prev_1[u]), min(prev_0[l], prev_1[l]), min(prev_0[u], prev_1[u])));
+}
+
+flow(forward, priority, true, deeppoly);

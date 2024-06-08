@@ -37,6 +37,8 @@ operator :
     | HARDSIGMOID   
     | HARDSWISH   
     | MAXPOOL   
+    | MINPOOL   
+    | AVGPOOL   
     | NEURON_MULT
     | NEURON_ADD
     | NEURON_MAX
@@ -211,6 +213,8 @@ HARDTANH: 'HardTanh' ;
 HARDSIGMOID: 'HardSigmoid' ;
 HARDSWISH: 'HardSwish' ;
 MAXPOOL: 'Maxpool' ;
+MINPOOL: 'Minpool' ;
+AVGPOOL: 'Avgpool' ;
 REVAFFINE: 'rev_Affine' ;
 NEURON_MULT: 'Neuron_mult' ;
 NEURON_ADD: 'Neuron_add' ;

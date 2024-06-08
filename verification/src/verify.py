@@ -121,6 +121,8 @@ class Verify(astVisitor.ASTVisitor):
 			store = self.store
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
+			self.C.append(prevLength[0]>0)
+			self.C.append(prevLength[0] <= self.Nprev)
 			op_ = op.op.op_name
 			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "HardSigmoid" or op_ == "HardSwish"):
 				nprev= 1
@@ -156,7 +158,7 @@ class Verify(astVisitor.ASTVisitor):
 			elif op_ == 'HardSwish':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'Maxpool':
+			elif op_ == 'Maxpool' or op_ == 'Minpool' or op_ == 'Avgpool':
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'rev_Maxpool':
 				required_neurons = ['curr', 'prev', 'curr_list']
@@ -398,7 +400,32 @@ class Verify(astVisitor.ASTVisitor):
 
 				exptemp = s.os.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
-			
+
+			elif(op_ == "Minpool"):
+				exptemp = prev[0]
+				for i in range(1, nprev):
+					#cond = (True, 'Bool')
+					cond = LEQ(i+1,prevLength)
+					for j in range(i):
+						cond = AND(cond, LEQ(prev[i], prev[j]))
+					for j in range(i+1,nprev):
+						cond = AND(cond, OR(LEQ(prev[i], prev[j]),GT(j+1,prevLength)))
+
+					exptemp = IF(cond, prev[i], exptemp)
+
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
+			elif(op_ == "Avgpool"):
+				exptemp = prev[0]
+				summation = prev[0]
+				for i in range(1, nprev):
+					summation = ADD(summation, prev[i])
+					exptemp = IF(EQQ(i+1,prevLength), DIV(summation, prevLength), exptemp)
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				s.currop = (curr.name == exptemp)
+
 			elif(op_ == "rev_Maxpool"):
 				total_list = curr_list + [(curr.name, "Neuron")]
 				exptemp = total_list[0]

@@ -228,6 +228,10 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrVar(self, node):
         return node.name
     
+    def visitIrEpsilon(self, node):
+        num = self.visit(node.num)
+        return 'SymExp(' + num + ", SymExp.count, torch.zeros(" + num + ", SymExp.count), torch.zeros(" + num + "), SymExp.count, SymExp.count).add_eps(" + num + ")"
+    
     def visitIrPhi(self, node):
         s = 'phi(['
         for i in range(len(node.children)):
@@ -391,7 +395,10 @@ class CodeGen(irVisitor.IRVisitor):
             return self.visit(lhsIr) + '.dot(' + self.visit(rhsIr) + ')'
         elif rhsIr.irMetadata[-1].type == 'Neuron':
             return self.visit(rhsIr) + '.dot(' + self.visit(lhsIr) + ')'
+        elif lhsIr.irMetadata[-1].type == 'Float':
+            return self.visit(lhsIr) + '.inner_prod(' + self.visit(rhsIr) + ')'
         else:
+            print(lhsIr.irMetadata[-1].type)
             raise Exception('NOT IMPLEMENTED')
 
     def visitIrTernary(self, node):
@@ -405,11 +412,28 @@ class CodeGen(irVisitor.IRVisitor):
         return 'PolyExp(' + self.visit(rows) + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
         # return 'PolyExpNew(poly_size, ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
 
+    def visitIrCombineToSym(self, node):
+        [coeffIr, constIr, rows] = node.children
+        # rows = str(constIr.irMetadata[-1].shape[0])
+        cols = 'SymExp.count'
+        rows = self.visit(rows)
+        return 'SymExp(' + rows + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + '0, SymExp.count)'
+        # return 'PolyExpNew(poly_size, ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
+
+
     def visitIrExtractPolyCoeff(self, node):
         [inputIr] = node.children
         return self.visit(inputIr) + '.get_mat(poly_size)'
+    
+    def visitIrExtractSymCoeff(self, node):
+        [inputIr] = node.children
+        return self.visit(inputIr) + '.get_mat(SymExp.count)'
 
     def visitIrExtractPolyConst(self, node):
+        [inputIr] = node.children
+        return self.visit(inputIr) + '.get_const()'
+    
+    def visitIrExtractSymConst(self, node):
         [inputIr] = node.children
         return self.visit(inputIr) + '.get_const()'
 
