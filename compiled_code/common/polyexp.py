@@ -195,8 +195,11 @@ class SymExp:
         self.end = end
         self.debug_flag = False 
 
-    def add_exps(self, num):
+    def add_eps(self, num):
         SymExp.count += num
+        self.cols += num 
+        self.mat = torch.concat([self.mat, torch.eye(num)])
+        self.end = SymExp.count
     
     def copy(self):
         return copy.deepcopy(self)

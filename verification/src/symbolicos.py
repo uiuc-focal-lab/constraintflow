@@ -959,31 +959,58 @@ class SymbolicOperationalSemantics(astVisitor.ASTVisitor):
 		if isinstance(elist, IF):
 			return IF(elist.cond, self.get_listOp(elist.left, node), self.get_listOp(elist.right, node))
 		else:
-			sum = (0, "Float")
-			if(str(elist) in self.arrayLens):
-				x = self.arrayLens[str(elist)]
-				length = x
-				
-				if len(elist)>0:
-					sum = IF(LEQ(1,x),elist[0],(0,"Int"))
-				for e in range(1, len(elist)):
-					sum = self.get_binop(sum, IF(LEQ(e+1,x),elist[e],(0,"Int")) , ADD)
-			else:
-				length = (len(elist), 'Int')
+			if node.op in ['sum', 'len']:
+				sum = (0, "Float")
+				if(str(elist) in self.arrayLens):
+					x = self.arrayLens[str(elist)]
+					length = x
+					
+					if len(elist)>0:
+						sum = IF(LEQ(1,x),elist[0],(0,"Int"))
+					for e in range(1, len(elist)):
+						sum = self.get_binop(sum, IF(LEQ(e+1,x),elist[e],(0,"Int")) , ADD)
+				else:
+					length = (len(elist), 'Int')
 
-				if len(elist)>0:
-					sum = elist[0]
-				for e in range(1, len(elist)):
-					sum = self.get_binop(sum, elist[e], ADD)
-			# for e in elist:
-			# 	sum = self.get_binop(sum, e, ADD)
-			if node.op == 'sum':
-				return sum
-			elif node.op == 'len':
-				return length 
+					if len(elist)>0:
+						sum = elist[0]
+					for e in range(1, len(elist)):
+						sum = self.get_binop(sum, elist[e], ADD)
+				# for e in elist:
+				# 	sum = self.get_binop(sum, e, ADD)
+				if node.op == 'sum':
+					return sum
+				elif node.op == 'len':
+					return length 
+				elif node.op == 'avg':
+					if(length[0] == 0):
+						return 0
+					return self.get_binop(sum, length, DIV)
+				else:
+					assert False
 			elif node.op == 'avg':
+				sum = (0, "Float")
+				if(str(elist) in self.arrayLens):
+					x = self.arrayLens[str(elist)]
+					length = x
+					
+					if len(elist)>0:
+						sum = IF(LEQ(1,x),self.get_binop(elist[0], length, DIV),(0,"Int"))
+					for e in range(1, len(elist)):
+						sum = self.get_binop(sum, IF(LEQ(e+1,x),self.get_binop(elist[e], length, DIV),(0,"Int")) , ADD)
+				else:
+					length = (len(elist), 'Int')
+
+					if len(elist)>0:
+						sum = self.get_binop(elist[0], length, DIV)
+					for e in range(1, len(elist)):
+						sum = self.get_binop(sum, self.get_binop(elist[e], length, DIV), ADD)
+				# for e in elist:
+				# 	sum = self.get_binop(sum, e, ADD)
+				# if node.op == 'avg':
 				if(length[0] == 0):
 					return 0
+				return sum
 				return self.get_binop(sum, length, DIV)
 			else:
 				assert False

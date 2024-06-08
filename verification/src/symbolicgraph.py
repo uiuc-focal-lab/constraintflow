@@ -518,6 +518,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		#print(prop)
 		
 		if(not (s.check() == unsat)):
+			# print(s)
+			# print(s.model())
 			print("end",time.time())
 			raise Exception("Invariant is not true on input")
 		else:
@@ -574,11 +576,11 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(node.func)
 
 	def visitMaxOp(self, node: AST.MaxOpNode):
-		self.visit(node.expr)
-
-	def visitMaxOpList(self, node: AST.MaxOpListNode):
 		self.visit(node.expr1)
 		self.visit(node.expr2)
+
+	def visitMaxOpList(self, node: AST.MaxOpListNode):
+		self.visit(node.expr)
 
 	def visitVar(self, node: AST.VarNode):
 		pass

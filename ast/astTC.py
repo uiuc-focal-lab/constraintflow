@@ -669,7 +669,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		elif node.op.op_name == 'rev_Affine':
 			self.Gamma['curr_list'] = ArrayType('Neuron')
 			self.Gamma['prev'] = 'Neuron'
-		elif node.op.op_name == 'Maxpool':
+		elif node.op.op_name == 'Maxpool' or node.op.op_name == 'Minpool' or node.op.op_name == 'Avgpool':
 			self.Gamma['prev'] = ArrayType('Neuron')
 		elif node.op.op_name == 'rev_Maxpool':
 			self.Gamma['prev'] = ArrayType('Neuron')

@@ -428,7 +428,7 @@ class IrEpsilon(IrExpression):
         if num==None:
             num = IrAst.curr_size
         self.num = num
-        self.irMetadata = [IrMetadataElement([num], 'Noise', [1], False)]
+        self.irMetadata = [IrMetadataElement([num], 'ZonoExp', [1], False)]
         
     
 class IrPhi(IrExpression):
@@ -640,16 +640,16 @@ class IrConvertNeuronToPoly(IrExpression):
         self.irMetadata[-1].type = 'PolyExp'
         self.update_parent_child([inputIr])
 
-class IrConvertNoiseToSym(IrExpression):
-    def __init__(self, inputIr):
-        super().__init__()
-        assert(inputIr.irMetadata[-1].type == 'Noise')
+# class IrConvertNoiseToSym(IrExpression):
+#     def __init__(self, inputIr):
+#         super().__init__()
+#         assert(inputIr.irMetadata[-1].type == 'Noise')
 
-        # self.inputIr = inputIr 
-        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
-        self.irMetadata = copy_metadata(inputIr.irMetadata)
-        self.irMetadata[-1].type = 'ZonoExp'
-        self.update_parent_child([inputIr])
+#         # self.inputIr = inputIr 
+#         # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+#         self.irMetadata = copy_metadata(inputIr.irMetadata)
+#         self.irMetadata[-1].type = 'ZonoExp'
+#         self.update_parent_child([inputIr])
     
     
 
@@ -834,26 +834,85 @@ class IrTernary(IrExpression):
             self.irMetadata[-1].isConst = False
         self.update_parent_child([condIr, lhsIr, rhsIr])
 
+class IrTranspose(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        assert(len(inputIr.irMetadata)==1)
+        shape = inputIr.irMetadata[-1].shape
+        broadcast = inputIr.irMetadata[-1].broadcast
+        self.update_parent_child([inputIr])
+        assert(len(shape) <= 3)
+        self.irMetadata = inputIr.irMetadata.copy()
+
+        if len(shape)==3:
+            assert(shape[0] == 1)
+            self.irMetadata[-1].shape = [shape[0], shape[-1], shape[1]]
+            self.irMetadata[-1].broadcast = [broadcast[0], broadcast[-1], broadcast[1]]
+        elif len(shape)==2:
+            # assert(shape[0] == 1)
+            if isinstance(shape[0], int) and shape[0] == 1:
+                return
+            if isinstance(shape[0], IrConst) and shape[0].const == 1:
+                return
+            self.irMetadata[-1].shape = [shape[-1], shape[0]]
+            self.irMetadata[-1].broadcast = [broadcast[-1], broadcast[0]]
+
 
 class IrDot(IrExpression):
     def __init__(self, lhsIr, rhsIr):
         super().__init__()
         # assert(lhsIr.irMetadata[-1].type == 'Neuron')
         assert(rhsIr.irMetadata[-1].type == 'Float')
-        assert(len(lhsIr.irMetadata[-1].shape) == 2)
+        # assert(len(lhsIr.irMetadata[-1].shape) == 2)
         # assert(check_eq(lhsIr.irMetadata[-1].shape[0]*lhsIr.irMetadata[-1].broadcast[0], rhsIr.irMetadata[-1].shape[0]*rhsIr.irMetadata[-1].broadcast[0]))
         # assert(check_eq(lhsIr.irMetadata[-1].shape[1]*lhsIr.irMetadata[-1].broadcast[1], rhsIr.irMetadata[-1].shape[1]*rhsIr.irMetadata[-1].broadcast[1]))
-        assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[0], lhsIr.irMetadata[-1].broadcast[0]), mult_metadata(rhsIr.irMetadata[-1].shape[0], rhsIr.irMetadata[-1].broadcast[0])))
-        assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[1], lhsIr.irMetadata[-1].broadcast[1]), mult_metadata(rhsIr.irMetadata[-1].shape[1], rhsIr.irMetadata[-1].broadcast[1])))
-
+        
         # self.irMetadata = copy.deepcopy(lhsIr.irMetadata)
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         self.irMetadata[-1].shape = [mult_metadata(lhsIr.irMetadata[-1].shape[0], lhsIr.irMetadata[-1].broadcast[0])]
         self.irMetadata[-1].broadcast = [1]
         if lhsIr.irMetadata[-1].type == 'Neuron' or lhsIr.irMetadata[-1].type == 'PolyExp':
+            assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[0], lhsIr.irMetadata[-1].broadcast[0]), mult_metadata(rhsIr.irMetadata[-1].shape[0], rhsIr.irMetadata[-1].broadcast[0])))
+            assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[1], lhsIr.irMetadata[-1].broadcast[1]), mult_metadata(rhsIr.irMetadata[-1].shape[1], rhsIr.irMetadata[-1].broadcast[1])))
+
             self.irMetadata[-1].type = 'PolyExp'
         elif lhsIr.irMetadata[-1].type == 'Noise' or lhsIr.irMetadata[-1].type == 'ZonoExp' or lhsIr.irMetadata[-1].type == 'ZonoExp':
+            assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[0], lhsIr.irMetadata[-1].broadcast[0]), mult_metadata(rhsIr.irMetadata[-1].shape[0], rhsIr.irMetadata[-1].broadcast[0])))
+            assert(check_eq(mult_metadata(lhsIr.irMetadata[-1].shape[1], lhsIr.irMetadata[-1].broadcast[1]), mult_metadata(rhsIr.irMetadata[-1].shape[1], rhsIr.irMetadata[-1].broadcast[1])))
             self.irMetadata[-1].type = 'ZonoExp'
+        elif lhsIr.irMetadata[-1].type == rhsIr.irMetadata[-1].type and lhsIr.irMetadata[-1].type == 'Float':
+            # lhsShape = []
+            # lhsBroadcast = []
+            # rhsShape = []
+            # rhsBroadcast = []
+            # for i in range(len(lhsIr.irMetadata)):
+            #     lhsShape += lhsIr.irMetadata[i].shape
+            #     lhsBroadcast += lhsIr.irMetadata[i].broadcast
+            # for i in range(len(rhsIr.irMetadata)):
+            #     rhsShape += rhsIr.irMetadata[i].shape
+            #     rhsBroadcast += rhsIr.irMetadata[i].broadcast
+            lhsShape = lhsIr.irMetadata[-1].shape
+            lhsBroadcast = lhsIr.irMetadata[-1].broadcast
+            rhsShape = rhsIr.irMetadata[-1].shape
+            rhsBroadcast = rhsIr.irMetadata[-1].broadcast
+            print((lhsShape))
+            assert(len(lhsIr.irMetadata)==1)
+            assert(len(lhsShape) <= 3)
+            assert(len(rhsShape) <= 2)
+            # assert(sum(lhsBroadcast) == len(lhsBroadcast))
+            # assert(sum(rhsBroadcast) == len(rhsBroadcast))
+            if len(lhsShape)==3 and len(rhsShape)==2:
+                print(lhsShape[-1])
+                print(rhsShape[0])
+                assert(check_eq(lhsShape[-1], rhsShape[0]))
+                self.irMetadata[-1].shape = [lhsShape[0], lhsShape[1], rhsShape[1]]
+                self.irMetadata[-1].broadcast = [lhsBroadcast[0], 1, 1]
+            elif len(lhsShape)==2 and len(rhsShape)==2:
+                assert(check_eq(lhsShape[-1], rhsShape[0]))
+                self.irMetadata[-1].shape = [lhsShape[0], rhsShape[1]]
+                self.irMetadata[-1].broadcast = [lhsBroadcast[0], 1]
+
+            self.irMetadata[-1].type = 'Float'
         else:
             print(lhsIr.irMetadata[-1].type)
             assert False
@@ -1018,6 +1077,7 @@ class IrBreak(IrStatement):
 #     def __hash__(self):
 #         return 0
     
+
 class IrWhile(IrStatement):
     def __init__(self, condIr, inputIrs):
         super().__init__()
