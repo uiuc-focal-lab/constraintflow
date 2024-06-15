@@ -59,6 +59,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
             if(rhsIr.irMetadata[-1].type == "Neuron"):
                 rhsIr = IrConvertNeuronToPoly(rhsIr)
 
+
             if lhsIr.irMetadata[-1].type == 'PolyExp':
                 new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
                 new_lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
@@ -98,7 +99,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
 
                 elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
                     new_lhsIr = IrExtractPolyCoeff(lhsIr)
-                    new_rhsIr = IrBinaryOp(rhsIr, IrExtractPolyConst(lhsIr), op)
+                    new_rhsIr = IrBinaryOp(IrExtractPolyConst(lhsIr), rhsIr, op)
                     
                 else:
                     new_lhsIr = IrBinaryOp(IrExtractPolyCoeff(lhsIr), IrExtractPolyCoeff(rhsIr), op)
@@ -107,10 +108,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 return IrCombineToPoly(new_lhsIr, new_rhsIr), seqIr
             
         elif ast_node_type == 'ZonoExp':
-            if(lhsIr.irMetadata[-1].type == "Noise"):
-                lhsIr = IrConvertNoiseToSym(lhsIr)
-            if(rhsIr.irMetadata[-1].type == "Noise"):
-                rhsIr = IrConvertNoiseToSym(rhsIr)
+            # if(lhsIr.irMetadata[-1].type == "Noise"):
+            #     lhsIr = IrConvertNoiseToSym(lhsIr)
+            # if(rhsIr.irMetadata[-1].type == "Noise"):
+            #     rhsIr = IrConvertNoiseToSym(rhsIr)
 
             if lhsIr.irMetadata[-1].type == 'ZonoExp':
                 new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
@@ -126,7 +127,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
             
             if(op in ["*", "/"] ):
                 
-                    
 
                 lhsIrMetadata = lhsIr.irMetadata
                 rhsIrMetadata = rhsIr.irMetadata
@@ -151,7 +151,11 @@ class ConvertToIr(astVisitor.ASTVisitor):
 
                 elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
                     new_lhsIr = IrExtractSymCoeff(lhsIr)
-                    new_rhsIr = IrBinaryOp(rhsIr, IrExtractSymConst(lhsIr), op)
+                    constIr = IrExtractSymConst(lhsIr)
+                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    print(constIr.irMetadata[-1].broadcast[0])
+                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                    new_rhsIr = IrBinaryOp(constIr, rhsIr, op)
                     
                 else:
                     new_lhsIr = IrBinaryOp(IrExtractSymCoeff(lhsIr), IrExtractSymCoeff(rhsIr), op)
@@ -181,20 +185,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
             elif rhsIr.irMetadata[-1].type == 'Float' or rhsIr.irMetadata[-1].type == 'Int':
                 rhsIr = IrConvertConstToPoly(rhsIr)
 
-            # if (not isinstance(lhsIr, IrVar)) and (not isinstance(lhsIr, IrConst)):
-            #     new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
-            #     lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
-            #     seqIr.append(lhs_assignment)
-            #     lhsIr = new_lhs_var
-            # if (not isinstance(rhsIr, IrVar)) and (not isinstance(rhsIr, IrConst)):
-            #     new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
-            #     rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
-            #     seqIr.append(rhs_assignment)
-            #     rhsIr = new_rhs_var
-            
-
-
-
             lhs_coeff = IrExtractPolyCoeff(lhsIr)
             lhs_const = IrExtractPolyConst(lhsIr)
 
@@ -204,19 +194,47 @@ class ConvertToIr(astVisitor.ASTVisitor):
             new_lhsIr = IrTernary(condIr, lhs_coeff, rhs_coeff)
             new_rhsIr = IrTernary(condIr, lhs_const, rhs_const)
             return IrCombineToPoly(new_lhsIr, new_rhsIr), seqIr
+        elif ast_node.type == 'ZonoExp':
+            if lhsIr.irMetadata[-1].type == 'Float' or lhsIr.irMetadata[-1].type == 'Int':
+                lhsIr = IrConvertConstToSym(lhsIr)
+
+            elif rhsIr.irMetadata[-1].type == 'Float' or rhsIr.irMetadata[-1].type == 'Int':
+                rhsIr = IrConvertConstToSym(rhsIr)
+
+            
+            lhs_coeff = IrExtractSymCoeff(lhsIr)
+            lhs_const = IrExtractSymConst(lhsIr)
+
+            
+            rhs_coeff = IrExtractSymCoeff(rhsIr)
+            rhs_const = IrExtractSymConst(rhsIr)
+
+
+
+            new_lhsIr = IrTernary(condIr, lhs_coeff, rhs_coeff)
+            new_rhsIr = IrTernary(condIr, lhs_const, rhs_const)
+            return IrCombineToSym(new_lhsIr, new_rhsIr), seqIr
         else:
             return  IrTernary(condIr, lhsIr, rhsIr), seqIr
 
     def visitDot(self, ast_node):
         lhsIr, lhsSeqIr = self.visit(ast_node.left)
         rhsIr, rhsSeqIr = self.visit(ast_node.right)
+        assert(len(lhsIr.irMetadata)==1)
+        assert(len(rhsIr.irMetadata)==1)
         if lhsIr.irMetadata[-1].type == 'PolyExp':
             coeff = IrExtractPolyCoeff(lhsIr)
             const = IrExtractPolyConst(lhsIr)
             return IrCombineToPoly(IrDot(coeff, rhsIr), IrDot(const, rhsIr)), lhsSeqIr + rhsSeqIr
         elif lhsIr.irMetadata[-1].type == 'ZonoExp':
+            assert(len(lhsIr.irMetadata[-1].shape)==2)
+            assert(len(rhsIr.irMetadata[-1].shape)==2)
+            
             coeff = IrExtractSymCoeff(lhsIr)
             const = IrExtractSymConst(lhsIr)
+
+            return IrCombineToSym(IrDot(rhsIr, coeff), IrDot(rhsIr, const)), lhsSeqIr + rhsSeqIr
+
             print('@@@@@@@@@@@@@@')
             print(coeff.irMetadata[-1].shape[0], coeff.irMetadata[-1].shape[1], coeff.irMetadata[-1].shape[2])
             print(const.irMetadata[-1].shape[0], const.irMetadata[-1].shape[1])

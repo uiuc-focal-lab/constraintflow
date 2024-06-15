@@ -89,7 +89,7 @@ class CodeGen(irVisitor.IRVisitor):
         # GENERATE TRANSFORMERS
         self.open(self.transformers_file)
         self.write('import torch')
-        self.write('from common.polyexp import PolyExp, Nlist')
+        self.write('from common.polyexp import PolyExp, Nlist, SymExp')
         self.write('from utils import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):
@@ -219,6 +219,9 @@ class CodeGen(irVisitor.IRVisitor):
         
     
 
+    def visitIrStr(self, node):
+        return node
+    
     def visitIrConst(self, node):
         return str(node.const)
     
@@ -226,6 +229,8 @@ class CodeGen(irVisitor.IRVisitor):
         return str(node)
 
     def visitIrVar(self, node):
+        if node.name == 'sym_size':
+            return 'SymExp.count'
         return node.name
     
     def visitIrEpsilon(self, node):
@@ -396,7 +401,7 @@ class CodeGen(irVisitor.IRVisitor):
         elif rhsIr.irMetadata[-1].type == 'Neuron':
             return self.visit(rhsIr) + '.dot(' + self.visit(lhsIr) + ')'
         elif lhsIr.irMetadata[-1].type == 'Float':
-            return self.visit(lhsIr) + '.inner_prod(' + self.visit(rhsIr) + ')'
+            return 'inner_prod(' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
         else:
             print(lhsIr.irMetadata[-1].type)
             raise Exception('NOT IMPLEMENTED')
@@ -417,7 +422,7 @@ class CodeGen(irVisitor.IRVisitor):
         # rows = str(constIr.irMetadata[-1].shape[0])
         cols = 'SymExp.count'
         rows = self.visit(rows)
-        return 'SymExp(' + rows + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + '0, SymExp.count)'
+        return 'SymExp(' + rows + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ', 0, SymExp.count)'
         # return 'PolyExpNew(poly_size, ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
 
 
@@ -448,6 +453,14 @@ class CodeGen(irVisitor.IRVisitor):
         return 'PolyExp(' + self.visit(rows) + ', ' + cols + ', ' + 'None, ' + self.visit(inputIr) + ')'
         # return 'PolyExpNew(poly_size, None, ' + str(self.visit(inputIr)) + ')'
 
+    def visitIrConvertConstToSym(self, node):
+        [inputIr, rows] = node.children
+        # rows = str(inputIr.irMetadata[-1].shape[0])
+        cols = 'SymExp.count'
+        rows = self.visit(rows)
+        return 'SymExp(' + self.visit(rows) + ', ' + cols + ', ' + 'torch.zeros(' + rows + ', ' + cols + '), ' + self.visit(inputIr) + ', 0, SymExp.count)'
+        # return 'PolyExpNew(poly_size, None, ' + str(self.visit(inputIr)) + ')'
+
     def visitIrAccess(self, node):
         [lhsIr] = node.children
         if not node.isMetadata:
@@ -465,7 +478,9 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrMapCoeff(self, node):
         [inputIr] = node.children
-        return self.visit(inputIr) + '.get_mat(poly_size)'
+        if inputIr.irMetadata[-1].type == 'PolyExp':    
+            return self.visit(inputIr) + '.get_mat(poly_size)'
+        return self.visit(inputIr) + '.get_mat(SymExp.count)'
 
     def visitIrMapNeuron(self, node):
         return 'abs_elem.get_live_nlist(Nlist(poly_size, 0, poly_size-1, None))'
