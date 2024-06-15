@@ -194,17 +194,21 @@ class SymExp:
         self.start = start 
         self.end = end
         self.debug_flag = False 
+        print('SymExp count is', SymExp.count)
+        print(mat.shape)
 
     def add_eps(self, num):
         SymExp.count += num
         self.cols += num 
-        self.mat = torch.concat([self.mat, torch.eye(num)])
+        self.mat = torch.concat([self.mat, torch.eye(num)], dim=1)
         self.end = SymExp.count
+        return self
     
     def copy(self):
         return copy.deepcopy(self)
 
     def get_mat(self, sym_size):
+        print(sym_size, SymExp.count)
         assert(sym_size <= SymExp.count)
         if self.mat == None and  isinstance(self.const, torch.Tensor):
             return torch.zeros(self.rows, sym_size)

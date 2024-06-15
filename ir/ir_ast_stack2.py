@@ -222,6 +222,7 @@ def matchDims(lhsIr, rhsIr):
     rhsIrMetadata = rhsIr.irMetadata
     if checkEqualMetadata(lhsIr.irMetadata, rhsIr.irMetadata):
         return lhsIr, rhsIr
+    print(lhsIrMetadata[-1].type, rhsIrMetadata[-1].type)
     if lhsIrMetadata[-1].isConst:
         updated_irMetadata = copy_metadata(rhsIrMetadata)
         # updated_irMetadata = copy.deepcopy(rhsIrMetadata)
@@ -429,6 +430,7 @@ class IrEpsilon(IrExpression):
             num = IrAst.curr_size
         self.num = num
         self.irMetadata = [IrMetadataElement([num], 'ZonoExp', [1], False)]
+        # self.update_parent_child([IrConst(num)])
         
     
 class IrPhi(IrExpression):
@@ -667,6 +669,23 @@ class IrConvertConstToPoly(IrExpression):
         self.update_parent_child(new_children)
         # self.update_parent_child([inputIr])
 
+class IrConvertConstToSym(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        assert((inputIr.irMetadata[-1].type == 'Float') or (inputIr.irMetadata[-1].type == 'Int'))
+        
+        # self.inputIr = inputIr 
+        # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.irMetadata[-1].type = 'ZonoExp'
+        self.irMetadata[-1].isConst = False
+        new_children = [inputIr, IrAst.curr_size]
+        self.irMetadata[-1].shape = [IrAst.curr_size]
+        self.irMetadata[-1].broadcast = [1]
+        # new_children = [inputIr, convert_z3_to_ir(inputIr.irMetadata[-1].shape[0])]
+        self.update_parent_child(new_children)
+        # self.update_parent_child([inputIr])
+
 
 class IrExtractPolyCoeff(IrExpression):
     def __init__(self, inputIr):
@@ -822,7 +841,8 @@ class IrInnerProduct(IrExpression):
 class IrTernary(IrExpression):
     def __init__(self, condIr, lhsIr, rhsIr):
         super().__init__()
-
+        print('@@@@@@@@@@@@@@@@@')
+        print(lhsIr.irMetadata[-1].shape[0])
         condIr, lhsIr = matchDims(condIr, lhsIr)
         condIr, rhsIr = matchDims(condIr, rhsIr)
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
@@ -832,6 +852,7 @@ class IrTernary(IrExpression):
             self.irMetadata[-1].isConst = False
         if not condIr.irMetadata[-1].isConst:
             self.irMetadata[-1].isConst = False
+        
         self.update_parent_child([condIr, lhsIr, rhsIr])
 
 class IrTranspose(IrExpression):
@@ -897,20 +918,20 @@ class IrDot(IrExpression):
             rhsBroadcast = rhsIr.irMetadata[-1].broadcast
             print((lhsShape))
             assert(len(lhsIr.irMetadata)==1)
-            assert(len(lhsShape) <= 3)
-            assert(len(rhsShape) <= 2)
+            # assert(len(lhsShape) <= 3)
+            # assert(len(rhsShape) <= 2)
             # assert(sum(lhsBroadcast) == len(lhsBroadcast))
             # assert(sum(rhsBroadcast) == len(rhsBroadcast))
-            if len(lhsShape)==3 and len(rhsShape)==2:
+            if len(lhsShape)==2 and len(rhsShape)==3:
                 print(lhsShape[-1])
                 print(rhsShape[0])
-                assert(check_eq(lhsShape[-1], rhsShape[0]))
-                self.irMetadata[-1].shape = [lhsShape[0], lhsShape[1], rhsShape[1]]
-                self.irMetadata[-1].broadcast = [lhsBroadcast[0], 1, 1]
+                assert(check_eq(rhsShape[1], lhsShape[-1]))
+                self.irMetadata[-1].shape = [lhsShape[0], rhsShape[-1]]
+                self.irMetadata[-1].broadcast = [1, 1]
             elif len(lhsShape)==2 and len(rhsShape)==2:
-                assert(check_eq(lhsShape[-1], rhsShape[0]))
-                self.irMetadata[-1].shape = [lhsShape[0], rhsShape[1]]
-                self.irMetadata[-1].broadcast = [lhsBroadcast[0], 1]
+                assert(check_eq(rhsShape[1], lhsShape[-1]))
+                self.irMetadata[-1].shape = [lhsShape[0]]
+                self.irMetadata[-1].broadcast = [1]
 
             self.irMetadata[-1].type = 'Float'
         else:
@@ -984,7 +1005,10 @@ class IrMapCoeff(IrExpression):
         
         # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.irMetadata = copy_metadata(inputIr.irMetadata)
-        irMetadataElement = IrMetadataElement([IrAst.poly_size], 'Float', [1], False)
+        if inputIr.irMetadata[-1].type == 'PolyExp':
+            irMetadataElement = IrMetadataElement([IrAst.poly_size], 'Float', [1], False)
+        else:
+            irMetadataElement = IrMetadataElement([IrAst.sym_size], 'Float', [1], False)
         self.irMetadata.append(irMetadataElement)
         self.update_parent_child([inputIr])
 

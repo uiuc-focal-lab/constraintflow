@@ -10,7 +10,7 @@ func stop(Neuron n) = true;
 
 
 transformer zono{
-    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev[Z])) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0) : (0.0, (prev[u]), ((prev[u]) / 2.0) + (((prev[u]) / 2.0) * eps)));
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev[Z])) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0) : ((prev[u] * prev[l]) / (prev[u] - prev[l]), (prev[u]), ((prev[u] * prev[Z]) / (prev[u] - prev[l])) - (((prev[u] * prev[l]) / (2 * (prev[u] - prev[l]))) * (1 + eps))));
     Affine -> ((prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_lower), (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_upper), prev[Z].dot(curr[weight]) + (curr[bias]));
 }
 

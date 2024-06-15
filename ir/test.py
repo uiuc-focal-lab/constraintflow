@@ -53,17 +53,17 @@ def genAST(inputfile):
     ttime = time.time()
 
     representations.ssa(y)
-    # cse.cse(y)
+    cse.cse(y)
     copy_propagation.copy_proagate(y)
-    # cse.cse(y)
-    # copy_propagation.copy_proagate(y)
+    cse.cse(y)
+    copy_propagation.copy_proagate(y)
     poly_opt.poly_opt(y)
     rewrite.rewrite(y)
-    # cse.cse(y)
-    # copy_propagation.copy_proagate(y)
-    dce.dce(y)
+    cse.cse(y)
+    copy_propagation.copy_proagate(y)
     # dce.dce(y)
-    # cse.cse(y)
+    dce.dce(y)
+    cse.cse(y)
 
     # print("CSE", time.time()-ttime)
     # ttime = time.time()
@@ -76,7 +76,7 @@ def genAST(inputfile):
     ttime = time.time()
 
 if(len(sys.argv) <= 1):
-    filename = '../compiled_code/testcases/zono'
+    filename = '../compiled_code/testcases/deeppoly'
 else:
     filename = sys.argv[1]
 genAST(filename)

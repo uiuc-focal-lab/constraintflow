@@ -80,6 +80,9 @@ class IRVisitor:
         elif isinstance(node, IR.IrConvertConstToPoly):
             return self.visitIrConvertConstToPoly(node)
         
+        elif isinstance(node, IR.IrConvertConstToSym):
+            return self.visitIrConvertConstToSym(node)
+        
         elif isinstance(node, IR.IrAccess):
             return self.visitIrAccess(node)
         
@@ -133,8 +136,11 @@ class IRVisitor:
         
         elif isinstance(node, IR.IrProgram):
             return self.visitIrProgram(node)
+        
+        elif isinstance(node, str):
+            return self.visitIrStr(node)
 
         else:
             print("This is an error. This shouldn't happen")
-            print(node)
+            print(type(node))
             assert False

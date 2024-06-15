@@ -7,6 +7,7 @@ from newtransformer import *
 
 import matplotlib.pyplot as plt
 import itertools
+import pickle
 
 def compute_size(shape):
     s = 1
@@ -15,8 +16,9 @@ def compute_size(shape):
         shape = shape[1:]
     return s
 
+
+net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # net = get_net(net_name='nets/mnist_relu_3_50.onnx')
-net = get_net(net_name='nets/mnist-net_256x2.onnx')
 # net = get_net(net_name='nets/mnist_0.1.onnx')
 
 neighbours = dict()
@@ -25,7 +27,18 @@ for layer in net:
     shapes.append(layer.shape)
 
 
-t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.0)
+# t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.01)
+t, l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.01)
+print(l.shape)
+print(l[:784].sum())
+print(u[:784].sum())
+kjsd
+temp_save = [t, l, u, Z]
+file_path = 'specs_eps001_zono.pkl'
+with open(file_path, 'wb') as file:
+    pickle.dump(temp_save, file)
+
+jdfg
 # t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.0)
 
 # abs_elem = Abs_elem({'t': t, 'l': l, 'u': u}, {'t': 'bool', 'l': 'float', 'u': 'float'}, shapes)

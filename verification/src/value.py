@@ -120,6 +120,7 @@ def create_mult(left, right):
 		return IF(right.cond, create_mult(left, right.left), create_mult(left, right.right))
 	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, MULT):
 		multiplicands = [left] + get_multiplicands(right)
+		print(multiplicands)
 		coeff = 1
 		others = []
 		for i in range(len(multiplicands)):
@@ -129,6 +130,8 @@ def create_mult(left, right):
 					# coeff = simplify(coeff)
 				else:
 					others.append(multiplicands[i])
+			else:
+				others.append(multiplicands[i])
 		if len(others)==0:
 			return (coeff, 'Float')
 		if len(others)==1:

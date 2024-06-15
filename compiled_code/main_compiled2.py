@@ -22,5 +22,8 @@ for layer in network:
 t = input_spec[0]
 l = input_spec[1]
 u = input_spec[2]
-Z = input_spec[3]
-abs_elem = Abs_elem({'t' : t, 'l' : l, 'u' : u, 'Z' : Z}, {'l': 'Float', 'u': 'Float', 'Z': 'ZonoExp', 't': 'bool'}, shapes)
+L = input_spec[3].convert_to_polyexp()
+U = input_spec[4].convert_to_polyexp()
+abs_elem = Abs_elem({'t' : t, 'l' : l, 'u' : u, 'L' : L, 'U' : U}, {'l': 'Float', 'u': 'Float', 'L': 'PolyExp', 'U': 'PolyExp', 't': 'bool'}, shapes)
+certifier = Certifier(abs_elem, deeppoly(), network, None)
+certifier.flow()

@@ -17,7 +17,7 @@ def compute_size(shape):
     return s
 
 
-net = get_net(net_name='sample_model.pth')
+net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # net = get_net(net_name='nets/mnist_0.1.onnx')
 
@@ -27,9 +27,9 @@ for layer in net:
     shapes.append(layer.shape)
 
 
-t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.01)
-temp_save = [t, l, u, L, U]
-file_path = 'specs_sample_model.pkl'
+t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.00)
+temp_save = [t, l, u, Z]
+file_path = 'specs_eps0_zono.pkl'
 with open(file_path, 'wb') as file:
     pickle.dump(temp_save, file)
 
