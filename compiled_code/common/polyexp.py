@@ -185,8 +185,8 @@ class PolyExp:
 class SymExp:
     count = 0
     def __init__(self, rows, cols, mat, const, start, end):
-        if SymExp.count < len(mat) :
-            SymExp.count = len(mat)
+        if SymExp.count < mat.shape[1] :
+            SymExp.count = mat.shape[1]
         self.rows = rows
         self.cols = cols
         self.mat = mat 
@@ -194,8 +194,6 @@ class SymExp:
         self.start = start 
         self.end = end
         self.debug_flag = False 
-        print('SymExp count is', SymExp.count)
-        print(mat.shape)
 
     def add_eps(self, num):
         SymExp.count += num
@@ -208,7 +206,6 @@ class SymExp:
         return copy.deepcopy(self)
 
     def get_mat(self, sym_size):
-        print(sym_size, SymExp.count)
         assert(sym_size <= SymExp.count)
         if self.mat == None and  isinstance(self.const, torch.Tensor):
             return torch.zeros(self.rows, sym_size)

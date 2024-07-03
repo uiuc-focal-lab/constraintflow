@@ -47,6 +47,10 @@ operator :
     | REVAFFINE   
     | REVRELU      
     | REVRELU6      
+    | REVABS      
+    | REVHARDSIGMOID      
+    | REVHARDTANH      
+    | REVHARDSWISH      
     | REVMAXPOOL
     | REVNEURON_MULT
     | REVNEURON_ADD
@@ -223,6 +227,10 @@ NEURON_MIN: 'Neuron_min' ;
 NEURON_LIST_MULT: 'Neuron_list_mult' ;
 REVRELU: 'rev_Relu' ;
 REVRELU6: 'rev_Relu6' ;
+REVABS: 'rev_Abs' ;
+REVHARDSIGMOID: 'rev_HardSigmoid' ;
+REVHARDTANH: 'rev_HardTanh' ;
+REVHARDSWISH: 'rev_HardSwish' ;
 REVMAXPOOL: 'rev_Maxpool' ;
 REVNEURON_MULT: 'rev_Neuron_mult' ;
 REVNEURON_ADD: 'rev_Neuron_add' ;

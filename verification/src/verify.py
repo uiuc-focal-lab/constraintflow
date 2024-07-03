@@ -124,7 +124,7 @@ class Verify(astVisitor.ASTVisitor):
 			self.C.append(prevLength[0]>0)
 			self.C.append(prevLength[0] <= self.Nprev)
 			op_ = op.op.op_name
-			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "HardSigmoid" or op_ == "HardSwish"):
+			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_=='rev_Abs' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "rev_HardTanh" or op_ == "HardSigmoid" or op_ == "rev_HardSigmoid" or op_ == "HardSwish" or op_ == "rev_HardSwish"):
 				nprev= 1
 			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
 				nprev = 2
@@ -149,13 +149,13 @@ class Verify(astVisitor.ASTVisitor):
 			elif op_ == 'Abs' or op_ == 'rev_Abs':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardTanh':
+			elif op_ == 'HardTanh' or op_ == 'rev_HardTanh':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardSigmoid':
+			elif op_ == 'HardSigmoid' or op_ == 'rev_HardSigmoid':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardSwish':
+			elif op_ == 'HardSwish' or op_ == 'rev_HardSwish':
 				is_list = False 
 				required_neurons = ['curr', 'prev']
 			elif op_ == 'Maxpool' or op_ == 'Minpool' or op_ == 'Avgpool':
@@ -384,6 +384,53 @@ class Verify(astVisitor.ASTVisitor):
 				exptemp = s.os.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
 				prevexp = IF(LEQ(curr.name, (6, 'Float')), prevexp, (6, 'Float'))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+
+			elif(op_ == "rev_Abs"):
+
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, NEG(curr.name))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+
+			elif(op_ == "rev_HardTanh"):
+
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				prevexp = IF(GEQ(curr.name, (-1, 'Float')), curr.name, (-1, 'Float'))
+				prevexp = IF(LEQ(curr.name, (1, 'Float')), prevexp, (1, 'Float'))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+
+			elif(op_ == "rev_HardSigmoid"):
+
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				prevexp = IF(GEQ(curr.name, (-1, 'Float')), DIV(ADD(curr.name, (1, "Float")), (2, "Float")), (0, 'Float'))
+				prevexp = IF(LEQ(curr.name, (1, 'Float')), prevexp, (1, 'Float'))
+				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+
+			elif(op_ == "rev_HardSwish"):
+
+				exptemp = (0, "Float") 
+				for i in range(len(prev)):
+					exptemp = ADD(exptemp, prev[i])
+				
+				temp_curr_name = ADD(curr.name, (3, "Float"))
+				
+				exptemp = s.os.convertToZ3(exptemp)
+				prevexp = IF(GEQ(temp_curr_name, (0, 'Float')), temp_curr_name, (0, 'Float'))
+				prevexp = IF(LEQ(temp_curr_name, (6, 'Float')), prevexp, (6, 'Float'))
+				prevexp = DIV(prevexp, (6, "Float"))
+				prevexp = MULT(prevexp, curr.name)
 				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "Maxpool"):

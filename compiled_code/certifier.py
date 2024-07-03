@@ -59,18 +59,18 @@ class Certifier:
                 else:
                     abs_shape = self.transformer.Relu(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size)
 
-                mat = (abs_shape[2].mat[:, -size:])
-                const = (abs_shape[2].const)
+                # mat = (abs_shape[2].mat[:, -size:])
+                # const = (abs_shape[2].const)
                 
 
-                torch.set_printoptions(edgeitems=mat.numel(), threshold=mat.numel())
+                # torch.set_printoptions(edgeitems=mat.numel(), threshold=mat.numel())
                 # print(mat.sum())
 
                 # print('Debug stats')
                 # print(mat.shape)
                 # print(const.shape)
 
-                print(torch.diagonal(mat))
+                # print(torch.diagonal(mat))
                 # print(const)
 
 
@@ -81,6 +81,8 @@ class Certifier:
                 prev_size = W.shape[1]
                 prev_s = curr_s - prev_size
                 prev_e = curr_s - 1
+
+                print(prev_s, prev_e, curr_s, curr_e)
 
                 debug_flag = False
                 if tmp==4:
@@ -95,29 +97,31 @@ class Certifier:
 
                 abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size)
 
-                mat = (abs_shape[2].mat[:, -prev_size:])
-                const = (abs_shape[2].const)
+                # mat = (abs_shape[2].mat[:, -prev_size:])
+                # const = (abs_shape[2].const)
 
 
                 # print('Debug stats')
                 # print(mat.shape)
                 # print(const.shape)
 
-                print(abs_shape[0])
-                print(abs_shape[1])
+                # print(abs_shape[1])
 
-            self.abs_elem.update(curr, abs_shape)
+            self.abs_elem.update(curr, abs_shape, tmp==1)
             curr_s = curr_e + 1
             print(time.time()-t_time)
             t_time = time.time()
-            
-            temp = (abs_shape[1] - abs_shape[0] >= 0).any()
-            if not temp:
-                raise Exception('Something is not right')
-        # matrix = self.abs_elem.d['U'].mat[-10:, -10:]
-        # torch.set_printoptions(edgeitems=matrix.numel(), threshold=matrix.numel())
             print(abs_shape[0])
             print(abs_shape[1])
+            temp = (abs_shape[1] - abs_shape[0] >= 0).all()
+            if not temp:
+                raise Exception('Something is not right')
+            # if layer.type == LayerType.ReLU:
+            #     print(temp)
+            #     sdjkg
+        # matrix = self.abs_elem.d['U'].mat[-10:, -10:]
+        # torch.set_printoptions(edgeitems=matrix.numel(), threshold=matrix.numel())
+            
         # print(abs_shape[2].mat.shape)
         # print(abs_shape[2].mat[:, -10:], abs_shape[2].const)
         # print(abs_shape[3].mat[:, -10:], abs_shape[3].const)

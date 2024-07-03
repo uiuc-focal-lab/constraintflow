@@ -1,0 +1,35 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, ZonoExp z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func simplify_lower_zono(Noise n, Float coeff) = (coeff >= 0) ? (-coeff) : (coeff);
+func simplify_upper_zono(Noise n, Float coeff) = (coeff >= 0) ? (coeff) : (-coeff);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n, Float c) = -n[layer];
+func stop(Neuron n) = false;
+func stop_traverse(Neuron n, Float c) = false;
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_upper){e >= n}).map(simplify_upper);
+
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+transformer deeppoly{
+    Affine -> (max((prev[z].dot(curr[weight]) + curr[bias]).map(simplify_lower_zono),backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr)), min((prev[z].dot(curr[weight]) + curr[bias]).map(simplify_upper_zono),backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr)), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias], prev[z].dot(curr[weight]) + curr[bias]);
+
+    Relu -> ((prev[l]) >= 0) ? 
+    ((prev[l]), (prev[u]), (prev), (prev), (prev[z])) : 
+    (
+        ((prev[u]) <= 0) ? 
+        (0, 0, 0, 0, 0) : 
+        (0, (prev[u]), 0, (((prev[u]) / ((prev[u]) - (prev[l]))) * (prev)) - (((prev[u]) * (prev[l])) / ((prev[u]) - (prev[l]))), ((prev[u] + prev[l]) / 2) + (((prev[u] - prev[l]) / 2) * eps))
+    );
+}
+
+flow(forward, priority, stop, deeppoly);

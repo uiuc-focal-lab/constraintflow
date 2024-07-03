@@ -45,6 +45,12 @@ class ConvertToIr(astVisitor.ASTVisitor):
         exprIr, exprSeqIr = self.visit(ast_node.expr)
         return IrUnaryOp(exprIr, ast_node.op), exprSeqIr
     
+    def visitMaxOp(self, ast_node: AST.MaxOpNode):
+        lhsIr, lhsSeqIr = self.visit(ast_node.expr1)
+        rhsIr, rhsSeqIr = self.visit(ast_node.expr2)
+        return IrBinaryOp(lhsIr, rhsIr, ast_node.op), lhsSeqIr + rhsSeqIr
+        
+
     def visitBinOp(self, ast_node: AST.BinOpNode, lhsIr=None, rhsIr=None, ast_node_type=None, op=None):
         seqIr = []
         if lhsIr==None:

@@ -305,7 +305,11 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrBinaryOp(self, node):
         op_name = None 
-        if node.op == '+':
+        if node.op == 'max':
+            op_name = 'cf_max'
+        elif node.op == 'min':
+            op_name = 'cf_min'
+        elif node.op == '+':
             op_name = 'plus'
         elif node.op == '-':
             op_name = 'minus'

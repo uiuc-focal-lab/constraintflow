@@ -161,7 +161,7 @@ def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transfor
     # print(list(image.shape))
     if list(image.shape) != shapes[0]:
         image = image.flatten()
-        image = image.resize(*shapes[0][1:])
+        # image = image.resize(*shapes[0][1:])
 
     l = create_l(image, eps, shapes=shapes)
     u = create_u(image, eps, shapes=shapes)

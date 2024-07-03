@@ -1,0 +1,32 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+func create_c(Neuron n, PolyExp e) = n == e;
+
+transformer vegas{
+    rev_HardTanh -> 
+    prev[l] >= 1 ? 
+        (max(1, curr[l]), max(1, curr[u]), curr[L], curr[U]) :
+        (prev[l] > -1 ? 
+            (prev[u] >= 1 ?
+                (max(prev[l], curr[l]), curr[u], curr[L], curr[U]) :
+                (max(prev[l], curr[l]), min(prev[u], curr[u]), curr[L], curr[U])
+            ) : 
+            (prev[u] >= 1 ? 
+                (curr[l], curr[u], curr[L], curr[U]):
+                (prev[u] >= -1 ? 
+                    (curr[l], min(prev[u], curr[u]), curr[L], curr[U]):
+                    (curr[l], min(-1, curr[u]), curr[L], curr[U])
+                )
+            )
+
+        )
+    ;
+}
+
+flow(backward, priority, true, vegas);
+
+
+
+
+

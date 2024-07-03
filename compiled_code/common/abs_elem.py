@@ -34,9 +34,11 @@ class Abs_elem:
                 size = self.d[key].cols 
                 res = PolyExp(len(nlist.nlist), size, val_mat, val_const)
                 # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
+                # print('*********')
+                # print(val_mat.sum())
                 return res
             elif self.types[key] == 'ZonoExp':
-                print(key)
+                # print(key)
                 val_mat = self.d[key].mat[nlist.nlist]
                 val_const = self.d[key].const[nlist.nlist].flatten()
                 size = self.d[key].cols 
@@ -77,47 +79,75 @@ class Abs_elem:
     #                 idx = idx[1:]
     #             x[idx[0]] = vals[i].copy()
 
-    def update(self, nlist, abs_shape):
+    def update(self, nlist, abs_shape, debug_flag=False):
         live_neurons = torch.nonzero(self.d['t']).flatten()
         if nlist.nlist_flag:
             keys = list(self.d.keys())
             for i in range(len(abs_shape)):
                 key = keys[i+1]
                 if self.types[key] in ['Float', 'Int']:
+                    # print(abs_shape[i].sum())
+                    # print(self.d[key][nlist.nlist].shape)
+                    # print(abs_shape[i].shape)
                     self.d[key][nlist.nlist] = abs_shape[i]
+                    # print(self.d[key].sum())
                 elif self.types[key] in ['PolyExp']:
                     self.d[key].mat[nlist.nlist, 0:max(live_neurons)+1] = abs_shape[i].mat
                     self.d[key].const[nlist.nlist] = abs_shape[i].const
+                    # if debug_flag:
+                    #     print(key)
+                    #     print(self.d[key].mat[55:105, 5:55])
+                        # lskdh
                 elif self.types[key] in ['ZonoExp']:
                     new_eps = torch.zeros(self.d[key].mat.shape[0], SymExp.count - self.d[key].mat.shape[1])
                     # print(new_eps.shape)
                     self.d[key].mat = torch.concat([self.d[key].mat, new_eps], dim=1)
-                    # df
-                    print(abs_shape[i].mat.shape)
-                    print(self.d[key].mat.shape)
+                    # # df
+                    # print(abs_shape[i].mat.shape)
+                    # print(self.d[key].mat.shape)
                     self.d[key].mat[nlist.nlist] = abs_shape[i].mat
                     self.d[key].const[nlist.nlist] = abs_shape[i].const
                 else:
                     jhxdgf
+                # print('^^^^^^^^^^^^^^^^^')
+                # for key in list(self.d.keys()):
+                #     print(key)
+                #     if self.types[key] in ['Float', 'Int']:
+                #         print(self.d[key].sum())
+                #     elif self.types[key] in ['PolyExp']:
+                #         print(self.types[key])
+                #         print(self.d[key].mat.sum())
             self.d['t'][nlist.nlist] = True
         else:
             keys = list(self.d.keys())
             for i in range(len(abs_shape)):
                 key = keys[i+1]
                 if self.types[key] in ['Float', 'Int']:
-                    # print(key)
-                    # print(self.d[key])
+                    # print(abs_shape[i])
+                    # print(self.d[key][nlist.start:nlist.end+1].shape)
+                    # print(abs_shape[i].shape)
+                    # jhdgrfj
                     self.d[key][nlist.start:nlist.end+1] = abs_shape[i]
+                    # print(self.d[key][nlist.start:nlist.end+1])
+                    # kjsgd
+                    # print(self.d[key].sum())
                 elif self.types[key] in ['PolyExp']:
                     temp = torch.zeros(nlist.end + 1 - nlist.start, self.d[key].mat.shape[1])
                     self.d[key].mat[nlist.start:nlist.end+1][:, 0:max(live_neurons)+1] = abs_shape[i].mat
                     self.d[key].const[nlist.start:nlist.end+1] = abs_shape[i].const
+                    
                 elif self.types[key] in ['ZonoExp']:
                     # temp = torch.zeros(nlist.end + 1 - nlist.start, self.d[key].mat.shape[1])
                     # self.d[key].mat = torch.concat([self.d[key].mat, temp], dim=0)
                     # self.d[key].const = torch.concat([self.d[key].const, torch.zeros(nlist.end - nlist.start + 1)], dim=0)
-                    self.d[key].mat[nlist.start:nlist.end+1] = abs_shape[i].mat
+                    # print(self.d[key].mat[nlist.start:nlist.end+1] .shape)
+                    # print(abs_shape[i].mat.shape)
+                    # sjg
+                    self.d[key].mat[nlist.start:nlist.end+1, :] = abs_shape[i].mat
                     self.d[key].const[nlist.start:nlist.end+1] = abs_shape[i].const
                 else:
                     jhxdgf
             self.d['t'][nlist.start:nlist.end+1] = True
+        # if debug_flag:
+        #     print(self.d['L'].mat[55:105, 5:55])
+        #     lskdh
