@@ -656,9 +656,17 @@ class ASTTC(astVisitor.ASTVisitor):
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'Abs':
 			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'rev_Abs':
+			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'HardTanh':
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'HardSigmoid':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'rev_HardSigmoid':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'rev_HardTanh':
+			self.Gamma['prev'] = 'Neuron'
+		elif node.op.op_name == 'rev_HardSwish':
 			self.Gamma['prev'] = 'Neuron'
 		elif node.op.op_name == 'HardSwish':
 			self.Gamma['prev'] = 'Neuron'

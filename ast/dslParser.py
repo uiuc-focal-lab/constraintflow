@@ -7,7 +7,7 @@ import sys
 
 def serializedATN():
     with StringIO() as buf:
-        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3h")
+        buf.write("\3\u608b\ua72a\u8133\ub9ed\u417c\u3be7\u7786\u5964\3l")
         buf.write("\u013f\4\2\t\2\4\3\t\3\4\4\t\4\4\5\t\5\4\6\t\6\4\7\t\7")
         buf.write("\4\b\t\b\4\t\t\t\4\n\t\n\4\13\t\13\4\f\t\f\4\r\t\r\4\16")
         buf.write("\t\16\4\17\t\17\4\20\t\20\4\21\t\21\4\22\t\22\4\23\t\23")
@@ -37,29 +37,29 @@ def serializedATN():
         buf.write("\3\20\3\20\3\20\3\20\7\20\u012c\n\20\f\20\16\20\u012f")
         buf.write("\13\20\3\21\3\21\3\22\3\22\3\23\3\23\3\24\3\24\3\25\3")
         buf.write("\25\3\26\3\26\3\27\3\27\3\27\2\5\6\26\36\30\2\4\6\b\n")
-        buf.write("\f\16\20\22\24\26\30\32\34\36 \"$&(*,\2\n\3\2>T\3\2\67")
+        buf.write("\f\16\20\22\24\26\30\32\34\36 \"$&(*,\2\n\3\2>X\3\2\67")
         buf.write("8\3\2\3\4\3\29:\3\2\60\62\6\2\b\b\27\35\37\37!#\4\2;=")
-        buf.write("cc\3\2\n\13\2\u0157\2.\3\2\2\2\4\62\3\2\2\2\6O\3\2\2\2")
+        buf.write("gg\3\2\n\13\2\u0157\2.\3\2\2\2\4\62\3\2\2\2\6O\3\2\2\2")
         buf.write("\bX\3\2\2\2\n]\3\2\2\2\fi\3\2\2\2\16k\3\2\2\2\20o\3\2")
         buf.write("\2\2\22r\3\2\2\2\24\177\3\2\2\2\26\u008a\3\2\2\2\30\u009b")
         buf.write("\3\2\2\2\32\u00a2\3\2\2\2\34\u00a8\3\2\2\2\36\u00ea\3")
         buf.write("\2\2\2 \u0130\3\2\2\2\"\u0132\3\2\2\2$\u0134\3\2\2\2&")
         buf.write("\u0136\3\2\2\2(\u0138\3\2\2\2*\u013a\3\2\2\2,\u013c\3")
         buf.write("\2\2\2./\5\4\3\2/\60\5\6\4\2\60\61\7\2\2\3\61\3\3\2\2")
-        buf.write("\2\62\63\7W\2\2\63\64\7%\2\2\64\65\5\30\r\2\65\66\7&\2")
+        buf.write("\2\62\63\7[\2\2\63\64\7%\2\2\64\65\5\30\r\2\65\66\7&\2")
         buf.write("\2\66\67\7)\2\2\678\5\36\20\289\7*\2\29:\7+\2\2:\5\3\2")
         buf.write("\2\2;<\b\4\1\2<=\7\5\2\2=>\7%\2\2>?\5,\27\2?@\7\26\2\2")
-        buf.write("@A\5\36\20\2AB\7\26\2\2BC\5\36\20\2CD\7\26\2\2DE\7f\2")
-        buf.write("\2EF\7&\2\2FG\7+\2\2GP\3\2\2\2HI\7X\2\2IJ\5\b\5\2JK\7")
+        buf.write("@A\5\36\20\2AB\7\26\2\2BC\5\36\20\2CD\7\26\2\2DE\7j\2")
+        buf.write("\2EF\7&\2\2FG\7+\2\2GP\3\2\2\2HI\7\\\2\2IJ\5\b\5\2JK\7")
         buf.write("\36\2\2KL\5\36\20\2LM\7+\2\2MP\3\2\2\2NP\5\n\6\2O;\3\2")
         buf.write("\2\2OH\3\2\2\2ON\3\2\2\2PU\3\2\2\2QR\f\3\2\2RT\5\6\4\4")
         buf.write("SQ\3\2\2\2TW\3\2\2\2US\3\2\2\2UV\3\2\2\2V\7\3\2\2\2WU")
-        buf.write("\3\2\2\2XY\7f\2\2YZ\7%\2\2Z[\5\30\r\2[\\\7&\2\2\\\t\3")
+        buf.write("\3\2\2\2XY\7j\2\2YZ\7%\2\2Z[\5\30\r\2[\\\7&\2\2\\\t\3")
         buf.write("\2\2\2]^\5\20\t\2^_\7)\2\2_`\5\f\7\2`a\7*\2\2a\13\3\2")
         buf.write("\2\2bc\5\16\b\2cd\7+\2\2dj\3\2\2\2ef\5\16\b\2fg\7+\2\2")
         buf.write("gh\5\f\7\2hj\3\2\2\2ib\3\2\2\2ie\3\2\2\2j\r\3\2\2\2kl")
         buf.write("\5\22\n\2lm\7\6\2\2mn\5\24\13\2n\17\3\2\2\2op\7\7\2\2")
-        buf.write("pq\7f\2\2q\21\3\2\2\2rs\t\2\2\2s\23\3\2\2\2tu\5\36\20")
+        buf.write("pq\7j\2\2q\21\3\2\2\2rs\t\2\2\2s\23\3\2\2\2tu\5\36\20")
         buf.write("\2uv\7,\2\2vw\5\24\13\2wx\7-\2\2xy\5\24\13\2y\u0080\3")
         buf.write("\2\2\2z{\7%\2\2{|\5\24\13\2|}\7&\2\2}\u0080\3\2\2\2~\u0080")
         buf.write("\5\32\16\2\177t\3\2\2\2\177z\3\2\2\2\177~\3\2\2\2\u0080")
@@ -73,9 +73,9 @@ def serializedATN():
         buf.write("\f\3\2\2\u008d\u008f\7\24\2\2\u008e\u008c\3\2\2\2\u008f")
         buf.write("\u0092\3\2\2\2\u0090\u008e\3\2\2\2\u0090\u0091\3\2\2\2")
         buf.write("\u0091\27\3\2\2\2\u0092\u0090\3\2\2\2\u0093\u0094\5\26")
-        buf.write("\f\2\u0094\u0095\7f\2\2\u0095\u0096\7\26\2\2\u0096\u0097")
+        buf.write("\f\2\u0094\u0095\7j\2\2\u0095\u0096\7\26\2\2\u0096\u0097")
         buf.write("\5\30\r\2\u0097\u009c\3\2\2\2\u0098\u0099\5\26\f\2\u0099")
-        buf.write("\u009a\7f\2\2\u009a\u009c\3\2\2\2\u009b\u0093\3\2\2\2")
+        buf.write("\u009a\7j\2\2\u009a\u009c\3\2\2\2\u009b\u0093\3\2\2\2")
         buf.write("\u009b\u0098\3\2\2\2\u009c\31\3\2\2\2\u009d\u009e\5\36")
         buf.write("\20\2\u009e\u009f\7\26\2\2\u009f\u00a0\5\32\16\2\u00a0")
         buf.write("\u00a3\3\2\2\2\u00a1\u00a3\5\36\20\2\u00a2\u009d\3\2\2")
@@ -83,10 +83,10 @@ def serializedATN():
         buf.write("\36\20\2\u00a5\u00a6\5\34\17\2\u00a6\u00a9\3\2\2\2\u00a7")
         buf.write("\u00a9\5\36\20\2\u00a8\u00a4\3\2\2\2\u00a8\u00a7\3\2\2")
         buf.write("\2\u00a9\35\3\2\2\2\u00aa\u00ab\b\20\1\2\u00ab\u00eb\7")
-        buf.write("[\2\2\u00ac\u00eb\7Z\2\2\u00ad\u00eb\7d\2\2\u00ae\u00eb")
-        buf.write("\7e\2\2\u00af\u00eb\7f\2\2\u00b0\u00eb\7Y\2\2\u00b1\u00eb")
-        buf.write("\7\\\2\2\u00b2\u00eb\7]\2\2\u00b3\u00eb\7^\2\2\u00b4\u00eb")
-        buf.write("\7_\2\2\u00b5\u00eb\7`\2\2\u00b6\u00b7\7%\2\2\u00b7\u00b8")
+        buf.write("_\2\2\u00ac\u00eb\7^\2\2\u00ad\u00eb\7h\2\2\u00ae\u00eb")
+        buf.write("\7i\2\2\u00af\u00eb\7j\2\2\u00b0\u00eb\7]\2\2\u00b1\u00eb")
+        buf.write("\7`\2\2\u00b2\u00eb\7a\2\2\u00b3\u00eb\7b\2\2\u00b4\u00eb")
+        buf.write("\7c\2\2\u00b5\u00eb\7d\2\2\u00b6\u00b7\7%\2\2\u00b7\u00b8")
         buf.write("\5\36\20\2\u00b8\u00b9\7&\2\2\u00b9\u00eb\3\2\2\2\u00ba")
         buf.write("\u00bb\7\'\2\2\u00bb\u00bc\5\32\16\2\u00bc\u00bd\7(\2")
         buf.write("\2\u00bd\u00eb\3\2\2\2\u00be\u00bf\7$\2\2\u00bf\u00eb")
@@ -100,12 +100,12 @@ def serializedATN():
         buf.write("\2\u00d2\u00d3\5\36\20\2\u00d3\u00d4\7&\2\2\u00d4\u00eb")
         buf.write("\3\2\2\2\u00d5\u00d6\5&\24\2\u00d6\u00d7\7%\2\2\u00d7")
         buf.write("\u00d8\5\36\20\2\u00d8\u00d9\7&\2\2\u00d9\u00eb\3\2\2")
-        buf.write("\2\u00da\u00db\7a\2\2\u00db\u00dc\7%\2\2\u00dc\u00dd\5")
+        buf.write("\2\u00da\u00db\7e\2\2\u00db\u00dc\7%\2\2\u00dc\u00dd\5")
         buf.write("\"\22\2\u00dd\u00de\7\26\2\2\u00de\u00df\5\36\20\2\u00df")
         buf.write("\u00e0\7\26\2\2\u00e0\u00e1\5\36\20\2\u00e1\u00e2\7&\2")
-        buf.write("\2\u00e2\u00eb\3\2\2\2\u00e3\u00e4\7f\2\2\u00e4\u00e5")
+        buf.write("\2\u00e2\u00eb\3\2\2\2\u00e3\u00e4\7j\2\2\u00e4\u00e5")
         buf.write("\7%\2\2\u00e5\u00e6\5\32\16\2\u00e6\u00e7\7&\2\2\u00e7")
-        buf.write("\u00eb\3\2\2\2\u00e8\u00e9\7f\2\2\u00e9\u00eb\5\34\17")
+        buf.write("\u00eb\3\2\2\2\u00e8\u00e9\7j\2\2\u00e9\u00eb\5\34\17")
         buf.write("\2\u00ea\u00aa\3\2\2\2\u00ea\u00ac\3\2\2\2\u00ea\u00ad")
         buf.write("\3\2\2\2\u00ea\u00ae\3\2\2\2\u00ea\u00af\3\2\2\2\u00ea")
         buf.write("\u00b0\3\2\2\2\u00ea\u00b1\3\2\2\2\u00ea\u00b2\3\2\2\2")
@@ -121,7 +121,7 @@ def serializedATN():
         buf.write("\u012c\3\2\2\2\u00f6\u00f7\f\24\2\2\u00f7\u00f8\7\'\2")
         buf.write("\2\u00f8\u00f9\5*\26\2\u00f9\u00fa\7(\2\2\u00fa\u012c")
         buf.write("\3\2\2\2\u00fb\u00fc\f\23\2\2\u00fc\u00fd\7\'\2\2\u00fd")
-        buf.write("\u00fe\7f\2\2\u00fe\u012c\7(\2\2\u00ff\u0100\f\16\2\2")
+        buf.write("\u00fe\7j\2\2\u00fe\u012c\7(\2\2\u00ff\u0100\f\16\2\2")
         buf.write("\u0100\u0101\7\25\2\2\u0101\u0102\7/\2\2\u0102\u0103\7")
         buf.write("%\2\2\u0103\u0104\5,\27\2\u0104\u0105\7\26\2\2\u0105\u0106")
         buf.write("\5\36\20\2\u0106\u0107\7\26\2\2\u0107\u0108\5\36\20\2")
@@ -136,7 +136,7 @@ def serializedATN():
         buf.write("\u011e\f\7\2\2\u011e\u011f\7\25\2\2\u011f\u0120\7\66\2")
         buf.write("\2\u0120\u0121\7%\2\2\u0121\u0122\5\36\20\2\u0122\u0123")
         buf.write("\7&\2\2\u0123\u012c\3\2\2\2\u0124\u0125\f\6\2\2\u0125")
-        buf.write("\u0126\7\25\2\2\u0126\u0127\7b\2\2\u0127\u0128\7%\2\2")
+        buf.write("\u0126\7\25\2\2\u0126\u0127\7f\2\2\u0127\u0128\7%\2\2")
         buf.write("\u0128\u0129\5\36\20\2\u0129\u012a\7&\2\2\u012a\u012c")
         buf.write("\3\2\2\2\u012b\u00ec\3\2\2\2\u012b\u00f0\3\2\2\2\u012b")
         buf.write("\u00f6\3\2\2\2\u012b\u00fb\3\2\2\2\u012b\u00ff\3\2\2\2")
@@ -177,11 +177,12 @@ class dslParser ( Parser ):
                      "'Maxpool'", "'Minpool'", "'Avgpool'", "'rev_Affine'", 
                      "'Neuron_mult'", "'Neuron_add'", "'Neuron_max'", "'Neuron_min'", 
                      "'Neuron_list_mult'", "'rev_Relu'", "'rev_Relu6'", 
-                     "'rev_Maxpool'", "'rev_Neuron_mult'", "'rev_Neuron_add'", 
-                     "'rev_Neuron_max'", "'rev_Neuron_min'", "'Sigmoid'", 
-                     "'Tanh'", "'def Shape as'", "'func'", "'eps'", "'true'", 
-                     "'false'", "'curr'", "'prev'", "'prev_0'", "'prev_1'", 
-                     "'curr_list'", "'lp'", "'concat'", "'equations'" ]
+                     "'rev_Abs'", "'rev_HardSigmoid'", "'rev_HardTanh'", 
+                     "'rev_HardSwish'", "'rev_Maxpool'", "'rev_Neuron_mult'", 
+                     "'rev_Neuron_add'", "'rev_Neuron_max'", "'rev_Neuron_min'", 
+                     "'Sigmoid'", "'Tanh'", "'def Shape as'", "'func'", 
+                     "'eps'", "'true'", "'false'", "'curr'", "'prev'", "'prev_0'", 
+                     "'prev_1'", "'curr_list'", "'lp'", "'concat'", "'equations'" ]
 
     symbolicNames = [ "<INVALID>", "<INVALID>", "<INVALID>", "FLOW", "ARROW", 
                       "TRANSFORMER", "IN", "OUT", "BACKWARD", "FORWARD", 
@@ -196,7 +197,8 @@ class dslParser ( Parser ):
                       "HARDTANH", "HARDSIGMOID", "HARDSWISH", "MAXPOOL", 
                       "MINPOOL", "AVGPOOL", "REVAFFINE", "NEURON_MULT", 
                       "NEURON_ADD", "NEURON_MAX", "NEURON_MIN", "NEURON_LIST_MULT", 
-                      "REVRELU", "REVRELU6", "REVMAXPOOL", "REVNEURON_MULT", 
+                      "REVRELU", "REVRELU6", "REVABS", "REVHARDSIGMOID", 
+                      "REVHARDTANH", "REVHARDSWISH", "REVMAXPOOL", "REVNEURON_MULT", 
                       "REVNEURON_ADD", "REVNEURON_MAX", "REVNEURON_MIN", 
                       "SIGMOID", "TANH", "SHAPE", "FUNC", "EPSILON", "TRUE", 
                       "FALSE", "CURR", "PREV", "PREV_0", "PREV_1", "CURRLIST", 
@@ -309,31 +311,35 @@ class dslParser ( Parser ):
     NEURON_LIST_MULT=75
     REVRELU=76
     REVRELU6=77
-    REVMAXPOOL=78
-    REVNEURON_MULT=79
-    REVNEURON_ADD=80
-    REVNEURON_MAX=81
-    REVNEURON_MIN=82
-    SIGMOID=83
-    TANH=84
-    SHAPE=85
-    FUNC=86
-    EPSILON=87
-    TRUE=88
-    FALSE=89
-    CURR=90
-    PREV=91
-    PREV_0=92
-    PREV_1=93
-    CURRLIST=94
-    LP=95
-    CONCAT=96
-    EQUATIONS=97
-    IntConst=98
-    FloatConst=99
-    VAR=100
-    WS=101
-    LineComment=102
+    REVABS=78
+    REVHARDSIGMOID=79
+    REVHARDTANH=80
+    REVHARDSWISH=81
+    REVMAXPOOL=82
+    REVNEURON_MULT=83
+    REVNEURON_ADD=84
+    REVNEURON_MAX=85
+    REVNEURON_MIN=86
+    SIGMOID=87
+    TANH=88
+    SHAPE=89
+    FUNC=90
+    EPSILON=91
+    TRUE=92
+    FALSE=93
+    CURR=94
+    PREV=95
+    PREV_0=96
+    PREV_1=97
+    CURRLIST=98
+    LP=99
+    CONCAT=100
+    EQUATIONS=101
+    IntConst=102
+    FloatConst=103
+    VAR=104
+    WS=105
+    LineComment=106
 
     def __init__(self, input:TokenStream, output:TextIO = sys.stdout):
         super().__init__(input, output)
@@ -1087,6 +1093,18 @@ class dslParser ( Parser ):
         def REVRELU6(self):
             return self.getToken(dslParser.REVRELU6, 0)
 
+        def REVABS(self):
+            return self.getToken(dslParser.REVABS, 0)
+
+        def REVHARDSIGMOID(self):
+            return self.getToken(dslParser.REVHARDSIGMOID, 0)
+
+        def REVHARDTANH(self):
+            return self.getToken(dslParser.REVHARDTANH, 0)
+
+        def REVHARDSWISH(self):
+            return self.getToken(dslParser.REVHARDSWISH, 0)
+
         def REVMAXPOOL(self):
             return self.getToken(dslParser.REVMAXPOOL, 0)
 
@@ -1131,7 +1149,7 @@ class dslParser ( Parser ):
             self.enterOuterAlt(localctx, 1)
             self.state = 112
             _la = self._input.LA(1)
-            if not(((((_la - 60)) & ~0x3f) == 0 and ((1 << (_la - 60)) & ((1 << (dslParser.AFFINE - 60)) | (1 << (dslParser.RELU - 60)) | (1 << (dslParser.RELU6 - 60)) | (1 << (dslParser.ABS - 60)) | (1 << (dslParser.HARDTANH - 60)) | (1 << (dslParser.HARDSIGMOID - 60)) | (1 << (dslParser.HARDSWISH - 60)) | (1 << (dslParser.MAXPOOL - 60)) | (1 << (dslParser.MINPOOL - 60)) | (1 << (dslParser.AVGPOOL - 60)) | (1 << (dslParser.REVAFFINE - 60)) | (1 << (dslParser.NEURON_MULT - 60)) | (1 << (dslParser.NEURON_ADD - 60)) | (1 << (dslParser.NEURON_MAX - 60)) | (1 << (dslParser.NEURON_MIN - 60)) | (1 << (dslParser.NEURON_LIST_MULT - 60)) | (1 << (dslParser.REVRELU - 60)) | (1 << (dslParser.REVRELU6 - 60)) | (1 << (dslParser.REVMAXPOOL - 60)) | (1 << (dslParser.REVNEURON_MULT - 60)) | (1 << (dslParser.REVNEURON_ADD - 60)) | (1 << (dslParser.REVNEURON_MAX - 60)) | (1 << (dslParser.REVNEURON_MIN - 60)))) != 0)):
+            if not(((((_la - 60)) & ~0x3f) == 0 and ((1 << (_la - 60)) & ((1 << (dslParser.AFFINE - 60)) | (1 << (dslParser.RELU - 60)) | (1 << (dslParser.RELU6 - 60)) | (1 << (dslParser.ABS - 60)) | (1 << (dslParser.HARDTANH - 60)) | (1 << (dslParser.HARDSIGMOID - 60)) | (1 << (dslParser.HARDSWISH - 60)) | (1 << (dslParser.MAXPOOL - 60)) | (1 << (dslParser.MINPOOL - 60)) | (1 << (dslParser.AVGPOOL - 60)) | (1 << (dslParser.REVAFFINE - 60)) | (1 << (dslParser.NEURON_MULT - 60)) | (1 << (dslParser.NEURON_ADD - 60)) | (1 << (dslParser.NEURON_MAX - 60)) | (1 << (dslParser.NEURON_MIN - 60)) | (1 << (dslParser.NEURON_LIST_MULT - 60)) | (1 << (dslParser.REVRELU - 60)) | (1 << (dslParser.REVRELU6 - 60)) | (1 << (dslParser.REVABS - 60)) | (1 << (dslParser.REVHARDSIGMOID - 60)) | (1 << (dslParser.REVHARDTANH - 60)) | (1 << (dslParser.REVHARDSWISH - 60)) | (1 << (dslParser.REVMAXPOOL - 60)) | (1 << (dslParser.REVNEURON_MULT - 60)) | (1 << (dslParser.REVNEURON_ADD - 60)) | (1 << (dslParser.REVNEURON_MAX - 60)) | (1 << (dslParser.REVNEURON_MIN - 60)))) != 0)):
                 self._errHandler.recoverInline(self)
             else:
                 self._errHandler.reportMatch(self)

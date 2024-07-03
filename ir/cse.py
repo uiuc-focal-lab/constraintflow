@@ -20,8 +20,10 @@ def check_expr_visit(expr, node, visited_expr, visited_order):
             check_expr_visit(expr.children[i], node, visited_expr, visited_order)        
     else:
         if expr not in visited_order:
-        # if len(visited_expr[expr]) == 1:
             visited_order.append(expr)
+            nodes = visited_expr[expr]
+            del visited_expr[expr]
+            visited_expr[expr] = nodes
         visited_expr[expr].add(node)
 
 def cse_block(block, node, visited_expr, visited_order):
@@ -112,6 +114,9 @@ def add_assignment(assignment, occurrences, cfg, dtree):
             
 def create_new_assignments(visited_order, visited_expr, cfg, dtree):
     for i in range(len(visited_order)-1, -1, -1):
+        if i==9:
+            print(1, i, id(visited_order[9]), visited_order[9])
+            print(1, i, id(visited_order[6]), visited_order[6])
         original_expr = visited_order[i]
         new_var = IrVar(get_var(), original_expr.irMetadata)
         new_assignment = IrAssignment(new_var, original_expr)
@@ -119,6 +124,23 @@ def create_new_assignments(visited_order, visited_expr, cfg, dtree):
         for node in cfg.nodes:
             block = cfg.ir[node]
             replace_all_occurrences_block(block, new_assignment)
+        
+        if i==9:
+            print(2, i, id(visited_order[9]), visited_order[9])
+            print(2, i, id(visited_order[6]), visited_order[6])
+            # usged
+        # print(i)
+        # print(id(visited_order[6]))
+        # try:
+        #     print(visited_expr[visited_order[6]])
+        # except:
+        #     for key in visited_expr.keys():
+        #         if id(key) == id(visited_order[6]):
+        #             print(key)
+        #         print(id(key))
+        #     jhi
+        # for expr in visited_order:
+        #     print(len(visited_expr[expr]))
         add_assignment(new_assignment, visited_expr[original_expr], cfg, dtree)
 
 def cse_cfg(cfg, dtree):
@@ -126,12 +148,35 @@ def cse_cfg(cfg, dtree):
     visited_order = []
     for node in cfg.nodes:
         cse_block(cfg.ir[node], node, visited_expr, visited_order)
-    print(len(visited_order))
+    
+    # print(id(visited_order[6]), visited_order[6])
+    # print(id(visited_order[9]), visited_order[9])
+
+    # for key in visited_expr.keys():
+    #     if key == visited_order[6]:
+    #         print(id(key), key)
+            # jfd
+    # print(id(visited_order[5]))
+    # print()
+    # for key in visited_expr.keys():
+    #     print(id(key))
+    #     if id(key) == id(visited_order[6]):
+    #         print(key)
+    
+    # dhfb
+    # print(visited_order[6])
+    # print(visited_expr[visited_order[6]])
+    # print(len(visited_order))
+    # print(len(visited_expr))
+    # print(visited_order)
+    # print(visited_expr)
     create_new_assignments(visited_order, visited_expr, cfg, dtree)
 
 def cse(ir):
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
+            # if i==0:
+            #     continue
             cfg = ir.tstore[transformer][i].cfg
             dtree = representations.construct_dominator_tree(cfg)
             cse_cfg(cfg, dtree)

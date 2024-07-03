@@ -1,9 +1,10 @@
 from specs.spec import *
 from certifier import Certifier
 from common.abs_elem import Abs_elem
-from common.transformer import *
+# from common.transformer import *
 from specs.network import LayerType
 from newtransformer import *
+import copy
 
 import matplotlib.pyplot as plt
 import itertools
@@ -17,7 +18,7 @@ def compute_size(shape):
     return s
 
 
-net = get_net(net_name='nets/mnist_relu_3_50.onnx')
+net = get_net(net_name='nets/ACASXU_run2a_1_1_batch_2000.onnx')
 # net = get_net(net_name='nets/mnist_relu_3_50.onnx')
 # net = get_net(net_name='nets/mnist_0.1.onnx')
 
@@ -26,15 +27,45 @@ shapes = [net.input_shape]
 for layer in net:
     shapes.append(layer.shape)
 
+size = 0
+for i in range(len(shapes)):
+    size += compute_size(shapes[i])
 
-# t, l, u, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.01)
-t, l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.01)
-print(l.shape)
-print(l[:784].sum())
-print(u[:784].sum())
-kjsd
-temp_save = [t, l, u, Z]
-file_path = 'specs_eps001_zono.pkl'
+t = torch.zeros(size)
+u = torch.full((size,), float('inf'))
+l = torch.full((size,), float('-inf'))
+t[0:5] = 1
+l[0:5] = torch.tensor([0.6000, -0.5000, -0.5000,  0.4500, -0.5000])
+u[0:5] = torch.tensor([ 0.6799,  0.5000,  0.5000,  0.5000, -0.4500])
+
+coeff = torch.zeros((size, size))
+L = PolyExp(size, size, copy.deepcopy(coeff), copy.deepcopy(l))
+U = PolyExp(size, size, copy.deepcopy(coeff), copy.deepcopy(u))
+
+const = copy.deepcopy((l + u) / 2)
+coeff_5 = copy.deepcopy(torch.eye(l[0:5].shape[0]) * (u[0:5] - l[0:5])/2)
+coeff = torch.zeros(610, 5)
+coeff[:5, :] = coeff_5
+Z = SymExp(l.shape[0], 5, coeff, const, 0, 4)
+print(Z.mat.shape)
+# with open('acas_specs/acasxu_prop_1_input_prenormalized.txt', 'r') as f:
+#     lines = f.readlines()
+#     for i, line in enumerate(lines):
+#         if i==5:
+#             break
+#         l[i] = float(line[1:-2].split(',')[0])
+#         u[i] = float(line[1:-2].split(',')[1])
+
+
+# t, l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.01)
+# t, l, u, L, U = get_input_spec(shapes=shapes, n=0, transformer='deeppoly', eps=0.01)
+# t_, l_, u_, Z = get_input_spec(shapes=shapes, n=0, transformer='deepz', eps=0.01)
+# print(l.shape)
+# print(l[:784].sum())
+# print(u[:784].sum())
+# kjsd
+temp_save = [t, l, u, L, U, Z]
+file_path = 'specs_acas1_polyzono.pkl'
 with open(file_path, 'wb') as file:
     pickle.dump(temp_save, file)
 

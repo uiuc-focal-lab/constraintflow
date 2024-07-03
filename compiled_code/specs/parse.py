@@ -45,15 +45,46 @@ def parse_onnx_layers(net):
         node = net.graph.node[cur_layer]
         operation = node.op_type
         nd_inps = node.input
-        print(operation)
+        # print(operation)
         if operation == 'MatMul':
+            print('Linear')
             # Assuming that the add node is followed by the MatMul node
             add_node = net.graph.node[cur_layer + 1]
             bias = model_name_to_val_dict[add_node.input[1]]
-
+            weight = model_name_to_val_dict[nd_inps[0]]
+            # print(weight.shape)
+            # print(bias.shape)
             # Making some weird assumption that the weight is always 0th index
-            layer = Layer(weight=model_name_to_val_dict[nd_inps[0]], bias=bias, type=LayerType.Linear)
+            # layer = Layer(weight=model_name_to_val_dict[nd_inps[0]], bias=bias, type=LayerType.Linear)
+            # layers.append(layer)
+
+            layer = Layer(weight=weight, bias=bias, type=LayerType.Linear)
             layers.append(layer)
+            if len(layers)==1:
+                # [i_1, i_2, i_3, i_4] = layers.input_shape
+                [i_1] = layers.input_shape
+                prev_size = layers.input_size
+            else:
+                # [i_1, i_2, i_3, i_4] = layers[-2].shape
+                i_1 = layers[-2].shape
+                prev_size = layers[-2].size
+            [w_1, w_2] = layer.weight.shape 
+            o_1 = w_1 
+            # o_2 = w_1 
+            # o_3 = 1 
+            # o_4 = 1 
+            # layer.shape = [o_1, o_2, o_3, o_4]
+            layer.shape = [o_1]
+            layer.size = compute_size(layer.shape)
+            layer.prev = dict()
+            layer.prev_weight = dict()
+            curr_e = curr_s + layer.size - 1
+            prev_s = curr_s - prev_size
+            prev_e = curr_s - 1
+            for i in range(curr_s, curr_e + 1):
+                layer.prev[i] = [j for j in range(prev_s, prev_e + 1)]
+                layer.prev_weight[i] = layer.weight[i - curr_s]
+            curr_s = curr_e + 1
 
         elif operation == 'Conv':
             layer = Layer(weight=model_name_to_val_dict[nd_inps[1]], bias=(model_name_to_val_dict[nd_inps[2]]),
@@ -115,6 +146,7 @@ def parse_onnx_layers(net):
             
 
         elif operation == 'Gemm':
+            print('Linear')
             # Making some weird assumption that the weight is always 1th index
             layer = Layer(weight=model_name_to_val_dict[nd_inps[1]], bias=(model_name_to_val_dict[nd_inps[2]]),
                           type=LayerType.Linear)
@@ -151,6 +183,7 @@ def parse_onnx_layers(net):
 
 
         elif operation == 'Relu':
+            print('Relu')
             layers.append(Layer(type=LayerType.ReLU))
             layers[-1].shape = layers[-2].shape 
             layers[-1].size = layers[-2].size 
@@ -164,6 +197,9 @@ def parse_onnx_layers(net):
             curr_s = curr_e + 1
             # for idx in itertools.product(*[range(dim) for dim in layers[-1].shape]):
             #     layers[-1].prev[(layer_num, idx)] = [(layer_num-1, idx)]
+
+        else:
+            continue
 
         if len(layers)>0:
             print(cur_layer, layers[-1].type, layers[-1].shape, layers[-1].size)

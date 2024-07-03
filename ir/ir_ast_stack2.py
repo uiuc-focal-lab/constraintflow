@@ -800,6 +800,22 @@ class IrBinaryOp(IrExpression):
         self.irMetadata[-1].isConst = lhsIrMetadata[-1].isConst and rhsIrMetadata[-1].isConst    
         self.update_parent_child([lhsIr, rhsIr])
 
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.op == obj.op:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+                # return True
+        return False
+
 class IrUnaryOp(IrExpression):
     def __init__(self, inputIr, op):
         super().__init__()
@@ -808,6 +824,22 @@ class IrUnaryOp(IrExpression):
         # self.irMetadata = copy.deepcopy(inputIr.irMetadata)
         self.irMetadata = copy_metadata(inputIr.irMetadata)
         self.update_parent_child([inputIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.op == obj.op:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+                # return True
+        return False
 
 
 
@@ -828,6 +860,23 @@ class IrMult(IrExpression):
         self.irMetadata[-1].type = new_type
         self.update_parent_child([lhsIr, rhsIr])
         # print(self.irMetadata[-1].type, self.irMetadata[-1].isConst, self.identifier)
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.op == obj.op:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+                # return True
+        return False
+
 
 class IrInnerProduct(IrExpression):
     def __init__(self, lhsIr, rhsIr):

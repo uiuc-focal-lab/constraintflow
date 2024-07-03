@@ -22,7 +22,7 @@ func abs(Float x) = x > 0 ? x : -x;
 transformer deeppoly{
     Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
     
-    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), ((prev)), ((prev))) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0, 0.0) : (0.0, (prev[u]), abs(prev[l]) < abs(prev[u]) ? prev : 0, (((prev[u]) / ((prev[u]) - (prev[l]))) * ((prev))) + ((((prev[u] * (-1))) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), ((prev)), ((prev))) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0, 0.0) : (((abs(prev[l]) < abs(prev[u])) ? (prev[l]) : 0), (prev[u]), ((abs(prev[l]) < abs(prev[u])) ? (prev) : 0), (((prev[u]) / ((prev[u]) - (prev[l]))) * ((prev))) + ((((prev[u] * (-1))) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
 }
 
 flow(forward, priority, stop, deeppoly);

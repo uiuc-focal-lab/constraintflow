@@ -1,6 +1,6 @@
 import torch 
 
-input_size = 784
+input_size = 5
 
 def checkTypes(x, y):
     if type(x) != type(y):
@@ -39,6 +39,14 @@ def all(x):
 def plus(x, y):
     sanityCheck(x, y)
     return x+y
+
+def cf_max(x, y):
+    sanityCheck(x, y)
+    return torch.max(x, y)
+
+def cf_min(x, y):
+    sanityCheck(x, y)
+    return torch.min(x, y)
 
 def minus(x, y):
     sanityCheck(x, y)
@@ -104,10 +112,13 @@ def convert_to_float(x):
     return x.float()
 
 def get_default_stop(shape):
+    # print(shape)
     global input_size
     vertices_stop_default = torch.zeros(shape)
-    # vertices_stop_default[:, 0:input_size] = 1
+    vertices_stop_default[:, 0:input_size] = 1
     vertices_stop_default = vertices_stop_default.bool()
+    # print(vertices_stop_default)
+    # kjdfs
     return vertices_stop_default
 
 def get_default_stop2(shape):

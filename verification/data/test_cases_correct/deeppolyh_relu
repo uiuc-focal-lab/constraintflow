@@ -16,11 +16,7 @@ func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
 func abs(Float x) = x > 0 ? x : (-x);
 
 transformer deeppoly{
-    Relu -> ((prev[l]) >= 0) ? 
-                ((prev[l]), (prev[u]), (prev), (prev)) : 
-                (((prev[u]) <= 0) ? 
-                    (0, 0, 0, 0) : 
-                    (0, (prev[u]), (abs(prev[l])>abs(prev[u]) ? 0 : (prev)), (((prev[u]) / ((prev[u]) - (prev[l]))) * (prev)) - (((prev[u]) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), ((prev)), ((prev))) : (((prev[u]) <= 0) ? (0.0, 0.0, 0.0, 0.0) : (((abs(prev[l]) < abs(prev[u])) ? (prev[l]) : 0), (prev[u]), ((abs(prev[l]) < abs(prev[u])) ? (prev) : 0), (((prev[u]) / ((prev[u]) - (prev[l]))) * ((prev))) + ((((prev[u] * (-1))) * (prev[l])) / ((prev[u]) - (prev[l]))) ));
 }
 
 flow(forward, priority, true, deeppoly);

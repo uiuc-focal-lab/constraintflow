@@ -1,0 +1,16 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+func create_c(Neuron n, PolyExp e) = n == e;
+
+transformer vegas{
+    rev_Abs -> (max(-prev[u], curr[l]), min(prev[u], curr[u]), curr[L], curr[U])
+    ;
+}
+
+flow(backward, priority, true, vegas);
+
+
+
+
+
