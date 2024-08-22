@@ -121,8 +121,9 @@ class Verify(astVisitor.ASTVisitor):
 			store = self.store
 			arrayLens = self.arrayLens
 			prevLength = (Int('prevLength'), "Int")
-			self.C.append(prevLength[0]>0)
-			self.C.append(prevLength[0] <= self.Nprev)
+			if self.Nprev > 1:
+                self.C.append(prevLength[0]>0)
+                self.C.append(prevLength[0] <= self.Nprev)
 			op_ = op.op.op_name
 			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_=='rev_Abs' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "rev_HardTanh" or op_ == "HardSigmoid" or op_ == "rev_HardSigmoid" or op_ == "HardSwish" or op_ == "rev_HardSwish"):
 				nprev= 1

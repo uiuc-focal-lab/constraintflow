@@ -1,0 +1,18 @@
+def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+
+func hswish(Float x) = x <= -3 ? 0 : (x >= 3 ? x : (x * ((x + 3) / 6))); 
+
+transformer Ibp{
+    Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper));
+    Maxpool -> (max(prev[l]), max(prev[u]));
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u])) : (((prev[u]) <= 0) ? (0, 0) : (0, (prev[u])));
+    Abs -> (((prev[l]) >= 0) ? ((prev[l]), (prev[u])) : (((prev[u]) <= 0) ? (-prev[u], -prev[l]) : (0, max(-prev[l], prev[u]))));
+    HardSwish -> prev[u] <= (-3/2) ? (hswish(prev[u]), hswish(prev[l])) : (prev[l] > (-3/2) ? (hswish(prev[l]), hswish(prev[u])) : (-3/8, max(hswish(prev[u]), hswish(prev[l]))));
+}
+
+flow(forward, priority, true, Ibp);
