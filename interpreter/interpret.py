@@ -78,7 +78,7 @@ genAST(sys.argv[1])
 
 from newtransformer import *
 
-transformer = Cflowibp()
+transformer = CflowNewDeepPoly()
 certifier = Certifier(abs_elem, transformer, net, neighbours)
 certifier.flow()
 print(certifier.abs_elem.d['l'][-1])

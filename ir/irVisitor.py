@@ -38,6 +38,9 @@ class IRVisitor:
         elif isinstance(node, IR.IrAddDimensionConst):
             return self.visitIrAddDimensionConst(node)
         
+        # elif isinstance(node, IR.IrBinaryPolyExpOp):
+        #     return self.visitIrBinaryPolyExpOp(node)
+        
         elif isinstance(node, IR.IrBinaryOp):
             return self.visitIrBinaryOp(node)
         

@@ -22,8 +22,9 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("\n")
 
         self.write("from specs.spec import *")
-        self.write("from certifier import Certifier")
-        self.write("from common.abs_elem import Abs_elem")
+        self.write("from certifier_sparse import Certifier")
+        self.write("from common.abs_elem import Abs_elem_sparse")
+        self.write("from common.polyexp import Network_graph")
         self.write("from specs.network import LayerType")
         self.write("from transformers_compiled2 import *")
 
@@ -39,6 +40,7 @@ class CodeGen(irVisitor.IRVisitor):
         self.indent += 1
         self.write("shapes.append(layer.shape)")
         self.indent -= 1
+        self.write("network = Network_graph(shapes, network)")
 
         self.visited = set()
 
@@ -60,16 +62,16 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrProgram(self, node):
         self.shape = node.shape
         temp_shape = copy.deepcopy(self.shape)
-        temp_shape['t'] = 'bool'
+        temp_shape['llist'] = 'bool'
         temp_dict = "{"
-        key = 't'
+        key = 'llist'
         i = 0
-        shapeDecl = key + ' = input_spec[' + str(i) + ']'
+        shapeDecl = key + ' = torch.tensor([True, False, False, False, False, False, False])'
         temp_dict += "\'" + key + "\' : " + key + ', '
         self.write(shapeDecl)
         for i, key in enumerate(node.shape.keys()):
             if self.shape[key] == 'PolyExp':
-                shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp()'
+                shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp_sparse(network)'
             else:
                 shapeDecl = key + ' = input_spec[' + str(i+1) + ']'
             temp_dict += "\'" + key + "\' : " + key 
@@ -78,7 +80,16 @@ class CodeGen(irVisitor.IRVisitor):
             self.write(shapeDecl)
         temp_dict += '}'
 
-        my_str = "abs_elem = Abs_elem(" + temp_dict + ", " + str(temp_shape) + ", shapes)"
+        my_str = "l = convert_to_sparse(l, float(\'-inf\'))"
+        self.write(my_str)
+        my_str = "u = convert_to_sparse(u, float(\'inf\'))"
+        self.write(my_str)
+        my_str = "L.const = copy.deepcopy(l)"
+        self.write(my_str)
+        my_str = "U.const = copy.deepcopy(u)"
+        self.write(my_str)
+
+        my_str = "abs_elem = Abs_elem_sparse(" + temp_dict + ", " + str(temp_shape) + ", network)"
         self.write(my_str)
 
         self.open(self.functions_file)
@@ -89,7 +100,10 @@ class CodeGen(irVisitor.IRVisitor):
         # GENERATE TRANSFORMERS
         self.open(self.transformers_file)
         self.write('import torch')
-        self.write('from common.polyexp import PolyExp, Nlist, SymExp')
+        self.write('import copy')
+        self.write('from common.polyexp import PolyExpSparse, SymExp')
+        self.write('from common.sparse_tensor import SparseTensorBlock')
+        self.write('from common.nlist import Llist')
         self.write('from utils import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):
@@ -98,7 +112,7 @@ class CodeGen(irVisitor.IRVisitor):
 
             transformerIr = node.tstore[transformer_name]
             for j, opStmtIr in enumerate(transformerIr):
-                self.write('def ' + opStmtIr.op + '(self, abs_elem, prev, curr, poly_size, curr_size, prev_size, input_size):')
+                self.write('def ' + opStmtIr.op + '(self, abs_elem, prev, curr, poly_size, curr_size, prev_size, input_size, batch_size):')
                 self.indent += 1
                 
                 cfg = opStmtIr.cfg
@@ -260,9 +274,10 @@ class CodeGen(irVisitor.IRVisitor):
         #     for j in range(len(inputIr.irMetadata[i].broadcast)):
         #         repeat_dims += ' ' + str(inputIr.irMetadata[i].broadcast[j]) + ','
         # repeat_dims = repeat_dims[:-1]
-        
-        ret = self.visit(node.children[0])
-        ret += '.repeat(' + repeat_dims + ')'
+        repeat_dims = 'torch.tensor([' + repeat_dims + '])'
+        ret = 'repeat(' + self.visit(node.children[0]) + ', ' + repeat_dims + ')'
+        # ret = self.visit(node.children[0])
+        # ret += '.repeat(' + repeat_dims + ')'
         return ret
 
     def visitIrAddDimension(self, node):
@@ -303,6 +318,20 @@ class CodeGen(irVisitor.IRVisitor):
         ret += '.repeat(' + repeat_dims + ')'
         return ret
 
+    # def visitIrBinaryPolyExpOp(self, node):
+    #     if node.op == '+':
+    #         op_name = 'sum'
+    #     elif node.op == '-':
+    #         op_name = 'diff'
+    #     elif node.op == '*':
+    #         op_name = 'mult'
+    #     elif node.op == '/':
+    #         op_name = 'divide'
+    #     else:
+    #         raise Exception('NOT IMPLMENTED')
+    #     [lhsIr, rhsIr] = node.children   
+    #     return self.visit(lhsIr) + '.' + op_name + '(' + self.visit(rhsIr) + ')' 
+    
     def visitIrBinaryOp(self, node):
         op_name = None 
         if node.op == 'max':
@@ -401,9 +430,9 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrDot(self, node):
         [lhsIr, rhsIr] = node.children
         if lhsIr.irMetadata[-1].type == 'Neuron':
-            return self.visit(lhsIr) + '.dot(' + self.visit(rhsIr) + ')'
+            return self.visit(lhsIr) + '.dot(' + self.visit(rhsIr) + ', abs_elem.get_poly_size())'
         elif rhsIr.irMetadata[-1].type == 'Neuron':
-            return self.visit(rhsIr) + '.dot(' + self.visit(lhsIr) + ')'
+            return self.visit(rhsIr) + '.dot(' + self.visit(lhsIr) + ', abs_elem.get_poly_size())'
         elif lhsIr.irMetadata[-1].type == 'Float':
             return 'inner_prod(' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
         else:
@@ -412,13 +441,15 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrTernary(self, node):
         [condIr, lhsIr, rhsIr] = node.children
-        return 'torch.where(' + self.visit(condIr) + ', ' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
+        return 'where(' + self.visit(condIr) + ', ' + self.visit(lhsIr) + ', ' + self.visit(rhsIr) + ')'
 
     def visitIrCombineToPoly(self, node):
         [coeffIr, constIr, rows] = node.children
         # rows = str(constIr.irMetadata[-1].shape[0])
         cols = 'poly_size'
-        return 'PolyExp(' + self.visit(rows) + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
+        return 'PolyExpSparse(abs_elem.network, copy.deepcopy(' + self.visit(coeffIr) + ') , copy.deepcopy(' + self.visit(constIr) + '))'
+        # return 'PolyExpSparse(abs_elem.network, ' + self.visit(rows) + ', copy.deepcopy(' + self.visit(coeffIr) + '.dense_layers), copy.deepcopy(' + self.visit(coeffIr) + '.mats), copy.deepcopy(' + self.visit(constIr) + '.const))'
+        # return 'PolyExp(' + self.visit(rows) + ', ' + cols + ', ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
         # return 'PolyExpNew(poly_size, ' + self.visit(coeffIr) + ', ' + self.visit(constIr) + ')'
 
     def visitIrCombineToSym(self, node):
@@ -432,7 +463,7 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrExtractPolyCoeff(self, node):
         [inputIr] = node.children
-        return self.visit(inputIr) + '.get_mat(poly_size)'
+        return self.visit(inputIr) + '.get_mat(abs_elem)'
     
     def visitIrExtractSymCoeff(self, node):
         [inputIr] = node.children
@@ -448,15 +479,13 @@ class CodeGen(irVisitor.IRVisitor):
 
     def visitIrConvertNeuronToPoly(self, node):
         [inputIr] = node.children
-        return self.visit(inputIr) + '.convert_to_poly()'
+        return self.visit(inputIr) + '.convert_to_poly(abs_elem)'
     
     def visitIrConvertConstToPoly(self, node):
         [inputIr, rows] = node.children
-        # rows = str(inputIr.irMetadata[-1].shape[0])
         cols = 'poly_size'
-        return 'PolyExp(' + self.visit(rows) + ', ' + cols + ', ' + 'None, ' + self.visit(inputIr) + ')'
-        # return 'PolyExpNew(poly_size, None, ' + str(self.visit(inputIr)) + ')'
-
+        return 'PolyExpSparse(abs_elem.network, 0.0, ' + self.visit(inputIr) + ')'
+        
     def visitIrConvertConstToSym(self, node):
         [inputIr, rows] = node.children
         # rows = str(inputIr.irMetadata[-1].shape[0])
@@ -483,11 +512,15 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrMapCoeff(self, node):
         [inputIr] = node.children
         if inputIr.irMetadata[-1].type == 'PolyExp':    
-            return self.visit(inputIr) + '.get_mat(poly_size)'
+            return self.visit(inputIr) + '.get_mat(abs_elem)'
         return self.visit(inputIr) + '.get_mat(SymExp.count)'
 
     def visitIrMapNeuron(self, node):
-        return 'abs_elem.get_live_nlist(Nlist(poly_size, 0, poly_size-1, None))'
+        [inputIr] = node.children
+        return 'Llist(abs_elem.network, [1]*(' + self.visit(inputIr) + '.mat.dims-1), None, None,' + "torch.nonzero(abs_elem.d['llist']).flatten().tolist())"
+        return 'Llist(abs_elem.network, [1]*(' + self.visit(inputIr) + '.mat.dims-1), None, None,' + self.visit(inputIr) + '.get_dense_layers())'
+        # return self.visit(inputIr) + '.get_dense_layers()'
+        # return 'abs_elem.get_live_nlist(Nlist(poly_size, 0, poly_size-1, None))'
 
     def visitIrSymbolic(self, node):
         return node.name
