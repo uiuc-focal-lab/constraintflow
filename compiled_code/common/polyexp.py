@@ -1,120 +1,36 @@
 import torch 
 import copy
 import time 
+from common.sparse_tensor import *
 
-class Nlist:
-    network = None 
-    def __init__(self, size=0, start=None, end=None, nlist=None, network = None):
-        self.size = size
-        self.start = start
-        self.end = end
-        self.nlist = nlist
-        self.nlist_flag = True
-        network = network 
-        if Nlist.network==None:
-            Nlist.network = network 
-        if nlist==None:
-            self.nlist_flag = False
 
-    def get_metadata(self, elem):
-        if not self.nlist_flag:
-            counter = Nlist.network.input_size
-            for k, layer in enumerate(Nlist.network):
-                if counter == self.start:
-                    if elem == 'weight' or elem == 'w':
-                        return layer.weight
-                    elif elem == 'bias' or elem == 'b':
-                        return layer.bias
-                    elif elem == 'layer':
-                        return torch.ones(layer.bias.shape)*k
-                counter += layer.size
-        else:
-            raise Exception('NOT IMPLEMENTED')
-                
-    def dot(self, w):
-        if isinstance(w, torch.Tensor):
-            n = w.size(0)
-        elif isinstance(w, list):
-            n = len(w)
-        
-        N = self.size 
-        polyexp_const = torch.zeros((n))
-        polyexp_coeff = torch.zeros(N)
-        if isinstance(w, list) or w.dim()==2:
-            polyexp_coeff = polyexp_coeff.unsqueeze(0).expand(n, -1).clone()
-            if self.nlist_flag:
-                if not(isinstance(self.nlist, list)) and self.nlist.dim() == 1:
-                    self.nlist = self.nlist.unsqueeze(0).expand(n, -1)
-        if self.nlist_flag:
-            if isinstance(w, list):
-                for i in range(n):
-                    polyexp_coeff[i, self.nlist[i]] = w[i]
-            else:
-                polyexp_coeff[torch.arange(n).unsqueeze(1), self.nlist] = w 
-        else:
-            polyexp_coeff[:, self.start:self.end+1] = w 
-        res = PolyExp(n, N, polyexp_coeff, polyexp_const)
-        # res = PolyExpNew(N, polyexp_coeff, polyexp_const)
-        return res 
+class Network_graph:
+    def __init__(self, shapes, layers):
+        self.old_network = layers
+        self.layers = dict()
+        self.layers_size = dict()
+        self.layers_start = dict()
+        self.layers_end = dict()
+        self.size = 0
+        self.layers[0] = None
+        self.layers_start[0] = 0
+        self.layers_end[0] = compute_size(shapes[0])
+        self.layers_size[0] = compute_size(shapes[0])
+        self.size += self.layers_end[0]
+        for i in range(1, len(shapes)):
+            # print(layers[i-1].type)
+            # print(layers[i-1].weight)
+            self.layers[i] = layers[i-1]
+            self.layers_size[i] = compute_size(shapes[i])
+            self.layers_start[i] = self.size
+            self.size += self.layers_size[i]
+            self.layers_end[i] = self.size
+        self.input_size = self.layers_size[0]
+        # kjsd
     
-    def sum(self):
-        N = self.size 
-        polyexp_coeff = torch.zeros(N)
-        if self.nlist_flag:
-            if self.nlist.dim()>1:
-                n = self.nlist.size(0)
-                polyexp_coeff = polyexp_coeff.unsqueeze(0).expand(n, -1).clone()
-                polyexp_coeff[torch.arange(n).unsqueeze(1), self.nlist] = 1
-                polyexp_const = torch.zeros(n)
-            else:
-                polyexp_coeff[self.nlist] = 1
-                polyexp_const = 0
-        else:
-            if isinstance(self.start, torch.Tensor):
-                if self.start.shape[0]>1:
-                    n = self.start.size(0)
-                    polyexp_coeff = polyexp_coeff.unsqueeze(0).expand(n, -1).clone()
-                    polyexp_coeff[:, self.start:self.end+1] = 1
-                    polyexp_const = torch.zeros(n)
-                else:
-                    polyexp_coeff[self.start:self.end+1] = 1
-                    polyexp_const = 0
-            else:
-                polyexp_coeff[self.start:self.end+1] = 1
-                polyexp_const = 0
-        res = PolyExp(n, N, polyexp_coeff, polyexp_const)
-        # res = PolyExpNew(N, polyexp_coeff, polyexp_const)
-        return res 
-    
-    def avg(self):
-        res = self.sum()
-        if self.nlist_flag:
-            if self.nlist.dim()>1:
-                num_elems = self.nlist.shape[1]
-            else:
-                num_elems = self.nlist.shape[0]
-        else:
-            num_elems = self.end + 1 - self.start
-        res.coeff = res.coeff / num_elems
-        res.const = res.const / num_elems
-        return res 
 
-    def convert_to_poly(self):
-        if self.nlist_flag:
-            mat = torch.zeros(len(self.nlist), self.size)
-            const = torch.zeros(len(self.nlist))
-            for i in range(len(self.nlist)):
-                mat[i, self.nlist[i]] = 1
-            return PolyExp(len(self.nlist), self.size, mat, const)
-            # return PolyExpNew(self.size, mat, const)
-        else:
-            mat = torch.zeros(self.end-self.start+1, self.size)
-            const = torch.zeros(self.end-self.start+1)
-            for i in range(self.end-self.start+1):
-                mat[i, self.start+i] = 1
-            return PolyExp(self.end-self.start+1, mat, const)
-            # return PolyExpNew(self.size, mat, const)
 
+# NEEDED BECAUSE THE L, U, l, u in main_old ARE POLYEXPNEW
 class PolyExpNew:
     def __init__(self, size, mat, const):
         if mat==None:
@@ -123,15 +39,10 @@ class PolyExpNew:
         self.mat = mat 
             
         self.const = const
-        # assert(self.const.dim()==1)
         self.debug_flag = False 
         if not isinstance(const, torch.Tensor) and isinstance(mat, torch.Tensor):
             if self.mat.dim()>1:
                 self.const = torch.ones((self.mat.size(0))) * const 
-        # if mat==None:
-        #     self.mat = torch.zeros((self.const.shape[0], size))
-        #     print(self.mat.size)
-        
 
     def copy(self):
         return copy.deepcopy(self)
@@ -139,19 +50,22 @@ class PolyExpNew:
     def get_mat(self, abs_elem):
         live_neurons = torch.nonzero(abs_elem.d['t']).flatten()
         if not isinstance(self.mat, torch.Tensor):
-            # TODO. IF IT IS NOT A TENSOR, IT HAS TO BE CONVERTED TO A TENSOR BEFORE RETURNING
             new_mat = torch.zeros(self.const.shape[0], live_neurons.shape[0])
             return new_mat
-        # print(self.mat)
         return self.mat[:, live_neurons]
     
     def get_const(self):
-        # assert(self.const.dim()==1)
         return self.const
     
     def convert_to_polyexp(self):
         return PolyExp(self.const.shape[0], self.size, self.mat, self.const)
     
+    def convert_to_polyexp_sparse(self, network):
+        return PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([1, 1004, 1004])), self.const)
+    
+
+
+
 class PolyExp:
     def __init__(self, rows, cols, mat, const):
         self.rows = rows
@@ -182,6 +96,10 @@ class PolyExp:
             return 0.0
         return self.const
     
+
+
+
+
 class SymExp:
     count = 0
     def __init__(self, rows, cols, mat, const, start, end):
@@ -226,3 +144,56 @@ class SymExp:
         elif self.const == None:
             return 0.0
         return self.const
+    
+
+
+
+class PolyExpSparse:
+    def __init__(self, network, mat, const):
+        self.network = network
+        self.mat = mat 
+        self.const = const
+        if not isinstance(self.const, SparseTensorBlock):
+            if isinstance(self.const, torch.Tensor):
+                self.const = SparseTensorBlock([torch.tensor([0]*self.const.dim())], [self.const], self.const.dim(), torch.tensor(self.const.shape))
+            # else:
+            #     self.const = SparseTensorBlock([torch.tensor(0)], [torch.tensor(self.const)], 0, torch.tensor(1))
+
+    def copy(self):
+        return PolyExpSparse(self.network, copy.deepcopy(self.mat), copy.deepcopy(self.const))
+
+    def get_mat(self, abs_elem, dense=True):
+        
+        if isinstance(self.mat, float):
+            return self.mat
+        if dense:
+            block = self.mat.get_dense()
+            sp_mat = SparseTensorBlock([torch.tensor([0]*block.dim())], [block], block.dim(), torch.tensor(block.shape))
+        else:
+            sp_mat = self.mat
+        start, end = torch.nonzero(abs_elem.d['llist']).flatten().tolist()[0], torch.nonzero(abs_elem.d['llist']).flatten().tolist()[-1]
+        start, end = self.network.layers_start[start], self.network.layers_end[end]
+        start_index = torch.zeros(sp_mat.dims)
+        end_index = sp_mat.total_size
+        start_index[-1] = start
+        end_index[-1] = end
+        return sp_mat.get_sparse_custom_range(start_index, end_index)
+        
+    def get_const(self):
+        return self.const
+    
+    def get_dense_layers(self):
+        layer = 0
+        dense_layers = set()
+        for j, i in enumerate(self.mat.start_indices):
+            while(True):
+                if self.network.layers_start[layer]<=i[-1]:
+                    break
+                layer+=1
+            
+            while(True):
+                dense_layers.add(layer)
+                if self.network.layers_start[layer]<=self.mat.end_indices[j][-1]:
+                    break
+                layer+=1
+        return list(dense_layers)

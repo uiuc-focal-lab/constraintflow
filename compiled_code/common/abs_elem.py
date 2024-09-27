@@ -1,6 +1,6 @@
 import torch
 import copy
-from common.polyexp import PolyExp, SymExp
+from common.polyexp import *
 
 class Abs_elem:
     def __init__(self, d, types, shapes):
@@ -21,6 +21,7 @@ class Abs_elem:
         nlist_new.nlist = selected_live_neurons 
         return nlist_new
 
+    
         
     def get_elem_new(self, key, nlist):
         nlist = self.get_live_nlist(nlist)
@@ -33,17 +34,12 @@ class Abs_elem:
                 val_const = self.d[key].const[nlist.nlist].flatten()
                 size = self.d[key].cols 
                 res = PolyExp(len(nlist.nlist), size, val_mat, val_const)
-                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
-                # print('*********')
-                # print(val_mat.sum())
                 return res
             elif self.types[key] == 'ZonoExp':
-                # print(key)
                 val_mat = self.d[key].mat[nlist.nlist]
                 val_const = self.d[key].const[nlist.nlist].flatten()
                 size = self.d[key].cols 
                 res = SymExp(len(nlist.nlist), size, val_mat, val_const, 0, SymExp.count)
-                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
                 return res
         else:
             if self.types[key] == 'int' or self.types[key] == 'float':
@@ -54,30 +50,13 @@ class Abs_elem:
                 val_const = self.d[key].const[nlist.start:nlist.end+1].clone()
                 size = self.d[key].cols 
                 res = PolyExp(-nlist.start+nlist.end+1, size, val_mat, val_const)
-                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
                 return res
             elif self.types[key] == 'ZonoExp':
                 val_mat = self.d[key].mat[nlist.start:nlist.end+1].clone()
                 val_const = self.d[key].const[nlist.start:nlist.end+1].clone()
                 size = self.d[key].cols 
                 res = SymExp(-nlist.start+nlist.end+1, size, val_mat, val_const, 0, SymExp.count)
-                # res = PolyExpNew(size=size, mat=val_mat, const=val_const)
-                return res
-            
-    # def update_elem(self, neuron, vals):
-    #     for i, key in enumerate(self.d.keys()):
-    #         if self.types[key] == 'int' or self.types[key] == 'float':
-    #             if isinstance(vals[i], float) or isinstance(vals[i], int) or isinstance(vals[i], torch.Tensor):
-    #                 self.d[key][neuron[0]][neuron[1]] = vals[i]
-    #             else:
-    #                 self.d[key][neuron[0]][neuron[1]] = vals[i].const 
-    #         elif self.types[key] == 'PolyExp' or self.types[key] == 'ZonoExp':
-    #             x = self.d[key][neuron[0]]
-    #             idx = neuron[1]
-    #             while len(idx) > 1:
-    #                 x = x[idx[0]]
-    #                 idx = idx[1:]
-    #             x[idx[0]] = vals[i].copy()
+                return res 
 
     def update(self, nlist, abs_shape, debug_flag=False):
         live_neurons = torch.nonzero(self.d['t']).flatten()
@@ -86,68 +65,191 @@ class Abs_elem:
             for i in range(len(abs_shape)):
                 key = keys[i+1]
                 if self.types[key] in ['Float', 'Int']:
-                    # print(abs_shape[i].sum())
-                    # print(self.d[key][nlist.nlist].shape)
-                    # print(abs_shape[i].shape)
                     self.d[key][nlist.nlist] = abs_shape[i]
-                    # print(self.d[key].sum())
                 elif self.types[key] in ['PolyExp']:
                     self.d[key].mat[nlist.nlist, 0:max(live_neurons)+1] = abs_shape[i].mat
                     self.d[key].const[nlist.nlist] = abs_shape[i].const
-                    # if debug_flag:
-                    #     print(key)
-                    #     print(self.d[key].mat[55:105, 5:55])
-                        # lskdh
                 elif self.types[key] in ['ZonoExp']:
                     new_eps = torch.zeros(self.d[key].mat.shape[0], SymExp.count - self.d[key].mat.shape[1])
-                    # print(new_eps.shape)
                     self.d[key].mat = torch.concat([self.d[key].mat, new_eps], dim=1)
-                    # # df
-                    # print(abs_shape[i].mat.shape)
-                    # print(self.d[key].mat.shape)
                     self.d[key].mat[nlist.nlist] = abs_shape[i].mat
                     self.d[key].const[nlist.nlist] = abs_shape[i].const
                 else:
-                    jhxdgf
-                # print('^^^^^^^^^^^^^^^^^')
-                # for key in list(self.d.keys()):
-                #     print(key)
-                #     if self.types[key] in ['Float', 'Int']:
-                #         print(self.d[key].sum())
-                #     elif self.types[key] in ['PolyExp']:
-                #         print(self.types[key])
-                #         print(self.d[key].mat.sum())
+                    raise Exception('CHECK THIS')
             self.d['t'][nlist.nlist] = True
         else:
+            raise Exception('NOT NEEDED')
             keys = list(self.d.keys())
             for i in range(len(abs_shape)):
                 key = keys[i+1]
                 if self.types[key] in ['Float', 'Int']:
-                    # print(abs_shape[i])
-                    # print(self.d[key][nlist.start:nlist.end+1].shape)
-                    # print(abs_shape[i].shape)
-                    # jhdgrfj
                     self.d[key][nlist.start:nlist.end+1] = abs_shape[i]
-                    # print(self.d[key][nlist.start:nlist.end+1])
-                    # kjsgd
-                    # print(self.d[key].sum())
                 elif self.types[key] in ['PolyExp']:
                     temp = torch.zeros(nlist.end + 1 - nlist.start, self.d[key].mat.shape[1])
                     self.d[key].mat[nlist.start:nlist.end+1][:, 0:max(live_neurons)+1] = abs_shape[i].mat
                     self.d[key].const[nlist.start:nlist.end+1] = abs_shape[i].const
                     
                 elif self.types[key] in ['ZonoExp']:
-                    # temp = torch.zeros(nlist.end + 1 - nlist.start, self.d[key].mat.shape[1])
-                    # self.d[key].mat = torch.concat([self.d[key].mat, temp], dim=0)
-                    # self.d[key].const = torch.concat([self.d[key].const, torch.zeros(nlist.end - nlist.start + 1)], dim=0)
-                    # print(self.d[key].mat[nlist.start:nlist.end+1] .shape)
-                    # print(abs_shape[i].mat.shape)
-                    # sjg
                     self.d[key].mat[nlist.start:nlist.end+1, :] = abs_shape[i].mat
                     self.d[key].const[nlist.start:nlist.end+1] = abs_shape[i].const
                 else:
-                    jhxdgf
+                    raise Exception('CHECK THIS')
             self.d['t'][nlist.start:nlist.end+1] = True
-        # if debug_flag:
-        #     print(self.d['L'].mat[55:105, 5:55])
-        #     lskdh
+
+class Abs_elem_sparse:
+    def __init__(self, d, types, network, batch_size=1):
+        if d.keys() != types.keys():
+            raise TypeError("abs elem inconsistent")
+        self.d = d
+        self.types = types 
+        self.network = network
+        self.batch_size = batch_size
+    
+    def filter_non_live(self, llist):
+        live_layers = torch.nonzero(self.d['llist']).flatten().tolist()
+        res = copy.deepcopy(llist)
+        if res.llist_flag:
+            res.llist = list(set(res.llist).intersection(set(live_layers)))
+        else:
+            res_llist = []
+            for i in range(llist.start, llist.end):
+                if i in live_layers:
+                    res_llist.append(i)
+            res.llist = res_llist
+            res.llist_flag = True
+            res.coalesce()
+        return res
+    
+    def get_poly_size(self):
+        l = list(torch.nonzero(self.d['llist']))[-1].item()
+        return self.network.layers_end[l]
+        
+
+    def get_elem_new(self, key, llist):
+        return self.get_elem(key, llist)
+        
+    def get_elem(self, key, llist):
+        llist = self.filter_non_live(llist)
+        llist_compressed = torch.nonzero(self.d['llist']).flatten().tolist()
+        if llist.llist_flag:
+            if self.types[key] == 'int' or self.types[key] == 'float' or self.types[key] == 'Int' or self.types[key] == 'Float':
+                res = []
+                for l in llist.llist:
+                    start_index = torch.tensor([0, llist.network.layers_start[l]])
+                    end_index = torch.tensor([self.batch_size, llist.network.layers_end[l]])
+                    res.append(self.d[key].get_sparse_custom_range(start_index, end_index))
+                sp_tensor = res[0]
+                for i in range(1, len(res)):
+                    sp_tensor = sp_tensor.merge_no_overlap(res[i])
+                start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)]])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[max(llist.llist)]])
+                total_size = end_index - start_index
+                sp_tensor = sp_tensor.reduce_size(start_index, end_index, total_size)
+                extra_dims = len(llist.initial_shape)-1
+                for i in range(extra_dims):
+                    sp_tensor = sp_tensor.unsqueeze(1)
+                sp_tensor = sp_tensor.repeat(torch.tensor(llist.initial_shape + [1]))
+                return sp_tensor
+            elif self.types[key] == 'PolyExp':
+                res = []
+                for l in llist.llist:
+                    start_index = torch.tensor([0, llist.network.layers_start[l]])
+                    end_index = torch.tensor([self.batch_size, llist.network.layers_end[l]])
+                    res.append(self.d[key].const.get_sparse_custom_range(start_index, end_index))
+                val_const = res[0]
+                for i in range(1, len(res)):
+                    val_const = val_const.merge_no_overlap(res[i])
+                start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)]])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[max(llist.llist)]])
+                total_size = end_index - start_index
+                val_const = val_const.reduce_size(start_index, end_index, total_size)
+                extra_dims = len(llist.initial_shape)-1
+                for i in range(extra_dims):
+                    val_const = val_const.unsqueeze(1)
+                val_const = val_const.repeat(torch.tensor(llist.initial_shape + [1]))
+
+                res = []
+                for l in llist.llist:
+                    start_index = torch.tensor([0, llist.network.layers_start[l], self.network.layers_start[min(llist_compressed)]])
+                    end_index = torch.tensor([self.batch_size, llist.network.layers_end[l], self.network.layers_end[max(llist_compressed)]])
+                    res.append(self.d[key].mat.get_sparse_custom_range(start_index, end_index))
+                val_mat = res[0]
+                for i in range(1, len(res)):
+                    val_mat = val_mat.merge_no_overlap(res[i])
+                start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)], 0])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[max(llist.llist)], val_mat.total_size[-1]])
+                total_size = end_index - start_index
+                val_mat = val_mat.reduce_size(start_index, end_index, total_size)
+                extra_dims = len(llist.initial_shape)-1
+                
+                for i in range(extra_dims):
+                    val_mat = val_mat.unsqueeze(1)
+                val_mat = val_mat.repeat(torch.tensor(llist.initial_shape + [1,1]))
+
+                return PolyExpSparse(self.network, val_mat, val_const)
+            
+            elif self.types[key] == 'ZonoExp':
+                raise Exception('NOT IMPLEMENTED')
+        else:
+            if self.types[key] == 'int' or self.types[key] == 'float' or self.types[key] == 'Int' or self.types[key] == 'Float':
+                start_index = torch.tensor([0, llist.network.layers_start[llist.start]])
+                end_index = torch.tensor([self.batch_size, llist.network.layers_end[llist.end]])
+                sp_tensor = self.d[key].get_sparse_custom_range(start_index, end_index)
+
+                start_index = torch.tensor([0, self.network.layers_start[llist.start]])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[llist.end]])
+                total_size = end_index - start_index
+                return sp_tensor.reduce_size(start_index, end_index, total_size)
+            elif self.types[key] == 'PolyExp':
+                start_index = torch.tensor([0, llist.network.layers_start[llist.start]])
+                end_index = torch.tensor([self.batch_size, llist.network.layers_end[llist.end]])
+                val_const = self.d[key].const.get_sparse_custom_range(start_index, end_index)
+
+                start_index = torch.tensor([0, self.network.layers_start[llist.start]])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[llist.end]])
+                total_size = end_index - start_index
+                val_const = val_const.reduce_size(start_index, end_index, total_size)
+
+                start_index = torch.tensor([0, llist.network.layers_start[llist.start], self.network.layers_start[min(llist_compressed)]])
+                end_index = torch.tensor([self.batch_size, llist.network.layers_end[llist.end], self.network.layers_end[max(llist_compressed)]])
+                val_mat = self.d[key].mat.get_sparse_custom_range(start_index, end_index)
+
+                start_index = torch.tensor([0, self.network.layers_start[llist.start], 0])
+                end_index = torch.tensor([self.batch_size, self.network.layers_end[llist.end], val_mat.total_size[-1]])
+                total_size = end_index - start_index
+                val_mat = val_mat.reduce_size(start_index, end_index, total_size)
+
+                return PolyExpSparse(self.network, val_mat, val_const)
+            
+            elif self.types[key] == 'ZonoExp':
+                raise Exception('NOT IMPLEMENTED')
+            
+    def update(self, llist, abs_shape):
+        # llist = self.filter_non_live(llist)
+        llist.decoalesce()
+        assert(len(llist.llist) == 1)
+        if llist.llist_flag:
+            keys = list(self.d.keys())
+            for i in range(len(abs_shape)):
+                key = keys[i+1]
+                if self.types[key] in ['Float', 'Int']:
+                    start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)]])
+                    total_size = self.d[key].total_size
+                    new_val = (abs_shape[i]).increase_size(start_index, total_size)
+                    self.d[key] = self.d[key].overwrite(new_val)
+                elif self.types[key] in ['PolyExp']:
+                    start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)]])
+                    total_size = self.d[key].const.total_size
+                    self.d[key].const = self.d[key].const.overwrite((abs_shape[i].const).increase_size(start_index, total_size))
+
+                    start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)], 0])
+                    total_size = torch.tensor(list(self.d[key].mat.total_size))
+                    self.d[key].mat = self.d[key].mat.overwrite((abs_shape[i].mat).increase_size(start_index, total_size))
+
+                elif self.types[key] in ['ZonoExp']:
+                    raise Exception('NOT IMPLEMENTED')
+                
+            self.d['llist'][llist.llist] = True
+            # mhsd
+        else:
+            raise Exception('NOT NEEDED')
