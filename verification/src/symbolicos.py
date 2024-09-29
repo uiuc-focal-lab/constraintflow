@@ -1,9 +1,9 @@
-import astVisitor
-import astcf as AST
+from ast_cflow import astVisitor
+from ast_cflow import astcf as AST
 from z3 import *
 #from cvc5.pythonic import * 
-from value import *
-import astPrinter
+from .value import *
+from ast_cflow import astPrinter
 import copy
 import itertools
 import sys

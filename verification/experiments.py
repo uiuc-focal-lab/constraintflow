@@ -1,15 +1,15 @@
 import sys
-sys.path.append('src/')
-sys.path.append('../ast/')
+# sys.path.append('src/')
+# sys.path.append('../ast/')
 
 import antlr4 as antlr
 
-import astcf as AST
-import dslLexer
-import dslParser
-import astBuilder
-import astTC
-import verify
+from ast_cflow import astcf as AST
+from ast_cflow import dslLexer
+from ast_cflow import dslParser
+from ast_cflow import astBuilder
+from ast_cflow import astTC
+from .src import verify
 
 import time
 from multiprocessing import Process

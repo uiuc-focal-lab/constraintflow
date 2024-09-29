@@ -1,5 +1,5 @@
-import astVisitor
-import astcf as AST
+from . import astVisitor
+from . import astcf as AST
 
 class TypeMismatchException(Exception):
 
