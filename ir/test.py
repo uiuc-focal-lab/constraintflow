@@ -1,23 +1,23 @@
 import sys
-sys.path.append('../ast/')
+# sys.path.append('../ast/')
 
 import antlr4 as antlr
 
-import astcf as AST
-import dslLexer
-import dslParser
-import astBuilder
-import astTC
-import convert_to_ir_2 as c2r
-import cse
-import uses
-import dce
-import poly_opt
-import representations
-import copy_propagation
-import rewrite
-import codeGen2 as codeGen
-from print import *
+from ast_cflow import astcf as AST
+from ast_cflow import dslLexer
+from ast_cflow import dslParser
+from ast_cflow import astBuilder
+from ast_cflow import astTC
+from . import convert_to_ir_2 as c2r
+from . import cse
+from . import uses
+from . import dce
+from . import poly_opt
+from . import representations
+from . import copy_propagation
+from . import rewrite
+from . import codeGen2 as codeGen
+from .print import *
 
 
 
@@ -73,12 +73,12 @@ def genAST(inputfile):
     
 
     representations.remove_phi(y)
-    z = codeGen.CodeGen('../compiled_code').visit(y)
+    z = codeGen.CodeGen('compiled_code').visit(y)
     print('Code Generation', time.time()-ttime)
     ttime = time.time()
 
 if(len(sys.argv) <= 1):
-    filename = '../compiled_code/testcases/deeppoly'
+    filename = 'compiled_code/testcases/deeppoly'
 else:
     filename = sys.argv[1]
 genAST(filename)

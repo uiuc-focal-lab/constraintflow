@@ -1,6 +1,6 @@
-from ir_ast_stack2 import *
-# from representations import *
-import uses
+from .ir_ast_stack2 import *
+from . import representations
+from . import uses
 
 
 counter = -1

@@ -1,5 +1,5 @@
-from ir_ast_stack2 import *
-import representations
+from .ir_ast_stack2 import *
+from . import representations
 
 
 def replace_all_occurrences_metadata(irMetadata, old_var, new_var):

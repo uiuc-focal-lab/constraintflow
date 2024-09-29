@@ -1,5 +1,5 @@
-from ir_ast_stack2 import *
-import uses
+from .ir_ast_stack2 import *
+from . import uses
 
 def replace(expr):
     if isinstance(expr, int):
