@@ -1,5 +1,5 @@
-from ir_ast_stack2 import *
-import representations
+from .ir_ast_stack2 import *
+from . import representations
 
 def populate_uses_metadata(irMetadata, ir_node, vars):
     for irMetadataElement in irMetadata:

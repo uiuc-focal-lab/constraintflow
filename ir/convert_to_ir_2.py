@@ -1,10 +1,10 @@
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '../ast'))
+# sys.path.append(os.path.join(os.path.dirname(__file__), '../ast'))
 
-import astcf as AST
-import astVisitor
-from ir_ast_stack2 import *
-import representations
+from ast_cflow import astcf as AST
+from ast_cflow import astVisitor
+from .ir_ast_stack2 import *
+from . import representations
 
 class FuncDef:
     def __init__(self, retIr, argIrs):

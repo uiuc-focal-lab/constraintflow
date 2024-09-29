@@ -1,6 +1,6 @@
-import irVisitor 
+from . import irVisitor 
 import copy
-from ir_ast_stack2 import * 
+from .ir_ast_stack2 import * 
 
 class CodeGen(irVisitor.IRVisitor):
     def __init__(self,folder):
