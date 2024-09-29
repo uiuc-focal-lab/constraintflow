@@ -1,5 +1,5 @@
 from z3 import *
-from graph import Opt_graph
+from .graph import Opt_graph
 import time
 import threading
 

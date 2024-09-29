@@ -1,4 +1,4 @@
-import astcf as AST
+from . import astcf as AST
 
 class ASTVisitor:
 

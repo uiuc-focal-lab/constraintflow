@@ -1,5 +1,5 @@
-import astVisitor
-import astcf as AST
+from . import astVisitor
+from . import astcf as AST
 
 class ASTPrinter(astVisitor.ASTVisitor):
 
@@ -81,7 +81,7 @@ class ASTPrinter(astVisitor.ASTVisitor):
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		print("Function call: " + node.name.name)
 		print("Arguments:")
-		self.visit(F[name].expr)
+		self.visit(self.F[node.name].expr)
 
 
 	def visitSeq(self, node: AST.SeqNode):

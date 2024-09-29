@@ -1,14 +1,14 @@
-import astVisitor
-import astcf as AST
+from ast_cflow import astVisitor
+from ast_cflow import astcf as AST
 from z3 import *
 import sys 
 #from cvc5.pythonic import * 
-from value import *
+from .value import *
 
 sys.path.append('src/')
-from symbolicos import *
-from symbolicgraph import *
-from solver import Opt_solver
+from .symbolicos import *
+from .symbolicgraph import *
+from .solver import Opt_solver
 import time
 set_param('parallel.enable', True) #uncomment when using Z3
 

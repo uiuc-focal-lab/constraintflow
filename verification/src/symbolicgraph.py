@@ -1,14 +1,14 @@
-import astVisitor
-import astcf as AST
+from ast_cflow import astVisitor
+from ast_cflow import astcf as AST
 from z3 import *
 #from cvc5.pythonic import * 
-from value import *
-from symbolicos import *
+from .value import *
+from .symbolicos import *
 # from optimization import *
 import copy
 import time
-import astPrinter
-from solver import Opt_solver
+from ast_cflow import astPrinter
+from .solver import Opt_solver
 
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
@@ -910,7 +910,7 @@ class getVars(astVisitor.ASTVisitor):
 
 	def visitFuncCall(self, node: AST.FuncCallNode):
 		name = node.name.name
-		self.visit(F[name].expr)
+		self.visit(self.F[name].expr)
 
 
 	def visitSeq(self, node: AST.SeqNode):
