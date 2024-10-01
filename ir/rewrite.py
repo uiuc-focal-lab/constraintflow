@@ -315,6 +315,14 @@ def get_size(irMetadata):
         s += len(irMetadata[i].shape)
     return s
 
+def get_shape(irMetadata):
+    shape = []
+    for i in range(len(irMetadata)):
+        shape += irMetadata[i].shape
+    return shape
+
+
+# Inner prod from elementwise prod
 def rewrite_expr_5(expr):
     if isinstance(expr, int):
         return expr, []
@@ -325,47 +333,103 @@ def rewrite_expr_5(expr):
         new_children.append(new_child)
         new_assignments += new_assignment
     expr.update_parent_child(new_children)
-    def get_repeat_dims(expr):
+    def get_repeat_dims(expr, indices=[-1,0]):
         repeat_dims = expr.children[1:]
+        shape = get_shape(expr.children[0].irMetadata)
         ret = []
-        if expr.children[0].irMetadata[0].shape[0] == 1 and repeat_dims[0] != 1:
-            ret.append(0)
-        if expr.children[0].irMetadata[-1].shape[-1] == 1 and repeat_dims[-1] != 1:
-            ret.append(-1)
+        for i in indices:
+            if shape[i] == 1 and repeat_dims[i] != 1:
+                ret.append(i)
         return ret
-    if isinstance(expr, IrReduce) and get_size(expr.children[0].irMetadata)==3 and len(expr.children[0].irMetadata[-1].shape)==2:
+    if isinstance(expr, IrReduce) and len(expr.children[0].irMetadata[-1].shape)==2:
         child = expr.children[0]
         if isinstance(child, IrMult) and child.op == '*':
             [lhs, rhs] = child.children
             if isinstance(lhs, IrRepeat) and isinstance(rhs, IrRepeat):
-                lhs_end_points = get_repeat_dims(lhs)
-                rhs_end_points = get_repeat_dims(rhs)
-                
-                if (-1 in lhs_end_points) and (0 in rhs_end_points):
-                    lhs = IrRemoveDimension(lhs.children[0], 2)
-                    rhs = IrRemoveDimension(rhs.children[0], 0)
-                    expr = IrInnerProduct(lhs, rhs)
-                elif (0 in lhs_end_points) and (-1 in rhs_end_points):
-                    lhs = IrRemoveDimension(rhs.children[0], 2)
-                    rhs = IrRemoveDimension(lhs.children[0], 0)
-                    expr = IrInnerProduct(lhs, rhs)
+                lhs_end_points = get_repeat_dims(lhs, [-1, -3])
+                rhs_end_points = get_repeat_dims(rhs, [-1, -3])
 
-    if isinstance(expr, IrReduce) and get_size(expr.children[0].irMetadata)==2 and len(expr.children[0].irMetadata[-1].shape)==1:
+                lhs_size = get_size(lhs.irMetadata)
+                rhs_size = get_size(rhs.irMetadata)
+                
+                if (-1 in lhs_end_points) and (-3 in rhs_end_points):
+                    new_lhs = IrRemoveDimension(lhs.children[0], lhs_size-1)
+                    new_rhs = IrRemoveDimension(rhs.children[0], rhs_size-3)
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+                elif (-3 in lhs_end_points) and (-1 in rhs_end_points):
+                    new_lhs = IrRemoveDimension(rhs.children[0], lhs_size-3)
+                    new_rhs = IrRemoveDimension(lhs.children[0], rhs_size-1)
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+
+    if isinstance(expr, IrReduce) and len(expr.children[0].irMetadata[-1].shape)==1:
         child = expr.children[0]
         if isinstance(child, IrMult) and child.op == '*':
             [lhs, rhs] = child.children
+            if isinstance(lhs, IrRepeat):
+                lhs_end_points = get_repeat_dims(lhs, [-1, -2])
+                lhs_size = get_size(lhs.irMetadata)
+                
+                if (-1 in lhs_end_points):
+                    new_lhs = IrRemoveDimension(lhs.children[0], lhs_size-1)
+                    new_rhs = rhs
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+                elif (-2 in lhs_end_points):
+                    new_lhs = rhs
+                    new_rhs = IrRemoveDimension(lhs.children[0], rhs_size-2)
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+            
             if isinstance(rhs, IrRepeat):
-                rhs_end_points = get_repeat_dims(rhs)
+                rhs_end_points = get_repeat_dims(rhs, [-1, -2])
+                rhs_size = get_size(rhs.irMetadata)
+
+                # rhs_shape = get_shape(rhs.irMetadata)
+                # print(rhs_shape[0], rhs_shape[1], rhs_shape[2])
+                # print(rhs_size)
+                # print(rhs_end_points)
+                # ldkf
                 
-                if (0 in rhs_end_points):
-                    rhs = IrRemoveDimension(rhs.children[0], 0)
-                    expr = IrInnerProduct(lhs, rhs)
-            elif isinstance(lhs, IrRepeat):
-                lhs_end_points = get_repeat_dims(lhs)
+                if (-1 in rhs_end_points):
+                    new_lhs = IrRemoveDimension(rhs.children[0], rhs_size-1)
+                    new_rhs = lhs
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+                elif (-2 in rhs_end_points):
+                    new_lhs = lhs
+                    new_rhs = IrRemoveDimension(rhs.children[0], rhs_size-2)
+                    expr = IrInnerProduct(new_lhs, new_rhs)
+
+    # if isinstance(expr, IrReduce) and get_size(expr.children[0].irMetadata)==3 and len(expr.children[0].irMetadata[-1].shape)==2:
+    #     child = expr.children[0]
+    #     if isinstance(child, IrMult) and child.op == '*':
+    #         [lhs, rhs] = child.children
+    #         if isinstance(lhs, IrRepeat) and isinstance(rhs, IrRepeat):
+    #             lhs_end_points = get_repeat_dims(lhs)
+    #             rhs_end_points = get_repeat_dims(rhs)
                 
-                if (0 in lhs_end_points):
-                    lhs = IrRemoveDimension(rhs.children[0], 0)
-                    expr = IrInnerProduct(rhs, lhs)
+    #             if (-1 in lhs_end_points) and (0 in rhs_end_points):
+    #                 lhs = IrRemoveDimension(lhs.children[0], 2)
+    #                 rhs = IrRemoveDimension(rhs.children[0], 0)
+    #                 expr = IrInnerProduct(lhs, rhs)
+    #             elif (0 in lhs_end_points) and (-1 in rhs_end_points):
+    #                 lhs = IrRemoveDimension(rhs.children[0], 2)
+    #                 rhs = IrRemoveDimension(lhs.children[0], 0)
+    #                 expr = IrInnerProduct(lhs, rhs)
+
+    # if isinstance(expr, IrReduce) and get_size(expr.children[0].irMetadata)==2 and len(expr.children[0].irMetadata[-1].shape)==1:
+    #     child = expr.children[0]
+    #     if isinstance(child, IrMult) and child.op == '*':
+    #         [lhs, rhs] = child.children
+    #         if isinstance(rhs, IrRepeat):
+    #             rhs_end_points = get_repeat_dims(rhs)
+                
+    #             if (0 in rhs_end_points):
+    #                 rhs = IrRemoveDimension(rhs.children[0], 0)
+    #                 expr = IrInnerProduct(lhs, rhs)
+    #         elif isinstance(lhs, IrRepeat):
+    #             lhs_end_points = get_repeat_dims(lhs)
+                
+    #             if (0 in lhs_end_points):
+    #                 lhs = IrRemoveDimension(rhs.children[0], 0)
+    #                 expr = IrInnerProduct(rhs, lhs)
     return expr, []
 
 def rewrite_percolate_repeat_inside_binary(expr):

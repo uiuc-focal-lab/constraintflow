@@ -111,11 +111,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
                     new_lhsIr = IrBinaryOp(IrExtractPolyCoeff(lhsIr), IrExtractPolyCoeff(rhsIr), op)
                     new_rhsIr = IrBinaryOp(IrExtractPolyConst(lhsIr), IrExtractPolyConst(rhsIr), op)
                 
-                # for i in range(len(new_lhsIr.irMetadata)):
-                #     print(new_lhsIr.irMetadata[i])
-                # print('!!!!!!!!!!!!!!!!!!')
-                # for i in range(len(new_rhsIr.irMetadata)):
-                #     print(new_rhsIr.irMetadata[i])
                 return IrCombineToPoly(new_lhsIr, new_rhsIr), seqIr
             
         elif ast_node_type == 'ZonoExp':
@@ -163,9 +158,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
                     new_lhsIr = IrExtractSymCoeff(lhsIr)
                     constIr = IrExtractSymConst(lhsIr)
-                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-                    print(constIr.irMetadata[-1].broadcast[0])
-                    print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
                     new_rhsIr = IrBinaryOp(constIr, rhsIr, op)
                     
                 else:
@@ -179,103 +171,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 return IrMult(lhsIr, rhsIr, op), seqIr
             else:
                 return IrBinaryOp(lhsIr, rhsIr, op), seqIr
-
-    # def visitBinOp(self, ast_node: AST.BinOpNode, lhsIr=None, rhsIr=None, ast_node_type=None, op=None):
-    #     seqIr = []
-    #     if lhsIr==None:
-    #         lhsIr, lhsSeqIr = self.visit(ast_node.left)
-    #         rhsIr, rhsSeqIr = self.visit(ast_node.right)
-    #         seqIr = lhsSeqIr + rhsSeqIr
-    #         op = ast_node.op
-    #         ast_node_type = ast_node.type
-    #     if ast_node_type == 'PolyExp':
-    #         if(lhsIr.irMetadata[-1].type == "Neuron"):
-    #             lhsIr = IrConvertNeuronToPoly(lhsIr)
-    #         if(rhsIr.irMetadata[-1].type == "Neuron"):
-    #             rhsIr = IrConvertNeuronToPoly(rhsIr)
-
-
-    #         if lhsIr.irMetadata[-1].type == 'PolyExp':
-    #             new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
-    #             new_lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
-    #             seqIr.append(new_lhs_assignment)
-    #             lhsIr = new_lhs_var
-    #         if rhsIr.irMetadata[-1].type == 'PolyExp':
-    #             new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
-    #             new_rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
-    #             seqIr.append(new_rhs_assignment)
-    #             rhsIr = new_rhs_var
-
-    #         lhsIrMetadata = lhsIr.irMetadata
-    #         rhsIrMetadata = rhsIr.irMetadata
-
-    #         if(lhsIrMetadata[-1].type == "Float" or lhsIrMetadata[-1].type == "Int"):
-    #             return IrBinaryPolyExpOp(rhsIr, lhsIr, op), seqIr
-                
-    #         else:
-    #             return IrBinaryPolyExpOp(lhsIr, rhsIr, op), seqIr
-            
-    #     elif ast_node_type == 'ZonoExp':
-    #         # if(lhsIr.irMetadata[-1].type == "Noise"):
-    #         #     lhsIr = IrConvertNoiseToSym(lhsIr)
-    #         # if(rhsIr.irMetadata[-1].type == "Noise"):
-    #         #     rhsIr = IrConvertNoiseToSym(rhsIr)
-
-    #         if lhsIr.irMetadata[-1].type == 'ZonoExp':
-    #             new_lhs_var = IrVar(self.get_var(), lhsIr.irMetadata)
-    #             new_lhs_assignment = IrAssignment(new_lhs_var, lhsIr)
-    #             seqIr.append(new_lhs_assignment)
-    #             lhsIr = new_lhs_var
-    #         if rhsIr.irMetadata[-1].type == 'ZonoExp':
-    #             new_rhs_var = IrVar(self.get_var(), rhsIr.irMetadata)
-    #             new_rhs_assignment = IrAssignment(new_rhs_var, rhsIr)
-    #             seqIr.append(new_rhs_assignment)
-    #             rhsIr = new_rhs_var
-
-            
-    #         if(op in ["*", "/"] ):
-                
-
-    #             lhsIrMetadata = lhsIr.irMetadata
-    #             rhsIrMetadata = rhsIr.irMetadata
-
-    #             if(lhsIrMetadata[-1].type == "Float" or lhsIrMetadata[-1].type == "Int"):
-    #                 new_lhsIr = IrMult(lhsIr, IrExtractSymCoeff(rhsIr), op)
-    #                 new_rhsIr = IrMult(lhsIr, IrExtractSymConst(rhsIr), op)
-                    
-    #             elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
-    #                 new_lhsIr = IrMult(IrExtractSymCoeff(lhsIr), rhsIr, op)
-    #                 new_rhsIr = IrMult(IrExtractSymConst(lhsIr), rhsIr, op)
-    #             return IrCombineToSym(new_lhsIr, new_rhsIr), seqIr
-    #         else:
-                
-
-    #             lhsIrMetadata = lhsIr.irMetadata
-    #             rhsIrMetadata = rhsIr.irMetadata
-
-    #             if(lhsIrMetadata[-1].type == "Float" or lhsIrMetadata[-1].type == "Int"):
-    #                 new_lhsIr = IrExtractSymCoeff(rhsIr)
-    #                 new_rhsIr = IrBinaryOp(lhsIr, IrExtractSymConst(rhsIr), op)
-
-    #             elif(rhsIrMetadata[-1].type == "Float" or rhsIrMetadata[-1].type == "Int"):
-    #                 new_lhsIr = IrExtractSymCoeff(lhsIr)
-    #                 constIr = IrExtractSymConst(lhsIr)
-    #                 print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    #                 print(constIr.irMetadata[-1].broadcast[0])
-    #                 print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
-    #                 new_rhsIr = IrBinaryOp(constIr, rhsIr, op)
-                    
-    #             else:
-    #                 new_lhsIr = IrBinaryOp(IrExtractSymCoeff(lhsIr), IrExtractSymCoeff(rhsIr), op)
-    #                 new_rhsIr = IrBinaryOp(IrExtractSymConst(lhsIr), IrExtractSymConst(rhsIr), op)
-                
-    #             return IrCombineToSym(new_lhsIr, new_rhsIr), seqIr
-            
-    #     else:
-    #         if(op in ["*", '/']):
-    #             return IrMult(lhsIr, rhsIr, op), seqIr
-    #         else:
-    #             return IrBinaryOp(lhsIr, rhsIr, op), seqIr
     
     def visitTernary(self, ast_node: AST.TernaryNode):
         condIr, condSeqIr = self.visit(ast_node.cond)

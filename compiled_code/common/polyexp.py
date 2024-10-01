@@ -61,7 +61,7 @@ class PolyExpNew:
         return PolyExp(self.const.shape[0], self.size, self.mat, self.const)
     
     def convert_to_polyexp_sparse(self, network):
-        return PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([1, 1004, 1004])), self.const)
+        return PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([1, network.size, network.size])), self.const)
     
 
 
@@ -162,7 +162,7 @@ class PolyExpSparse:
     def copy(self):
         return PolyExpSparse(self.network, copy.deepcopy(self.mat), copy.deepcopy(self.const))
 
-    def get_mat(self, abs_elem, dense=True):
+    def get_mat(self, abs_elem, dense=False):
         
         if isinstance(self.mat, float):
             return self.mat
@@ -173,7 +173,7 @@ class PolyExpSparse:
             sp_mat = self.mat
         start, end = torch.nonzero(abs_elem.d['llist']).flatten().tolist()[0], torch.nonzero(abs_elem.d['llist']).flatten().tolist()[-1]
         start, end = self.network.layers_start[start], self.network.layers_end[end]
-        start_index = torch.zeros(sp_mat.dims)
+        start_index = torch.zeros(sp_mat.dims, dtype=torch.int64)
         end_index = sp_mat.total_size
         start_index[-1] = start
         end_index[-1] = end

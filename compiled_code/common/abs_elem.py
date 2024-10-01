@@ -244,6 +244,8 @@ class Abs_elem_sparse:
 
                     start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)], 0])
                     total_size = torch.tensor(list(self.d[key].mat.total_size))
+                    print(total_size)
+                    print(abs_shape[i].mat.total_size)
                     self.d[key].mat = self.d[key].mat.overwrite((abs_shape[i].mat).increase_size(start_index, total_size))
 
                 elif self.types[key] in ['ZonoExp']:
