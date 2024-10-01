@@ -6,7 +6,6 @@ def dce_block(block):
     for i in range(len(ir_list)-1,-1,-1):
         if isinstance(ir_list[i], IrAssignment):
             if len(ir_list[i].uses) == 0:
-                # print(ir_list[i].children[0].name)
                 del ir_list[i]
 
 def dce_cfg(cfg):

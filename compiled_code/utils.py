@@ -67,7 +67,10 @@ def sanityCheck(x, y):
 def boolNeg(x):
     if isinstance(x, torch.Tensor):
         return ~x 
-    return not(x)
+    if isinstance(x, SparseTensorBlock):
+        return x.boolneg()
+    y = not(x)
+    return y
 
 def neg(x):
     return -x
@@ -112,11 +115,15 @@ def ge(x, y):
     if isinstance(x, SparseTensorBlock):
         return x.binary(y, '>=')
     if isinstance(y, SparseTensorBlock):
-        return y.binary(x, '>=')
+        return convert_dense_to_sparse(x).binary(y, '>=')
     return x>=y
 
 def gt(x, y):
     sanityCheck(x, y)
+    if isinstance(x, SparseTensorBlock):
+        return x.binary(y, '>')
+    if isinstance(y, SparseTensorBlock):
+        return convert_dense_to_sparse(x).binary(y, '>')
     return x>y
 
 def le(x, y):
@@ -124,11 +131,15 @@ def le(x, y):
     if isinstance(x, SparseTensorBlock):
         return x.binary(y, '<=')
     if isinstance(y, SparseTensorBlock):
-        return y.binary(x, '<=')
+        return convert_dense_to_sparse(x).binary(y, '<=')
     return x<=y
 
 def lt(x, y):
     sanityCheck(x, y)
+    if isinstance(x, SparseTensorBlock):
+        return x.binary(y, '<')
+    if isinstance(y, SparseTensorBlock):
+        return convert_dense_to_sparse(x).binary(y, '<')
     return x<y
 
 def eq(x, y):
@@ -158,8 +169,8 @@ def lcm(a, b):
         return a
     assert(a.shape[0] == b.shape[0])
     total_size = []
-    for j in range(a.shape[0]):
-        total_size.append(math.lcm(a[j], b[j]))
+    for j in range(len(a)):
+        total_size.append(math.lcm(int(a[j].item()), int(b[j].item())))
     return torch.tensor(total_size)
 
 def const_to_sparse(c, total_size):
@@ -225,24 +236,81 @@ def inner_prod(x, y):
     checkTypes(x, y)
     if isinstance(x, SparseTensorBlock):
         if isinstance(y, SparseTensorBlock):
-            if x.total_size[1] != y.total_size[0]:
+            if x.total_size.shape[0] == y.total_size.shape[0]:
+                if x.total_size[-1] != y.total_size[-2]:
+                    print(x.total_size, y.total_size)
+                    raise Exception('SHAPE MISMATCH')
+                if x.total_size[:-2] != y.total_size[:-2]:
+                    print(x.total_size, y.total_size)
+                    raise Exception('SHAPE MISMATCH')
+            elif x.total_size.shape[0] > y.total_size.shape[0]:
+                if x.total_size[-1] != y.total_size[-1]:
+                    print(x.total_size, y.total_size)
+                    raise Exception('SHAPE MISMATCH')
+                if x.total_size[:-2] != y.total_size[:-1]:
+                    print(x.total_size, y.total_size)
+                    raise Exception('SHAPE MISMATCH')
+            else:
                 print(x.total_size, y.total_size)
                 raise Exception('SHAPE MISMATCH')
             return x.matmul(y)
         else:
-            if x.total_size[1] != y.shape[0]:
+            if x.total_size.shape[0] == y.shape.shape[0]:
+                if x.total_size[-1] != y.shape[-2]:
+                    print(x.total_size, y.shape)
+                    raise Exception('SHAPE MISMATCH')
+                if x.total_size[:-2] != y.shape[:-2]:
+                    print(x.total_size, y.shape)
+                    raise Exception('SHAPE MISMATCH')
+            elif x.total_size.shape[0] > y.shape.shape[0]:
+                if x.total_size[-1] != y.shape[-1]:
+                    print(x.total_size, y.shape)
+                    raise Exception('SHAPE MISMATCH')
+                if x.total_size[:-2] != y.shape[:-1]:
+                    print(x.total_size, y.shape)
+                    raise Exception('SHAPE MISMATCH')
+            else:
                 print(x.total_size, y.shape)
                 raise Exception('SHAPE MISMATCH')
             return x.matmul(y)
     elif isinstance(y, SparseTensorBlock):
-        if x.shape[1] != y.total_size[0]:
+        if x.shape.shape[0] == y.total_size.shape[0]:
+            if x.shape[-1] != y.total_size[-2]:
+                print(x.shape, y.total_size)
+                raise Exception('SHAPE MISMATCH')
+            if x.shape[:-2] != y.total_size[:-2]:
+                print(x.shape, y.total_size)
+                raise Exception('SHAPE MISMATCH')
+        elif x.shape.shape[0] > y.total_size.shape[0]:
+            if x.shape[-1] != y.total_size[-1]:
+                print(x.shape, y.total_size)
+                raise Exception('SHAPE MISMATCH')
+            if x.shape[:-2] != y.total_size[:-1]:
+                print(x.shape, y.total_size)
+                raise Exception('SHAPE MISMATCH')
+        else:
             print(x.shape, y.total_size)
             raise Exception('SHAPE MISMATCH')
         return convert_dense_to_sparse(x).matmul(y)
-    if x.shape[1] != y.shape[0]:
-        print(x.shape, y.shape)
-        raise Exception('SHAPE MISMATCH')
-    return x@y
+    else:
+        if x.shape.shape[0] == y.shape.shape[0]:
+            if x.shape[-1] != y.shape[-2]:
+                print(x.shape, y.shape)
+                raise Exception('SHAPE MISMATCH')
+            if x.shape[:-2] != y.shape[:-2]:
+                print(x.shape, y.shape)
+                raise Exception('SHAPE MISMATCH')
+        elif x.shape.shape[0] > y.shape.shape[0]:
+            if x.shape[-1] != y.shape[-1]:
+                print(x.shape, y.shape)
+                raise Exception('SHAPE MISMATCH')
+            if x.shape[:-2] != y.shape[:-1]:
+                print(x.shape, y.shape)
+                raise Exception('SHAPE MISMATCH')
+        else:
+            print(x.shape, y.shape)
+            raise Exception('SHAPE MISMATCH')
+        return x@y
 
 def divide(x, y):
     sanityCheck(x, y)
@@ -266,6 +334,12 @@ def disj(x, y):
     sanityCheck(x, y)
     if isinstance(x, bool):
         return x or y 
+    # return x | y
+    # sanityCheck(x, y)
+    if isinstance(x, SparseTensorBlock):
+        return x.binary(y, '|')
+    if isinstance(y, SparseTensorBlock):
+        return convert_dense_to_sparse(x).binary(y, '|')
     return x | y
 
 # def convert_to_tensor(x, shape):

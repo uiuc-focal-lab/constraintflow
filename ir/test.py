@@ -58,7 +58,7 @@ def genAST(inputfile):
     cse.cse(y)
     copy_propagation.copy_proagate(y)
     poly_opt.poly_opt(y)
-    # rewrite.rewrite(y)
+    rewrite.rewrite(y)
     cse.cse(y)
     copy_propagation.copy_proagate(y)
     # dce.dce(y)

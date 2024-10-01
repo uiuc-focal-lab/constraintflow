@@ -497,8 +497,6 @@ def convert_to_ssa(cfg, dtree, phi_nodes, metadata):
                 if isinstance(ir_list[j].children[1], IrPhi):
                     s = set(ir_list[j].children[1].children)
                     if len(s)<=1:
-                        print('From prune')
-                        print(ir_list[j].children[0].name)
                         new_children = [ir_list[j].children[0], list(s)[0]]
                         ir_list[j].update_parent_child(new_children)
     rename(entry_node)
@@ -556,13 +554,9 @@ def ssa(ir):
             if i==1:
                 continue 
             cfg = ir.tstore[transformer][i].cfg
-            # cfg.print()
             dtree = construct_dominator_tree(cfg)
-            # dtree.print()
             df = compute_dominance_frontier(cfg, dtree)
-            # print(df)
             phi_nodes = get_phi_nodes(cfg, df)
             vars_metadata = cfg.get_vars_metadata()
             convert_to_ssa(cfg, dtree, phi_nodes, vars_metadata)
-    # return ir    
 

@@ -1,5 +1,6 @@
 import torch
 import copy
+import functools
 
 def compute_size(shape):
     s = 1
@@ -15,7 +16,21 @@ def convert_dense_to_sparse(tensor):
     if tensor.dtype == torch.bool:
         type = bool
         dense_const = False
-    return SparseTensorBlock([torch.zeros(tensor.dim())], [tensor], tensor.dim(), torch.tensor(tensor.shape), type=type, dense_const=dense_const)
+    return SparseTensorBlock([torch.zeros(tensor.dim(), dtype=torch.int64)], [tensor], tensor.dim(), torch.tensor(tensor.shape), type=type, dense_const=dense_const)
+
+def sort_tuple(temp):
+    def lex_cmp(a, b):
+        diff = a[0] - b[0]
+        for i in range(len(diff)):
+            if diff[i]>0:
+                return 1
+            elif diff[i]<0:
+                return -1
+        print(temp)
+        assert(False)
+        return 0
+    sorted(temp, key=functools.cmp_to_key(lex_cmp))
+    return temp
 
 class SparseTensorBlock:
     def __init__(self, start_indices, blocks, dims, total_size, end_indices = None, type=float, dense_const = 0.0):
@@ -39,6 +54,15 @@ class SparseTensorBlock:
         for i in range(self.num_blocks):
             for j in range(i+1, self.num_blocks):
                 assert(not(self.block_overlap([start_indices[i], self.end_indices[i]], [start_indices[j], self.end_indices[j]])))
+        
+        
+        if self.num_blocks > 0:
+            if (self.end_indices[0]-self.start_indices[0] == self.total_size).all():
+                if self.type==float:
+                    self.dense_const = 0.0
+                elif self.type==bool:
+                    self.dense_const = False
+
 
     def compare_index(index_1, index_2):
         d = index_1 - index_2
@@ -60,8 +84,10 @@ class SparseTensorBlock:
         block_1_end = block_1[1]
         block_2_start = block_2[0]
         block_2_end = block_2[1]
+
+        dims = len(block_1_start)
         
-        for i in range(self.dims):
+        for i in range(dims):
             if not self.interval_overlap([block_1_start[i], block_1_end[i]], [block_2_start[i], block_2_end[i]]):
                 return False 
         return True
@@ -105,17 +131,19 @@ class SparseTensorBlock:
         block_2_end = block_2[1]
         res_start = torch.max(block_1_start, block_2_start)
         res_end = torch.min(block_1_end, block_2_end)
+
         
         return res_start, res_end
     
     def get_slice(self, start_index, end_index):
+        dims = start_index.shape[0]
         s = []
-        for j in range(self.dims):
+        for j in range(dims):
             s.append(slice(int(start_index[j]), int(end_index[j])))
         return s
     
     def get_dense(self):
-        res = torch.zeros(list(self.total_size), dtype=self.type)
+        res = torch.ones(list(self.total_size), dtype=self.type)*self.dense_const
         for i in range(self.num_blocks):
             s = self.get_slice(self.start_indices[i], self.end_indices[i])
             res[s] = self.blocks[i]
@@ -129,6 +157,7 @@ class SparseTensorBlock:
         res_block = [start_index, end_index]
         for i in range(self.num_blocks):
             if self.block_overlap([self.start_indices[i], self.end_indices[i]], res_block):
+                assert(start_index.dtype == torch.int64)
                 intersection_start_indices, intersection_end_indices = self.intersection_block([self.start_indices[i], self.end_indices[i]], res_block)
                 src_start_indices = intersection_start_indices - self.start_indices[i]
                 src_end_indices = intersection_end_indices - self.start_indices[i]
@@ -163,8 +192,8 @@ class SparseTensorBlock:
         end_indices = []
         for i in range(self.num_blocks):
             assert(self.contained([self.start_indices[i], self.end_indices[i]], [start_index, end_index]))
-            start_indices.append(self.start_indices[i]-start_index)
-            end_indices.append(self.end_indices[i]-start_index)
+            start_indices.append((self.start_indices[i]-start_index).type(torch.int64))
+            end_indices.append((self.end_indices[i]-start_index).type(torch.int64))
         return SparseTensorBlock(start_indices, copy.deepcopy(self.blocks), self.dims, total_size, end_indices) 
 
     def increase_size(self, start_index, new_total_size):
@@ -177,22 +206,13 @@ class SparseTensorBlock:
         return SparseTensorBlock(start_indices, copy.deepcopy(self.blocks), self.dims, new_total_size, end_indices)
 
     
+    
+    
     def merge_no_overlap(self, sp_tensor):
-        def cmp_items(a, b):
-            diff = a[0] > b[0]
-            for i in range(len(a)):
-                if diff[i]>0:
-                    return 1
-                elif diff[i]<0:
-                    return -1
-            assert(False)
-            return 0
         assert(self.dims == sp_tensor.dims)
         assert((self.total_size == sp_tensor.total_size).all())
         temp = [(i, 0, j) for j, i in enumerate(self.start_indices)] + [(i, 1, j) for j, i in enumerate(sp_tensor.start_indices)]
-        # temp.sort(key=cmp_items)
-        import functools
-        sorted(temp, key=functools.cmp_to_key(cmp_items))
+        sort_tuple(temp)
         start_indices = []
         end_indices = []
         blocks = []
@@ -214,7 +234,7 @@ class SparseTensorBlock:
         if sp_tensor.num_blocks == 0:
             return copy.deepcopy(self.start_indices), copy.deepcopy(self.end_indices)
         assert(self.type == sp_tensor.type)
-        assert(self.dense_const == sp_tensor.dense_const)
+        # assert(self.dense_const == sp_tensor.dense_const)
         assert((self.total_size == sp_tensor.total_size).all())
         overlap_classes = dict()
         for i in range(self.num_blocks):
@@ -226,19 +246,35 @@ class SparseTensorBlock:
                     for key in overlap_classes.keys():
                         if i==key:
                             flag = True
-                            overlap_classes[key][1].append(j)
+                            if j not in overlap_classes[key][1]:
+                                overlap_classes[key][1].append(j)
                         elif i in overlap_classes[key][0]:
                             flag = True
-                            overlap_classes[key][1].append(j)
+                            if j not in overlap_classes[key][1]:
+                                overlap_classes[key][1].append(j)
                         elif j in overlap_classes[key][1]:
                             flag = True 
-                            overlap_classes[key][0].append(i)
+                            if i not in overlap_classes[key][0]:
+                                overlap_classes[key][0].append(i)
                     if not flag:
                         overlap_classes[i] = ([], [j])
             if not overlap_flag:
                 overlap_classes[i] = ([], [])
+        
         res_start_indices = []
         res_end_indices = []
+        
+        for j in range(sp_tensor.num_blocks):
+            flag = False
+            for key in overlap_classes.keys():
+                if j in overlap_classes[key][1]:
+                    flag = True
+                    break
+            if not flag:
+                res_start_indices.append(sp_tensor.start_indices[j])
+                res_end_indices.append(sp_tensor.end_indices[j])
+        
+        
 
         for i, key in enumerate(overlap_classes.keys()):
             start_index = self.start_indices[key]
@@ -249,10 +285,36 @@ class SparseTensorBlock:
                 start_index, end_index = self.union_block([start_index, end_index], [sp_tensor.start_indices[j], sp_tensor.end_indices[j]])
             res_start_indices.append(start_index)
             res_end_indices.append(end_index)
+        
+        temp = [(res_start_indices[i], res_end_indices[i]) for i in range(len(res_start_indices))]
+        sort_tuple(temp)
+        res_start_indices = [i[0] for i in temp]
+        res_end_indices = [i[1] for i in temp]
+        
+        return res_start_indices, res_end_indices
+    
+    def intersection_tensors(self, sp_tensor):
+        assert(self.type == sp_tensor.type)
+        assert(self.dense_const == sp_tensor.dense_const)
+        assert((self.total_size == sp_tensor.total_size).all())
+
+        res_start_indices = []
+        res_end_indices = []
+
+        for i in range(self.num_blocks):
+            for j in range(sp_tensor.num_blocks):
+                if self.block_overlap([self.start_indices[i], self.end_indices[i]], [sp_tensor.start_indices[j], sp_tensor.end_indices[j]]):
+                    start_index, end_index = self.intersection_block([self.start_indices[i], self.end_indices[i]], [sp_tensor.start_indices[j], sp_tensor.end_indices[j]])
+                    res_start_indices.append(start_index)
+                    res_end_indices.append(end_index)
+
         return res_start_indices, res_end_indices
 
     def copy(self):
-        return SparseTensorBlock(copy.deepcopy(self.start_indices), copy.deepcopy(self.blocks), self.dims, self.total_size, copy.deepcopy(self.end_indices))
+        return SparseTensorBlock(copy.deepcopy(self.start_indices), copy.deepcopy(self.blocks), self.dims, self.total_size, copy.deepcopy(self.end_indices), dense_const=self.dense_const, type = self.type)
+    
+    def is_const(self):
+        return self.num_blocks==0
     
     def check_dense(self):
         def mult_list(l):
@@ -266,13 +328,38 @@ class SparseTensorBlock:
             return False
         return True
 
+    def boolneg(self):
+        assert(self.type == bool)
+        res = self.copy()
+        res.dense_const = not(self.dense_const)
+        for i in range(res.num_blocks):
+            res.blocks[i] = ~(self.blocks[i])
+        return res
+
     def binary(self, sp_tensor, op):
         if (isinstance(sp_tensor, torch.Tensor) and sp_tensor.size()!=1):
             sp_tensor = convert_dense_to_sparse(sp_tensor)
         if isinstance(sp_tensor, SparseTensorBlock):
             assert((self.total_size == sp_tensor.total_size).all())
             assert(self.dims == sp_tensor.dims)
-            res_start_indices, res_end_indices = self.union_tensors(sp_tensor)
+            if op == '*':
+                if self.dense_const == 0 and sp_tensor.dense_const == 0:
+                    res_start_indices, res_end_indices = self.intersection_tensors(sp_tensor)
+                elif self.dense_const == 0:
+                    res_start_indices, res_end_indices = self.start_indices, self.end_indices
+                elif sp_tensor.dense_const == 0:
+                    res_start_indices, res_end_indices = sp_tensor.start_indices, sp_tensor.end_indices
+                else:
+                    res_start_indices, res_end_indices = self.union_tensors(sp_tensor)
+            elif op == '/':
+                if sp_tensor.dense_const==0 and not(sp_tensor.check_dense()):
+                    raise Exception('DIVISION BY ZERO')
+                elif self.dense_const == 0:
+                    res_start_indices, res_end_indices = self.start_indices,self.end_indices
+                else:
+                    res_start_indices, res_end_indices = self.union_tensors(sp_tensor)
+            else:
+                res_start_indices, res_end_indices = self.union_tensors(sp_tensor)
             blocks = []
             type = self.type
             dense_const = self.dense_const
@@ -322,6 +409,10 @@ class SparseTensorBlock:
                     type = bool
                     block = block_1 & block_2
                     dense_const = self.dense_const & sp_tensor.dense_const
+                elif op == '|':
+                    type = bool
+                    block = block_1 | block_2
+                    dense_const = self.dense_const or sp_tensor.dense_const
                 else:
                     raise Exception('CHECK OPERATION', op)
                 blocks.append(block)
@@ -330,6 +421,13 @@ class SparseTensorBlock:
             res = self.copy()
             type = self.type
             dense_const = self.dense_const
+            if op=='*' and sp_tensor==0.0:
+                res.blocks = []
+                res.num_blocks = 0
+                res.dense_const = 0
+                res.start_indices = []
+                res.end_indices = []
+                return res
             for i in range(res.num_blocks):
                 if op == '+':
                     res.blocks[i] = res.blocks[i] + sp_tensor 
@@ -367,6 +465,14 @@ class SparseTensorBlock:
                     type = bool
                     res.blocks[i] = res.blocks[i] != sp_tensor
                     dense_const = self.dense_const != sp_tensor
+                elif op == '&':
+                    type = bool
+                    res.blocks[i] = res.blocks[i] & sp_tensor
+                    dense_const = self.dense_const & sp_tensor
+                elif op == '|':
+                    type = bool
+                    res.blocks[i] = res.blocks[i] | sp_tensor
+                    dense_const = self.dense_const | sp_tensor
                 else:
                     raise Exception('CHECK OPERATION', op)
             res.type = type
@@ -407,38 +513,63 @@ class SparseTensorBlock:
         return SparseTensorBlock(start_indices, blocks, self.dims, total_size, end_indices)
     
     def matmul(self, sp_tensor):
+        return self.matmul_new(sp_tensor)
+
+    def matmul_old(self, sp_tensor):
         if isinstance(sp_tensor, torch.Tensor):
             sp_tensor = convert_dense_to_sparse(sp_tensor)
+        mat_1 = self.get_dense()
+        mat_2 = sp_tensor.get_dense()
+
         assert(self.type == float or self.type == int)
         assert(sp_tensor.type == float or sp_tensor.type == int)
         assert(self.dense_const == 0.0)
         assert(sp_tensor.dense_const == 0.0)
+        
         if sp_tensor.dims <= 2:
-            assert(sp_tensor.total_size[0].item() == self.total_size[-1].item())
+            assert(sp_tensor.total_size[-1].item() == self.total_size[-1].item())
         else:
             assert(sp_tensor.total_size[-2].item() == self.total_size[-1].item())
-            assert(sp_tensor.total_size[:-2] == self.total_size[-sp_tensor.num_dims:-2])
-        mat_1 = self.get_dense()
-        mat_2 = sp_tensor.get_dense()
-        mat = mat_1 @ mat_2
+            assert(sp_tensor.total_size[:-2] == self.total_size[-sp_tensor.dims:-2])
+        
         
         start_indices = []
         end_indices = []
-        for i in range(self.num_blocks):
-            for j in range(sp_tensor.num_blocks):
-                if sp_tensor.dims == 1:
-                    start_index = self.start_indices[i][:-1]
-                    end_index = self.end_indices[i][:-1]
-                elif sp_tensor.dims == 2:
-                    start_index = torch.concat([self.start_indices[i][:-1], sp_tensor.start_indices[j][-1]])
-                    end_index = torch.concat([self.end_indices[i][:-1], sp_tensor.end_indices[j][-1]])
-                else:
-                    start_index = torch.concat([self.start_indices[i][:-sp_tensor.num_dims], torch.min(sp_tensor.start_indices[:-2], self.start_indices[-sp_tensor.num_dims:-2]), sp_tensor.start_indices[j][-1]])
-                    end_index = torch.concat([self.end_indices[i][:-sp_tensor.num_dims], torch.min(sp_tensor.end_indices[:-2], self.end_indices[-sp_tensor.num_dims:-2]), sp_tensor.end_indices[j][-1]])
-                start_indices.append(start_index)
-                end_indices.append(end_index)
+        blocks = []
+        
+        if self.dims == sp_tensor.dims:
+            mat = mat_1 @ mat_2
+            for i in range(self.num_blocks):
+                for j in range(sp_tensor.num_blocks):
+                    if sp_tensor.dims == 2:
+                        start_index = torch.concat([self.start_indices[i][:-1], sp_tensor.start_indices[j][-1:]])
+                        end_index = torch.concat([self.end_indices[i][:-1], sp_tensor.end_indices[j][-1:]])
+                    else:
+                        if not self.block_overlap([self.start_indices[i][:-2], self.end_indices[i][:-2]], [sp_tensor.start_indices[j][:-2], sp_tensor.end_indices[j][:-2]]):
+                            continue
+                        
+                        start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-2], self.start_indices[i][:-2]), self.start_indices[i][-2:-1], sp_tensor.start_indices[j][-1:]])
+                        end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-2], self.end_indices[i][:-2]), self.end_indices[i][-2:-1], sp_tensor.end_indices[j][-1:]])
+                    start_indices.append(start_index)
+                    end_indices.append(end_index)
+        elif self.dims > sp_tensor.dims:
+            mat = (mat_1 @ mat_2.unsqueeze(-1)).squeeze(-1)
+            for i in range(self.num_blocks):
+                for j in range(sp_tensor.num_blocks):
+                    if sp_tensor.dims == 1:
+                        start_index = self.start_indices[i][:-1]
+                        end_index = self.end_indices[i][:-1]
+                    else:
+                        start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-1], self.start_indices[i][:-2]), self.start_indices[i][-2:-1]])
+                        end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-1], self.end_indices[i][:-2]), self.end_indices[i][-2:-1]])
+                    start_indices.append(start_index)
+                    end_indices.append(end_index)
+        else:
+            assert(False)
 
-
+        # print(start_indices)
+        # print(end_indices)
+        
         
         overlap_classes = dict()
         for i in range(len(start_indices)):
@@ -456,10 +587,12 @@ class SparseTensorBlock:
                     for key in overlap_classes.keys():
                         if i==key:
                             flag = True
-                            overlap_classes[key].append(j)
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
                         elif i in overlap_classes[key]:
                             flag = True
-                            overlap_classes[key].append(j)
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
                     if not flag:
                         overlap_classes[i] = [j]
         res_start_indices = []
@@ -476,8 +609,111 @@ class SparseTensorBlock:
             slice = res.get_slice(res_start_indices[-1], res_end_indices[-1])
             blocks.append(mat[slice])
         
+        # print(start_indices)
+        # print(end_indices)
         return SparseTensorBlock(res_start_indices, blocks, mat.dim(), torch.tensor(mat.size()), res_end_indices)
     
+    def matmul_new(self, sp_tensor):
+        if isinstance(sp_tensor, torch.Tensor):
+            sp_tensor = convert_dense_to_sparse(sp_tensor)
+        
+
+        assert(self.type == float or self.type == int)
+        assert(sp_tensor.type == float or sp_tensor.type == int)
+        assert(self.dense_const == 0.0)
+        assert(sp_tensor.dense_const == 0.0)
+        
+        if sp_tensor.dims <= 2:
+            assert(sp_tensor.total_size[-1].item() == self.total_size[-1].item())
+        else:
+            assert(sp_tensor.total_size[-2].item() == self.total_size[-1].item())
+            assert(sp_tensor.total_size[:-2] == self.total_size[-sp_tensor.dims:-2])
+        
+        
+        start_indices = []
+        end_indices = []
+        blocks = []
+        res_total_size = None
+        
+        if self.dims == sp_tensor.dims:
+            res_total_size = torch.concat([self.total_size[:-1], sp_tensor.total_size[-1:]])
+            for i in range(self.num_blocks):
+                for j in range(sp_tensor.num_blocks):
+                    if sp_tensor.dims == 2:
+                        start_index = torch.concat([self.start_indices[i][:-1], sp_tensor.start_indices[j][-1:]])
+                        end_index = torch.concat([self.end_indices[i][:-1], sp_tensor.end_indices[j][-1:]])
+                    else:
+                        if not self.block_overlap([self.start_indices[i][:-2], self.end_indices[i][:-2]], [sp_tensor.start_indices[j][:-2], sp_tensor.end_indices[j][:-2]]):
+                            continue
+                        if not self.block_overlap([self.start_indices[i][-1:], self.end_indices[i][-1:]], [sp_tensor.start_indices[j][-2:-1], sp_tensor.end_indices[j][-2:-1]]):
+                            continue
+                        block = self.blocks[i].type(torch.float) @ sp_tensor.blocks[j].type(torch.float)
+                        blocks.append(block)
+                        start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-2], self.start_indices[i][:-2]), self.start_indices[i][-2:-1], sp_tensor.start_indices[j][-1:]])
+                        end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-2], self.end_indices[i][:-2]), self.end_indices[i][-2:-1], sp_tensor.end_indices[j][-1:]])
+                    start_indices.append(start_index)
+                    end_indices.append(end_index)
+        elif self.dims > sp_tensor.dims:
+            res_total_size = self.total_size[:-1]
+            for i in range(self.num_blocks):
+                for j in range(sp_tensor.num_blocks):
+                    if sp_tensor.dims == 1:
+                        start_index = self.start_indices[i][:-1]
+                        end_index = self.end_indices[i][:-1]
+                    else:
+                        if not self.block_overlap([self.start_indices[i][:-2], self.end_indices[i][:-2]], [sp_tensor.start_indices[j][:-1], sp_tensor.end_indices[j][:-1]]):
+                            continue
+                        if not self.block_overlap([self.start_indices[i][-1:], self.end_indices[i][-1:]], [sp_tensor.start_indices[j][-1:], sp_tensor.end_indices[j][-1:]]):
+                            continue
+                        block = (self.blocks[i].type(torch.float) @ sp_tensor.blocks[j].type(torch.float).unsqueeze(-1)).squeeze(-1)
+                        blocks.append(block)
+                        start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-1], self.start_indices[i][:-2]), self.start_indices[i][-2:-1]])
+                        end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-1], self.end_indices[i][:-2]), self.end_indices[i][-2:-1]])
+                    start_indices.append(start_index)
+                    end_indices.append(end_index)
+        else:
+            assert(False)
+
+        overlap_classes = dict()
+        for i in range(len(start_indices)):
+            if i not in overlap_classes:
+                flag = False
+                for key in overlap_classes.keys():
+                    if i in overlap_classes[key]:
+                        flag = True 
+                        break
+                if not flag:
+                    overlap_classes[i] = []
+            for j in range(i+1, len(start_indices)):
+                if self.block_overlap([start_indices[i], end_indices[i]], [start_indices[j], end_indices[j]]):
+                    flag = False
+                    for key in overlap_classes.keys():
+                        if i==key:
+                            flag = True
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
+                        elif i in overlap_classes[key]:
+                            flag = True
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
+                    if not flag:
+                        overlap_classes[i] = [j]
+        res_start_indices = []
+        res_end_indices = []
+        res_blocks = []
+        for i, key in enumerate(overlap_classes.keys()):
+            start_index = start_indices[key]
+            end_index = end_indices[key]
+            for j in overlap_classes[key]:
+                start_index, end_index = self.union_block([start_index, end_index], [start_indices[j], end_indices[j]])
+            block = SparseTensorBlock([start_index], [blocks[key]], len(start_index), res_total_size)
+            for j in overlap_classes[key]:
+                new_block = SparseTensorBlock([start_index], [blocks[j]], len(start_index), res_total_size)
+                block = block.binary(new_block, '+')
+            res_start_indices.append(start_index)
+            res_end_indices.append(end_index)
+            res_blocks.append(block.blocks[0])
+        return SparseTensorBlock(res_start_indices, res_blocks, len(res_total_size), res_total_size, res_end_indices) 
 
     def add_block_no_overlap(self, start_index, end_index, block):
         index = self.num_blocks
@@ -531,6 +767,7 @@ class SparseTensorBlock:
     def unsqueeze(self, index):
         dims = self.dims+1
         total_size = torch.concat([self.total_size[:index], torch.tensor([1]), self.total_size[index:]])
+        total_size = total_size.type(torch.int64)
         start_indices = []
         end_indices = []
         blocks = []
@@ -561,7 +798,48 @@ class SparseTensorBlock:
             start_indices.append(torch.concat([self.start_indices[i][:dim], self.start_indices[i][dim+1:]]))
             end_indices.append(torch.concat([self.end_indices[i][:dim], self.end_indices[i][dim+1:]]))
             blocks.append(self.blocks[i].sum(dim=dim))
-        return SparseTensorBlock(start_indices, blocks, self.dims-1, total_size, end_indices, self.type, self.dense_const)
+
+        overlap_classes = dict()
+        for i in range(len(start_indices)):
+            if i not in overlap_classes:
+                flag = False
+                for key in overlap_classes.keys():
+                    if i in overlap_classes[key]:
+                        flag = True 
+                        break
+                if not flag:
+                    overlap_classes[i] = []
+            for j in range(i+1, len(start_indices)):
+                if self.block_overlap([start_indices[i], end_indices[i]], [start_indices[j], end_indices[j]]):
+                    flag = False
+                    for key in overlap_classes.keys():
+                        if i==key:
+                            flag = True
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
+                        elif i in overlap_classes[key]:
+                            flag = True
+                            if j not in overlap_classes[key]:
+                                overlap_classes[key].append(j)
+                    if not flag:
+                        overlap_classes[i] = [j]
+
+        res_blocks = []
+        res_start_indices = []
+        res_end_indices = []
+        for key in overlap_classes:
+            start_index, end_index = start_indices[key], end_indices[key]
+            for b in overlap_classes[key]:
+                start_index, end_index = self.union_block([start_index, end_index], [start_indices[b], end_indices[b]])
+            current_block = SparseTensorBlock([start_indices[key]], [blocks[key]], self.dims-1, total_size, [end_indices[key]], self.type, self.dense_const).get_dense_custom_range(start_index, end_index)
+            for b in overlap_classes[key]:
+                current_block += SparseTensorBlock([start_indices[b]], [blocks[b]], self.dims-1, total_size, [end_indices[b]], self.type, self.dense_const).get_dense_custom_range(start_index, end_index)
+            res_blocks.append(current_block)
+            res_start_indices.append(start_index)
+            res_end_indices.append(end_index)
+
+
+        return SparseTensorBlock(res_start_indices, res_blocks, self.dims-1, total_size, res_end_indices, self.type, self.dense_const)
     
 def sp_where(x:SparseTensorBlock, y:SparseTensorBlock, z:SparseTensorBlock):
     if x.dense_const:
