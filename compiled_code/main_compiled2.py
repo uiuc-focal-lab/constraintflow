@@ -21,7 +21,7 @@ shapes = [network.input_shape]
 for layer in network:
 	shapes.append(layer.shape)
 network = Network_graph(shapes, network)
-llist = torch.tensor([True, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False])
+llist = torch.tensor([True, False, False, False, False, False, False])
 l = input_spec[1]
 u = input_spec[2]
 L = input_spec[3].convert_to_polyexp_sparse(network)

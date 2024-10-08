@@ -1,7 +1,7 @@
 import torch
 import copy
 from common.polyexp import *
-
+from .nlist import Llist
 class Abs_elem:
     def __init__(self, d, types, shapes):
         if d.keys() != types.keys():
@@ -107,16 +107,18 @@ class Abs_elem_sparse:
     
     def filter_non_live(self, llist):
         live_layers = torch.nonzero(self.d['llist']).flatten().tolist()
-        res = copy.deepcopy(llist)
-        if res.llist_flag:
-            res.llist = list(set(res.llist).intersection(set(live_layers)))
+        # res = copy.deepcopy(llist)
+        if llist.llist_flag:
+            res_llist = list(set(llist.llist).intersection(set(live_layers)))
+            res = Llist(llist.network, llist.initial_shape, llist=res_llist)
         else:
             res_llist = []
             for i in range(llist.start, llist.end):
                 if i in live_layers:
                     res_llist.append(i)
-            res.llist = res_llist
-            res.llist_flag = True
+            res = Llist(llist.network, llist.initial_shape, llist=res_llist)
+            # res.llist = res_llist
+            # res.llist_flag = True
             res.coalesce()
         return res
     
