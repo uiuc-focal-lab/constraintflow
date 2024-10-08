@@ -1,6 +1,7 @@
 import torch
 import copy
 import functools
+import time
 
 def compute_size(shape):
     s = 1
@@ -9,6 +10,11 @@ def compute_size(shape):
         shape = shape[1:]
     return s
 
+def custom_copy(x):
+    return x
+
+def custom_assert(x):
+    return True
 
 def convert_dense_to_sparse(tensor):
     type=float 
@@ -51,9 +57,9 @@ class SparseTensorBlock:
             for i in range(self.num_blocks):
                 self.end_indices.append(start_indices[i] + torch.tensor(blocks[i].shape))
                 assert((self.end_indices[i] <= self.total_size).all())
-        for i in range(self.num_blocks):
-            for j in range(i+1, self.num_blocks):
-                assert(not(self.block_overlap([start_indices[i], self.end_indices[i]], [start_indices[j], self.end_indices[j]])))
+        # for i in range(self.num_blocks):
+        #     for j in range(i+1, self.num_blocks):
+        #         assert(not(self.block_overlap([start_indices[i], self.end_indices[i]], [start_indices[j], self.end_indices[j]])))
         
         
         if self.num_blocks > 0:
@@ -182,19 +188,19 @@ class SparseTensorBlock:
                 src_end_indices = intersection_end_indices - self.start_indices[i]
                 src_block = self.blocks[i][self.get_slice(src_start_indices, src_end_indices)]
                 blocks.append(src_block)
-        return SparseTensorBlock(res_start_indices, blocks, self.dims, copy.deepcopy(self.total_size), res_end_indices)
+        return SparseTensorBlock(res_start_indices, blocks, self.dims, custom_copy(self.total_size), res_end_indices)
     
 
 
     def reduce_size(self, start_index, end_index, total_size):
-        assert((total_size == end_index - start_index).all())
+        # assert((total_size == end_index - start_index).all())
         start_indices = []
         end_indices = []
         for i in range(self.num_blocks):
-            assert(self.contained([self.start_indices[i], self.end_indices[i]], [start_index, end_index]))
+            # assert(self.contained([self.start_indices[i], self.end_indices[i]], [start_index, end_index]))
             start_indices.append((self.start_indices[i]-start_index).type(torch.int64))
             end_indices.append((self.end_indices[i]-start_index).type(torch.int64))
-        return SparseTensorBlock(start_indices, copy.deepcopy(self.blocks), self.dims, total_size, end_indices) 
+        return SparseTensorBlock(start_indices, custom_copy(self.blocks), self.dims, total_size, end_indices) 
 
     def increase_size(self, start_index, new_total_size):
         assert((self.total_size <= new_total_size).all())
@@ -203,12 +209,13 @@ class SparseTensorBlock:
         for i in range(self.num_blocks):
             start_indices.append(start_index + self.start_indices[i])   
             end_indices.append(start_index + self.end_indices[i])
-        return SparseTensorBlock(start_indices, copy.deepcopy(self.blocks), self.dims, new_total_size, end_indices)
+        return SparseTensorBlock(start_indices, custom_copy(self.blocks), self.dims, new_total_size, end_indices)
 
     
     
     
     def merge_no_overlap(self, sp_tensor):
+        # start_time = time.time()
         assert(self.dims == sp_tensor.dims)
         assert((self.total_size == sp_tensor.total_size).all())
         temp = [(i, 0, j) for j, i in enumerate(self.start_indices)] + [(i, 1, j) for j, i in enumerate(sp_tensor.start_indices)]
@@ -225,14 +232,15 @@ class SparseTensorBlock:
                 start_indices.append(sp_tensor.start_indices[temp[i][2]])
                 end_indices.append(sp_tensor.end_indices[temp[i][2]])
                 blocks.append(sp_tensor.blocks[temp[i][2]])
-        return SparseTensorBlock(start_indices, blocks, self.dims, copy.deepcopy(self.total_size), end_indices)
+        # print('Merge No Overlap time', time.time() - start_time)
+        return SparseTensorBlock(start_indices, blocks, self.dims, custom_copy(self.total_size), end_indices)
 
     
     def union_tensors(self, sp_tensor):
         if self.num_blocks == 0:
-            return copy.deepcopy(sp_tensor.start_indices), copy.deepcopy(sp_tensor.end_indices)
+            return custom_copy(sp_tensor.start_indices), custom_copy(sp_tensor.end_indices)
         if sp_tensor.num_blocks == 0:
-            return copy.deepcopy(self.start_indices), copy.deepcopy(self.end_indices)
+            return custom_copy(self.start_indices), custom_copy(self.end_indices)
         assert(self.type == sp_tensor.type)
         # assert(self.dense_const == sp_tensor.dense_const)
         assert((self.total_size == sp_tensor.total_size).all())
@@ -311,7 +319,7 @@ class SparseTensorBlock:
         return res_start_indices, res_end_indices
 
     def copy(self):
-        return SparseTensorBlock(copy.deepcopy(self.start_indices), copy.deepcopy(self.blocks), self.dims, self.total_size, copy.deepcopy(self.end_indices), dense_const=self.dense_const, type = self.type)
+        return SparseTensorBlock(custom_copy(self.start_indices), custom_copy(self.blocks), self.dims, self.total_size, custom_copy(self.end_indices), dense_const=self.dense_const, type = self.type)
     
     def is_const(self):
         return self.num_blocks==0

@@ -85,8 +85,10 @@ class CodeGen(irVisitor.IRVisitor):
         my_str = "u = convert_to_sparse(u, float(\'inf\'))"
         self.write(my_str)
         my_str = "L.const = copy.deepcopy(l)"
+        # my_str = "L.const = l"
         self.write(my_str)
         my_str = "U.const = copy.deepcopy(u)"
+        # my_str = "U.const = u"
         self.write(my_str)
 
         my_str = "abs_elem = Abs_elem_sparse(" + temp_dict + ", " + str(temp_shape) + ", network)"
@@ -386,7 +388,8 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrCombineToPoly(self, node):
         [coeffIr, constIr, rows] = node.children
         cols = 'poly_size'
-        return 'PolyExpSparse(abs_elem.network, copy.deepcopy(' + self.visit(coeffIr) + ') , copy.deepcopy(' + self.visit(constIr) + '))'
+        # return 'PolyExpSparse(abs_elem.network, copy.deepcopy(' + self.visit(coeffIr) + ') , copy.deepcopy(' + self.visit(constIr) + '))'
+        return 'PolyExpSparse(abs_elem.network, ' + self.visit(coeffIr) + ' , ' + self.visit(constIr) + ')'
 
     def visitIrCombineToSym(self, node):
         [coeffIr, constIr, rows] = node.children

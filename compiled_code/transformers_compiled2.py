@@ -9,17 +9,13 @@ class deeppoly:
 		cse_var_24 = prev.dot(curr.get_metadata('weight'), abs_elem.get_poly_size())
 		cse_var_23 = curr.get_metadata('bias')
 		cse_var_94 = cse_var_24.get_mat(abs_elem)
-		cse_var_45 = PolyExpSparse(abs_elem.network, copy.deepcopy(cse_var_94) , copy.deepcopy(plus(cse_var_24.get_const(), cse_var_23)))
+		cse_var_45 = PolyExpSparse(abs_elem.network, cse_var_94 , plus(cse_var_24.get_const(), cse_var_23))
 		cse_var_12 = SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=0.0, type= type(0.0)).unsqueeze(0).unsqueeze(1).unsqueeze(2).repeat(torch.tensor([1, curr_size, poly_size]))
 		cse_var_21 = SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=0.0, type= type(0.0)).unsqueeze(0).unsqueeze(1).unsqueeze(2).repeat(torch.tensor([1, curr_size, poly_size]))
 		cse_var_87 = SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=1.0, type= type(1.0)).unsqueeze(0).unsqueeze(1).unsqueeze(2).repeat(torch.tensor([1, curr_size, poly_size]))
 		phi_trav_exp1_1_1 = cse_var_45
 		phi_trav_exp1_2_3 = cse_var_45
-		# i = 0
 		while(True):
-			# print(i)
-			# i += 1 
-			# print(phi_trav_exp1_1_1.mat.start_indices)
 			cse_var_28 = phi_trav_exp1_1_1.get_mat(abs_elem)
 			vertices_stop1 = False
 			vertices1_1_1 = ne(cse_var_28, cse_var_12)
@@ -46,15 +42,9 @@ class deeppoly:
 			cse_var_75 = repeat(cse_var_85, torch.tensor([batch_size, 1, 1]))
 			cse_var_77 = cse_var_83.unsqueeze(3)
 			cse_var_79 = cse_var_85.unsqueeze(3)
-			t1 = cse_var_79.squeeze(3)
-			t2 = cse_var_78.squeeze(1)
-			# print(t1.start_indices)
-			# print(cse_var_78.start_indices)
-			# print(t2.total_size, t2.start_indices, t2.end_indices)
-			# print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
 			cse_var_70 = plus(inner_prod(cse_var_75, cse_var_74.squeeze(1)), inner_prod(cse_var_73, cse_var_72.squeeze(1)))
-			cse_var_71 = plus(inner_prod(t1, t2), inner_prod(cse_var_77.squeeze(3), cse_var_76.squeeze(1)))
-			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, copy.deepcopy(cse_var_71) , copy.deepcopy(plus(cse_var_70, repeat(phi_trav_exp1_1_1.get_const(), torch.tensor([batch_size, 1])))))
+			cse_var_71 = plus(inner_prod(cse_var_79.squeeze(3), cse_var_78.squeeze(1)), inner_prod(cse_var_77.squeeze(3), cse_var_76.squeeze(1)))
+			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, cse_var_71 , plus(cse_var_70, repeat(phi_trav_exp1_1_1.get_const(), torch.tensor([batch_size, 1]))))
 			phi_trav_exp1_1_1 = trav_exp1_4_2
 		cse_var_25 = Llist(abs_elem.network, [1]*(phi_trav_exp1_2_3.mat.dims-1), None, None,torch.nonzero(abs_elem.d['llist']).flatten().tolist())
 		cse_var_92 = phi_trav_exp1_2_3.get_mat(abs_elem)
@@ -91,7 +81,7 @@ class deeppoly:
 			cse_var_57 = cse_var_63.unsqueeze(3)
 			cse_var_48 = plus(inner_prod(cse_var_53, cse_var_52.squeeze(1)), inner_prod(cse_var_51, cse_var_50.squeeze(1)))
 			cse_var_49 = plus(inner_prod(cse_var_57.squeeze(3), cse_var_56.squeeze(1)), inner_prod(cse_var_55.squeeze(3), cse_var_54.squeeze(1)))
-			trav_exp2_8_2 = PolyExpSparse(abs_elem.network, copy.deepcopy(cse_var_49) , copy.deepcopy(plus(cse_var_48, repeat(phi_trav_exp2_5_1.get_const(), torch.tensor([batch_size, 1])))))
+			trav_exp2_8_2 = PolyExpSparse(abs_elem.network, cse_var_49 , plus(cse_var_48, repeat(phi_trav_exp2_5_1.get_const(), torch.tensor([batch_size, 1]))))
 			phi_trav_exp2_5_1 = trav_exp2_8_2
 		cse_var_9 = Llist(abs_elem.network, [1]*(phi_trav_exp2_6_3.mat.dims-1), None, None,torch.nonzero(abs_elem.d['llist']).flatten().tolist())
 		cse_var_68 = phi_trav_exp2_6_3.get_mat(abs_elem)
@@ -117,7 +107,7 @@ class deeppoly:
 		cse_var_37 = PolyExpSparse(abs_elem.network, 0.0, cse_var_39)
 		cse_var_98 = repeat(cse_var_107.unsqueeze(2), torch.tensor([1, 1, poly_size]))
 		cse_var_97 = repeat(minus(cse_var_109, cse_var_107).unsqueeze(2), torch.tensor([1, 1, poly_size]))
-		L_new = PolyExpSparse(abs_elem.network, copy.deepcopy(plus(mult(cse_var_98, cse_var_101), mult(cse_var_97, cse_var_37.get_mat(abs_elem)))) , copy.deepcopy(plus(mult(cse_var_107, cse_var_46), mult(minus(cse_var_109, cse_var_107), cse_var_37.get_const()))))
+		L_new = PolyExpSparse(abs_elem.network, plus(mult(cse_var_98, cse_var_101), mult(cse_var_97, cse_var_37.get_mat(abs_elem))) , plus(mult(cse_var_107, cse_var_46), mult(minus(cse_var_109, cse_var_107), cse_var_37.get_const())))
 		cse_var_33 = minus(cse_var_104, cse_var_103)
 		cse_var_102 = divide(cse_var_104, cse_var_33)
 		cse_var_105 = mult(cse_var_102, cse_var_46)
@@ -125,6 +115,6 @@ class deeppoly:
 		cse_var_32 = PolyExpSparse(abs_elem.network, 0.0, 0.0)
 		cse_var_95 = SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=cse_var_32.get_const(), type= type(cse_var_32.get_const())).unsqueeze(0).unsqueeze(1).repeat(torch.tensor([batch_size, curr_size]))
 		cse_var_96 = plus(repeat(mult(cse_var_108, SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=cse_var_32.get_mat(abs_elem), type= type(cse_var_32.get_mat(abs_elem))).unsqueeze(0).unsqueeze(1).repeat(torch.tensor([batch_size, curr_size]))).unsqueeze(2), torch.tensor([1, 1, poly_size])), mult(repeat(mult(minus(cse_var_109, cse_var_108), cse_var_102).unsqueeze(2), torch.tensor([1, 1, poly_size])), cse_var_101))
-		U_new = PolyExpSparse(abs_elem.network, copy.deepcopy(plus(mult(cse_var_98, cse_var_101), mult(cse_var_97, cse_var_96))) , copy.deepcopy(plus(mult(cse_var_107, cse_var_46), mult(minus(cse_var_109, cse_var_107), plus(mult(cse_var_108, cse_var_95), mult(minus(cse_var_109, cse_var_108), cse_var_100))))))
+		U_new = PolyExpSparse(abs_elem.network, plus(mult(cse_var_98, cse_var_101), mult(cse_var_97, cse_var_96)) , plus(mult(cse_var_107, cse_var_46), mult(minus(cse_var_109, cse_var_107), plus(mult(cse_var_108, cse_var_95), mult(minus(cse_var_109, cse_var_108), cse_var_100)))))
 		return l_new, u_new, L_new, U_new
 	
