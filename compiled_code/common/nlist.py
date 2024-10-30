@@ -1,4 +1,5 @@
 from common.polyexp import *
+from specs.network import Network, LayerType
 
 import torch 
 import math
@@ -23,9 +24,9 @@ class Nlist:
             for k, layer in enumerate(Nlist.network):
                 if counter == self.start:
                     if elem == 'weight' or elem == 'w':
-                        return layer.weight
+                        return SparseBlock(layer.weight)
                     elif elem == 'bias' or elem == 'b':
-                        return layer.bias
+                        return SparseBlock(layer.bias)
                     elif elem == 'layer':
                         return torch.ones(layer.bias.shape)*k
                 counter += layer.size
@@ -135,13 +136,30 @@ class Llist:
             start_indices = []
             for k in range(self.start, self.end):
                 if elem == 'weight' or elem == 'w':
-                    ret.append(self.network.layers[k].weight.unsqueeze(0))
+                    if self.network.layers[k].type == LayerType.Linear:
+                        ret.append(SparseBlock(self.network.layers[k].weight.unsqueeze(0)))
+                        total_shape = torch.tensor(ret[0].block.shape)
+                        dim = 3
+                    if self.network.layers[k].type == LayerType.Conv2D:
+                        if k-1==0:
+                            total_shape = torch.tensor([1, self.network.layers_size[k], self.network.input_size])
+                            ix, iy = self.network.input_shape[-2:]
+                        else:
+                            total_shape = torch.tensor([1, self.network.layers_size[k], self.network.layers_size[k-1]])
+                            ix, iy = self.network.layers[k-1].shape[-2:]
+                        ox, oy = self.network.layers[k].shape[-2:]
+                        sx, sy = self.network.layers[k].stride
+                        px, py = self.network.layers[k].padding
+                        ret.append(SparseBlock(self.network.layers[k].weight, 'Kernel', total_shape, ix, iy, ox, oy, sx, sy, px, py))
+                        dim = 3
                     start_indices.append(torch.tensor([0,0,0]))
                 elif elem == 'bias' or elem == 'b':
-                    ret.append(self.network.layers[k].bias.unsqueeze(0))
+                    ret.append(SparseBlock(self.network.layers[k].bias.unsqueeze(0)))
                     start_indices.append(torch.tensor([0,0]))
+                    dim = 2
+                    total_shape = torch.tensor(ret[0].block.shape)
             assert(len(ret) == 1)
-            return SparseTensorBlock(start_indices, ret, ret[0].dim(), torch.tensor(ret[0].shape))
+            return SparseTensorBlock(start_indices, ret, dim, total_shape)
         else:
             raise Exception('NOT NEEDED')
             ret = []
@@ -239,7 +257,7 @@ class Llist:
             for i in self.llist:
                 # assert(self.initial_shape == self.network.layers_size[i])
                 mat = torch.eye(self.network.layers_size[i]).reshape(*self.initial_shape, self.network.layers_size[i], self.network.layers_size[i])
-                mats.append(mat)
+                mats.append(SparseBlock(mat))
                 start_indices.append(torch.tensor([0]*len(self.initial_shape) + [index, self.network.layers_start[i]]))
                 index += self.network.layers_size[i]
             # start_indices = [torch.tensor([0]*len(self.initial_shape) + [0+, self.network.layers_start[i]]) for i in self.llist]

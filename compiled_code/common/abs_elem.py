@@ -183,6 +183,7 @@ class Abs_elem_sparse:
                 total_size = end_index - start_index
                 val_mat = val_mat.reduce_size(start_index, end_index, total_size)
                 extra_dims = len(llist.initial_shape)-1
+
                 
                 for i in range(extra_dims):
                     val_mat = val_mat.unsqueeze(1)
@@ -237,6 +238,7 @@ class Abs_elem_sparse:
                 if self.types[key] in ['Float', 'Int']:
                     start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)]])
                     total_size = self.d[key].total_size
+                    print(total_size)
                     new_val = (abs_shape[i]).increase_size(start_index, total_size)
                     self.d[key] = self.d[key].overwrite(new_val)
                 elif self.types[key] in ['PolyExp']:
@@ -246,8 +248,6 @@ class Abs_elem_sparse:
 
                     start_index = torch.tensor([0, self.network.layers_start[min(llist.llist)], 0])
                     total_size = torch.tensor(list(self.d[key].mat.total_size))
-                    print(total_size)
-                    print(abs_shape[i].mat.total_size)
                     self.d[key].mat = self.d[key].mat.overwrite((abs_shape[i].mat).increase_size(start_index, total_size))
 
                 elif self.types[key] in ['ZonoExp']:

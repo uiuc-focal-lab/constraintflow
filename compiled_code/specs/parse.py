@@ -6,6 +6,8 @@ from torch.nn import ReLU, Linear, Conv2d
 from onnx import numpy_helper
 from specs.network import Layer, LayerType, Network
 
+from test_torch import convert_to_fully_connected
+
 def compute_size(shape):
     s = 1
     while len(shape)>0:
@@ -110,6 +112,7 @@ def parse_onnx_layers(net):
             o_3 = math.floor((i_3 + 2*p_1 - k_3) / s_1) + 1
             o_4 = math.floor((i_4 + 2*p_2 - k_4) / s_2) + 1
             layer.shape = [o_1, o_2, o_3, o_4]
+            # layer.shape = [o_2*o_3*o_4]
             layer.size = compute_size(layer.shape)
             layer.prev = dict()
             layer.prev_weight = dict()
@@ -117,31 +120,32 @@ def parse_onnx_layers(net):
             curr_e = curr_s + layer.size - 1 
             prev_s = curr_s - prev_size
             layer.bias = (layer.bias.unsqueeze(1).repeat(1, o_3*o_4)).flatten()
+            # layer.weight = convert_to_fully_connected(k_1, k_2, layer.weight, i_3, i_4, o_3, o_4, k_3, k_4, s_1, s_2, p_1, p_2)
 
-            layer_num = len(layers)
-            print(curr_s, curr_e)
-            for j, idx in enumerate(itertools.product(*[range(dim) for dim in layer.shape])):
-                (b, c_out, h_out, w_out) = idx 
-                # layer.prev[(layer_num, idx)] = []
-                # layer.prev_weight[(layer_num, idx)] = []
-                layer.prev[j + curr_s] = []
-                layer.prev_weight[j + curr_s] = []
-                # print(i_2, k_3, k_4)
-                for k in range(i_2):
-                    for h in range(k_3):
-                        for w in range(k_4):
-                            h_in = layer.stride[0] * h_out - layer.padding[0] + h
-                            w_in = layer.stride[1] * w_out - layer.padding[1] + w 
-                            c_in = k 
-                            weight = layer.weight[(c_out, c_in, h, w)]
-                            if b>=0 and c_in>=0 and h_in>=0 and w_in>=0:
-                                if h_in<i_3 and w_in<i_4:
-                                    prev_linear_index = prev_s + b*i_2*i_3*i_4 + c_in*i_3*i_4 + h_in*i_4 + w_in
-                                    layer.prev[j + curr_s].append(prev_linear_index)
-                                    layer.prev_weight[j + curr_s].append(weight)
-                                    layer.index_hash[j + curr_s] = (layer_num, idx)
-                                    # layer.prev[(layer_num, idx)].append((layer_num-1, (b, c_in, h_in, w_in)))
-                                    # layer.prev_weight[(layer_num, idx)].append(weight)
+            # layer_num = len(layers)
+            # print(curr_s, curr_e)
+            # for j, idx in enumerate(itertools.product(*[range(dim) for dim in layer.shape])):
+            #     (b, c_out, h_out, w_out) = idx 
+            #     # layer.prev[(layer_num, idx)] = []
+            #     # layer.prev_weight[(layer_num, idx)] = []
+            #     layer.prev[j + curr_s] = []
+            #     layer.prev_weight[j + curr_s] = []
+            #     # print(i_2, k_3, k_4)
+            #     for k in range(i_2):
+            #         for h in range(k_3):
+            #             for w in range(k_4):
+            #                 h_in = layer.stride[0] * h_out - layer.padding[0] + h
+            #                 w_in = layer.stride[1] * w_out - layer.padding[1] + w 
+            #                 c_in = k 
+            #                 weight = layer.weight[(c_out, c_in, h, w)]
+            #                 if b>=0 and c_in>=0 and h_in>=0 and w_in>=0:
+            #                     if h_in<i_3 and w_in<i_4:
+            #                         prev_linear_index = prev_s + b*i_2*i_3*i_4 + c_in*i_3*i_4 + h_in*i_4 + w_in
+            #                         layer.prev[j + curr_s].append(prev_linear_index)
+            #                         layer.prev_weight[j + curr_s].append(weight)
+            #                         layer.index_hash[j + curr_s] = (layer_num, idx)
+            #                         # layer.prev[(layer_num, idx)].append((layer_num-1, (b, c_in, h_in, w_in)))
+            #                         # layer.prev_weight[(layer_num, idx)].append(weight)
             curr_s = curr_e + 1
             
 
