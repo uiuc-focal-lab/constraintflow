@@ -21,6 +21,7 @@ class Certifier:
         self.model = model
         self.neighbours = neighbours
         self.input_size = model.input_size
+        self.batch_size = abs_elem.batch_size
 
     def flow(self):
         begin_time = time.time()
@@ -43,13 +44,14 @@ class Certifier:
                 curr_size = curr_e+1-curr_s
                 prev_size = prev_e+1-prev_s
 
-                abs_shape = self.transformer.Relu(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, 1)
+                abs_shape = self.transformer.Relu(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
 
             elif layer.type == LayerType.Linear:
-                W = layer.weight
-                B = layer.bias
+                # W = layer.weight
+                # B = layer.bias
                 
-                prev_size = W.shape[1]
+                prev_size = self.model.layers_size[tmp]
+                # prev_size = W.shape[1]
                 prev_s = curr_s - prev_size
                 prev_e = curr_s - 1
                 
@@ -59,13 +61,35 @@ class Certifier:
                 prev = Llist(self.model, [1, 1], None, None, [tmp])
                 curr = Llist(self.model, [1], None, None, [tmp+1])
                 
-                abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, 1)
+                abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
+
+            elif layer.type == LayerType.Conv2D:
+                # W = (layer.weight)
+                # B = layer.bias
+                
+                # prev_size = W.shape[1]
+                prev_size = self.model.layers_size[tmp]
+                prev_s = curr_s - prev_size
+                prev_e = curr_s - 1
+                
+                poly_size = self.model.layers_end[list(torch.nonzero(self.abs_elem.d['llist']))[-1].item()]
+                curr_size = curr_e+1-curr_s
+                prev_size = prev_e+1-prev_s
+                prev = Llist(self.model, [1, 1], None, None, [tmp])
+                curr = Llist(self.model, [1], None, None, [tmp+1])
+
+                print(prev_size, curr_size)
+                print('&&&&&&&&&&&&&&&&&&')
+                
+                abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
+            
             self.abs_elem.update(curr, abs_shape)
             curr_s = curr_e + 1
             print(time.time()-t_time)
             t_time = time.time()
-        print(abs_shape[0].get_dense())
-        print(abs_shape[1].get_dense())
+            print(abs_shape[0].get_dense())
+            print(abs_shape[1].get_dense())
+            # ldfyu
         print()
         print('time taken', time.time() - begin_time)
 

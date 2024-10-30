@@ -10,6 +10,7 @@ def checkTypes(x, y):
     if isinstance(x, SparseTensorBlock):
         if isinstance(y, SparseTensorBlock):
             if x.type != y.type:
+                print(x.type, y.type)
                 raise Exception('TYPE MISMATCH')
         if isinstance(y, float) or isinstance(y, int) or isinstance(y, bool):
             if type(y) != x.type:
@@ -352,13 +353,14 @@ def convert_to_float(x):
 
 def get_default_stop(shape):
     # print(shape)
-    global input_size
-    vertices_stop_default = torch.zeros(shape)
-    vertices_stop_default[:, :, 0:input_size] = 1
-    vertices_stop_default = vertices_stop_default.bool()
+    # global input_size
+    # vertices_stop_default = torch.zeros(shape)
+    # vertices_stop_default[:, :, 0:input_size] = 1
+    # vertices_stop_default = vertices_stop_default.bool()
     # print(vertices_stop_default)
     # kjdfs
-    return vertices_stop_default
+    return SparseTensorBlock([], [], len(shape), torch.tensor(shape), type=bool, dense_const=False)
+    return convert_dense_to_sparse(vertices_stop_default)
 
 def get_default_stop2(shape):
     global input_size
@@ -385,8 +387,8 @@ def phi(l):
     pass
 
 
-def convert_to_sparse(mat, dense_const):
-    return SparseTensorBlock([torch.tensor([0, 0])], [mat[:784].reshape(1,-1)], 2, torch.tensor([1, 1004]), dense_const=dense_const)
+def convert_to_sparse(mat, dense_const, network_size, batch_size=1):
+    return SparseTensorBlock([torch.tensor([0, 0])], [SparseBlock(mat[:784].reshape(1,-1).repeat(batch_size, 1))], 2, torch.tensor([batch_size, network_size]), dense_const=dense_const)
 
 def repeat(mat, repeat_dims):
     if isinstance(mat, float):

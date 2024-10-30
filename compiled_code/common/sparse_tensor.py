@@ -2,6 +2,9 @@ import torch
 import copy
 import functools
 import time
+import math
+from .sparse_block import SparseBlock
+import torch.nn.functional as F
 
 def compute_size(shape):
     s = 1
@@ -11,7 +14,7 @@ def compute_size(shape):
     return s
 
 def custom_copy(x):
-    return x
+    return copy.deepcopy(x)
 
 def custom_assert(x):
     return True
@@ -22,7 +25,7 @@ def convert_dense_to_sparse(tensor):
     if tensor.dtype == torch.bool:
         type = bool
         dense_const = False
-    return SparseTensorBlock([torch.zeros(tensor.dim(), dtype=torch.int64)], [tensor], tensor.dim(), torch.tensor(tensor.shape), type=type, dense_const=dense_const)
+    return SparseTensorBlock([torch.zeros(tensor.dim(), dtype=torch.int64)], [SparseBlock(tensor)], tensor.dim(), torch.tensor(tensor.shape), type=type, dense_const=dense_const)
 
 def sort_tuple(temp):
     def lex_cmp(a, b):
@@ -32,7 +35,6 @@ def sort_tuple(temp):
                 return 1
             elif diff[i]<0:
                 return -1
-        print(temp)
         assert(False)
         return 0
     sorted(temp, key=functools.cmp_to_key(lex_cmp))
@@ -55,7 +57,7 @@ class SparseTensorBlock:
         if self.end_indices is None:
             self.end_indices = []
             for i in range(self.num_blocks):
-                self.end_indices.append(start_indices[i] + torch.tensor(blocks[i].shape))
+                self.end_indices.append(start_indices[i] + torch.tensor(blocks[i].total_shape))
                 assert((self.end_indices[i] <= self.total_size).all())
         # for i in range(self.num_blocks):
         #     for j in range(i+1, self.num_blocks):
@@ -152,7 +154,7 @@ class SparseTensorBlock:
         res = torch.ones(list(self.total_size), dtype=self.type)*self.dense_const
         for i in range(self.num_blocks):
             s = self.get_slice(self.start_indices[i], self.end_indices[i])
-            res[s] = self.blocks[i]
+            res[s] = self.blocks[i].get_dense()
         return res
     
     def get_dense_custom_range(self, start_index, end_index):
@@ -170,7 +172,7 @@ class SparseTensorBlock:
                 dst_start_indices = intersection_start_indices - start_index
                 dst_end_indices = intersection_end_indices - start_index
 
-                src_block = self.blocks[i][self.get_slice(src_start_indices, src_end_indices)]
+                src_block = self.blocks[i].get_dense()[self.get_slice(src_start_indices, src_end_indices)]
                 res[self.get_slice(dst_start_indices, dst_end_indices)] = src_block
         return res
     
@@ -180,14 +182,19 @@ class SparseTensorBlock:
         res_start_indices = []
         res_end_indices = []
         for i in range(self.num_blocks):
-            if self.block_overlap([self.start_indices[i], self.end_indices[i]], new_index):
+            if self.contained([self.start_indices[i], self.end_indices[i]], new_index):
+                intersection_start_indices, intersection_end_indices = self.intersection_block([self.start_indices[i], self.end_indices[i]], new_index)
+                res_start_indices.append(intersection_start_indices)
+                res_end_indices.append(intersection_end_indices)
+                blocks.append(self.blocks[i])
+            elif self.block_overlap([self.start_indices[i], self.end_indices[i]], new_index):
                 intersection_start_indices, intersection_end_indices = self.intersection_block([self.start_indices[i], self.end_indices[i]], new_index)
                 res_start_indices.append(intersection_start_indices)
                 res_end_indices.append(intersection_end_indices)
                 src_start_indices = intersection_start_indices - self.start_indices[i]
                 src_end_indices = intersection_end_indices - self.start_indices[i]
-                src_block = self.blocks[i][self.get_slice(src_start_indices, src_end_indices)]
-                blocks.append(src_block)
+                src_block = self.blocks[i].get_dense()[self.get_slice(src_start_indices, src_end_indices)]
+                blocks.append(SparseBlock(src_block))
         return SparseTensorBlock(res_start_indices, blocks, self.dims, custom_copy(self.total_size), res_end_indices)
     
 
@@ -341,13 +348,109 @@ class SparseTensorBlock:
         res = self.copy()
         res.dense_const = not(self.dense_const)
         for i in range(res.num_blocks):
-            res.blocks[i] = ~(self.blocks[i])
+            res.blocks[i] = SparseBlock(~(self.blocks[i].get_dense()))
         return res
 
     def binary(self, sp_tensor, op):
         if (isinstance(sp_tensor, torch.Tensor) and sp_tensor.size()!=1):
             sp_tensor = convert_dense_to_sparse(sp_tensor)
-        if isinstance(sp_tensor, SparseTensorBlock):
+        if isinstance(sp_tensor, SparseTensorBlock) and self.num_blocks==0 and sp_tensor.num_blocks==0:
+            type = self.type
+            if op == '+':
+                dense_const = self.dense_const + sp_tensor.dense_const
+            elif op == '-':
+                dense_const = self.dense_const - sp_tensor.dense_const
+            elif op == '*':
+                dense_const = self.dense_const * sp_tensor.dense_const
+            elif op == '/':
+                if sp_tensor.check_dense():
+                    dense_const = 0.0
+                else:
+                    dense_const = self.dense_const / sp_tensor.dense_const
+            elif op == '<':
+                type = bool
+                dense_const = self.dense_const < sp_tensor.dense_const
+            elif op == '>':
+                type = bool
+                dense_const = self.dense_const > sp_tensor.dense_const
+            elif op == '<=':
+                type = bool
+                dense_const = self.dense_const <= sp_tensor.dense_const
+            elif op == '>=':
+                type = bool
+                dense_const = self.dense_const >= sp_tensor.dense_const
+            elif op == '==':
+                type = bool
+                dense_const = self.dense_const == sp_tensor.dense_const
+            elif op == '!=':
+                type = bool
+                dense_const = self.dense_const != sp_tensor.dense_const
+            elif op == '&':
+                type = bool
+                dense_const = self.dense_const & sp_tensor.dense_const
+            elif op == '|':
+                type = bool
+                dense_const = self.dense_const or sp_tensor.dense_const
+            else:
+                raise Exception('NOT IMPLEMENTED')
+            return SparseTensorBlock([], [], self.dims, self.total_size, dense_const=dense_const, type=type)
+        if isinstance(sp_tensor, SparseTensorBlock): 
+            if self.num_blocks==1 and sp_tensor.num_blocks==1 and (self.start_indices[0] == sp_tensor.start_indices[0]).all() and (self.end_indices[0]==sp_tensor.end_indices[0]).all():
+                if self.blocks[0].type=='Kernel' and sp_tensor.blocks[0].type=='Kernel' and self.blocks[0].block.shape == sp_tensor.blocks[0].block.shape:
+                    block_1 = self.blocks[0].block
+                    block_2 = sp_tensor.blocks[0].block
+                    type = self.type
+                    if op == '+':
+                        block = block_1 + block_2 
+                        dense_const = self.dense_const + sp_tensor.dense_const
+                    elif op == '-':
+                        block = block_1 - block_2
+                        dense_const = self.dense_const - sp_tensor.dense_const
+                    elif op == '*':
+                        block = block_1 * block_2 
+                        dense_const = self.dense_const * sp_tensor.dense_const
+                    elif op == '/':
+                        block = block_1 / block_2
+                        if sp_tensor.check_dense():
+                            dense_const = 0.0
+                        else:
+                            dense_const = self.dense_const / sp_tensor.dense_const
+                    elif op == '<':
+                        block = block_1 < block_2
+                        type = bool
+                        dense_const = self.dense_const < sp_tensor.dense_const
+                    elif op == '>':
+                        type = bool
+                        block = block_1 > block_2
+                        dense_const = self.dense_const > sp_tensor.dense_const
+                    elif op == '<=':
+                        type = bool
+                        block = block_1 <= block_2
+                        dense_const = self.dense_const <= sp_tensor.dense_const
+                    elif op == '>=':
+                        type = bool
+                        block = block_1 >= block_2
+                        dense_const = self.dense_const >= sp_tensor.dense_const
+                    elif op == '==':
+                        type = bool
+                        block = block_1 == block_2
+                        dense_const = self.dense_const == sp_tensor.dense_const
+                    elif op == '!=':
+                        type = bool
+                        block = block_1 != block_2
+                        dense_const = self.dense_const != sp_tensor.dense_const
+                    elif op == '&':
+                        type = bool
+                        block = block_1 & block_2
+                        dense_const = self.dense_const & sp_tensor.dense_const
+                    elif op == '|':
+                        type = bool
+                        block = block_1 | block_2
+                        dense_const = self.dense_const or sp_tensor.dense_const
+                    else:
+                        raise Exception('NOT IMPLEMENTED')
+                    return SparseTensorBlock(self.start_indices, [SparseBlock(block, self.blocks[0].type, self.blocks[0].total_shape, self.blocks[0].ix, self.blocks[0].iy, self.blocks[0].ox, self.blocks[0].oy, self.blocks[0].sx, self.blocks[0].sy, self.blocks[0].px, self.blocks[0].py)], self.dims, self.total_size, dense_const=dense_const, type=type)
+        if isinstance(sp_tensor, SparseTensorBlock) and sp_tensor.num_blocks>0 and self.num_blocks>0:
             assert((self.total_size == sp_tensor.total_size).all())
             assert(self.dims == sp_tensor.dims)
             if op == '*':
@@ -423,9 +526,11 @@ class SparseTensorBlock:
                     dense_const = self.dense_const or sp_tensor.dense_const
                 else:
                     raise Exception('CHECK OPERATION', op)
-                blocks.append(block)
+                blocks.append(SparseBlock(block))
             return SparseTensorBlock(res_start_indices, blocks, self.dims, self.total_size, res_end_indices, type, dense_const)
-        elif isinstance(sp_tensor, float) or isinstance(sp_tensor, int) or (isinstance(sp_tensor, torch.Tensor) and sp_tensor.size()==1):
+        elif isinstance(sp_tensor, float) or isinstance(sp_tensor, int) or (isinstance(sp_tensor, torch.Tensor) and sp_tensor.size()==1) or (isinstance(sp_tensor, SparseTensorBlock) and sp_tensor.num_blocks==0):
+            if isinstance(sp_tensor, SparseTensorBlock):
+                sp_tensor = sp_tensor.dense_const
             res = self.copy()
             type = self.type
             dense_const = self.dense_const
@@ -438,49 +543,111 @@ class SparseTensorBlock:
                 return res
             for i in range(res.num_blocks):
                 if op == '+':
-                    res.blocks[i] = res.blocks[i] + sp_tensor 
+                    res.blocks[i].block = res.blocks[i].block + sp_tensor 
                     dense_const = self.dense_const + sp_tensor
                 elif op == '-':
-                    res.blocks[i] = res.blocks[i] - sp_tensor
+                    res.blocks[i].block = res.blocks[i].block - sp_tensor
                     dense_const = self.dense_const - sp_tensor
                 elif op == '*':
-                    res.blocks[i] = res.blocks[i] * sp_tensor 
+                    res.blocks[i].block = res.blocks[i].block * sp_tensor 
                     dense_const = self.dense_const * sp_tensor
                 elif op == '/':
-                    res.blocks[i] = res.blocks[i] / sp_tensor
+                    res.blocks[i].block = res.blocks[i].block / sp_tensor
                     dense_const = self.dense_const / sp_tensor
                 elif op == '<':
                     type = bool
-                    res.blocks[i] = res.blocks[i] < sp_tensor
+                    res.blocks[i].block = res.blocks[i].block < sp_tensor
                     dense_const = self.dense_const < sp_tensor
                 elif op == '>':
                     type = bool
-                    res.blocks[i] = res.blocks[i] > sp_tensor
+                    res.blocks[i].block = res.blocks[i].block > sp_tensor
                     dense_const = self.dense_const > sp_tensor
                 elif op == '<=':
                     type = bool
-                    res.blocks[i] = res.blocks[i] <= sp_tensor
+                    res.blocks[i].block = res.blocks[i].block <= sp_tensor
                     dense_const = self.dense_const <= sp_tensor
                 elif op == '>=':
                     type = bool
-                    res.blocks[i] = res.blocks[i] >= sp_tensor
+                    res.blocks[i].block = res.blocks[i].block >= sp_tensor
                     dense_const = self.dense_const >= sp_tensor
                 elif op == '==':
                     type = bool
-                    res.blocks[i] = res.blocks[i] == sp_tensor
+                    res.blocks[i].block = res.blocks[i].block == sp_tensor
                     dense_const = self.dense_const == sp_tensor
                 elif op == '!=':
                     type = bool
-                    res.blocks[i] = res.blocks[i] != sp_tensor
+                    res.blocks[i].block = res.blocks[i].block != sp_tensor
                     dense_const = self.dense_const != sp_tensor
                 elif op == '&':
                     type = bool
-                    res.blocks[i] = res.blocks[i] & sp_tensor
+                    res.blocks[i].block = res.blocks[i].block & sp_tensor
                     dense_const = self.dense_const & sp_tensor
                 elif op == '|':
                     type = bool
-                    res.blocks[i] = res.blocks[i] | sp_tensor
+                    res.blocks[i].block = res.blocks[i].block | sp_tensor
                     dense_const = self.dense_const | sp_tensor
+                else:
+                    raise Exception('CHECK OPERATION', op)
+            res.type = type
+            res.dense_const = dense_const
+            return res
+        
+        elif self.num_blocks==0:
+            res = sp_tensor.copy()
+            type = sp_tensor.type
+            dense_const = sp_tensor.dense_const
+            if op=='*' and self.dense_const==0.0:
+                res.blocks = []
+                res.num_blocks = 0
+                res.dense_const = 0
+                res.start_indices = []
+                res.end_indices = []
+                return res
+            for i in range(res.num_blocks):
+                if op == '+':
+                    res.blocks[i].block = self.dense_const + res.blocks[i].block 
+                    dense_const = self.dense_const + sp_tensor.dense_const
+                elif op == '-':
+                    res.blocks[i].block = self.dense_const - res.blocks[i].block
+                    dense_const = self.dense_const - sp_tensor.dense_const
+                elif op == '*':
+                    res.blocks[i].block = self.dense_const * res.blocks[i].block 
+                    dense_const = self.dense_const * sp_tensor.dense_const
+                elif op == '/':
+                    res.blocks[i].block = self.dense_const / res.blocks[i].block
+                    dense_const = self.dense_const / sp_tensor.dense_const
+                elif op == '<':
+                    type = bool
+                    res.blocks[i].block = self.dense_const < res.blocks[i].block
+                    dense_const = self.dense_const < sp_tensor.dense_const
+                elif op == '>':
+                    type = bool
+                    res.blocks[i].block = self.dense_const > res.blocks[i].block
+                    dense_const = self.dense_const > sp_tensor.dense_const
+                elif op == '<=':
+                    type = bool
+                    res.blocks[i].block = self.dense_const <=res.blocks[i].block
+                    dense_const = self.dense_const <= sp_tensor.dense_const
+                elif op == '>=':
+                    type = bool
+                    res.blocks[i].block = self.dense_const >=res.blocks[i].block
+                    dense_const = self.dense_const >= sp_tensor.dense_const
+                elif op == '==':
+                    type = bool
+                    res.blocks[i].block = self.dense_const ==res.blocks[i].block
+                    dense_const = self.dense_const == sp_tensor.dense_const
+                elif op == '!=':
+                    type = bool
+                    res.blocks[i].block = self.dense_const !=res.blocks[i].block
+                    dense_const = self.dense_const != sp_tensor.dense_const
+                elif op == '&':
+                    type = bool
+                    res.blocks[i].block = self.dense_const & res.blocks[i].block
+                    dense_const = self.dense_const & sp_tensor.dense_const
+                elif op == '|':
+                    type = bool
+                    res.blocks[i].block = self.dense_const | res.blocks[i].block
+                    dense_const = self.dense_const | sp_tensor.dense_const
                 else:
                     raise Exception('CHECK OPERATION', op)
             res.type = type
@@ -497,7 +664,7 @@ class SparseTensorBlock:
         if self.type != bool and self.dense_const != 0.0:
             return True
         for i in range(self.num_blocks):
-            if self.blocks[i].any():
+            if self.blocks[i].block.any():
                 return True
         return False
     
@@ -506,19 +673,19 @@ class SparseTensorBlock:
         res.type = float
         res.dense_const = float(res.dense_const)
         for i in range(res.num_blocks):
-            res.blocks[i] = res.blocks[i].float()
+            res.blocks[i].block = res.blocks[i].block.float()
         return res 
     
-    def transpose(self):
-        blocks = []
-        start_indices = []
-        end_indices = []
-        for i in range(self.num_blocks):
-            blocks.append(self.blocks[i].T)
-            start_indices.append(torch.flip(self.start_indices[i], dims=[0]))
-            end_indices.append(torch.flip(self.end_indices[i], dims=[0]))
-        total_size = torch.flip(self.total_size, dims=[0])
-        return SparseTensorBlock(start_indices, blocks, self.dims, total_size, end_indices)
+    # def transpose(self):
+    #     blocks = []
+    #     start_indices = []
+    #     end_indices = []
+    #     for i in range(self.num_blocks):
+    #         blocks.append(SparseBlock(self.blocks[i].get_dense().T))
+    #         start_indices.append(torch.flip(self.start_indices[i], dims=[0]))
+    #         end_indices.append(torch.flip(self.end_indices[i], dims=[0]))
+    #     total_size = torch.flip(self.total_size, dims=[0])
+    #     return SparseTensorBlock(start_indices, blocks, self.dims, total_size, end_indices)
     
     def matmul(self, sp_tensor):
         return self.matmul_new(sp_tensor)
@@ -655,8 +822,54 @@ class SparseTensorBlock:
                             continue
                         if not self.block_overlap([self.start_indices[i][-1:], self.end_indices[i][-1:]], [sp_tensor.start_indices[j][-2:-1], sp_tensor.end_indices[j][-2:-1]]):
                             continue
-                        block = self.blocks[i].type(torch.float) @ sp_tensor.blocks[j].type(torch.float)
-                        blocks.append(block)
+                        # assert(sp_tensor.blocks[j].type=='Normal')
+                        if self.blocks[i].type=='Normal':
+                            if sp_tensor.blocks[j].type=='Normal':
+                                block = self.blocks[i].get_dense().type(torch.float) @ sp_tensor.blocks[j].get_dense().type(torch.float)
+                            elif sp_tensor.blocks[j].type=='Kernel':
+                                kernel_block = sp_tensor.blocks[j]
+                                kernel = kernel_block.block
+                                kx = kernel.shape[-2]
+                                ky = kernel.shape[-1]
+                                sx = kernel_block.sx
+                                sy = kernel_block.sy
+                                px = kernel_block.px
+                                py = kernel_block.py
+                                ox = kernel_block.ox
+                                oy = kernel_block.oy
+                                ix = kernel_block.ix
+                                iy = kernel_block.iy
+                                batch_size = self.blocks[i].get_dense().shape[0]
+                                input_tensor = self.blocks[i].get_dense().type(torch.float)
+                                curr_size = input_tensor.shape[-2]
+                                num_kernels = kernel.shape[0]
+                                new_px = (ix + 2*px - kx) % sx
+                                new_py = (iy + 2*py - ky) % sy
+                                # new_py = math.ceil(((oy-1)*sy+ky-iy)/2)
+                                input_tensor = input_tensor.reshape(batch_size*curr_size, num_kernels, ox, oy)
+                                output_tensor = F.conv_transpose2d(input_tensor, kernel, stride=(sx, sy), padding=(px, py), output_padding=(new_px, new_py))
+                                block = output_tensor.reshape(batch_size, curr_size, -1)
+                                # print(output_tensor.shape)
+                                # print(block.shape)
+                                # print(ix, iy)
+                                # print('@@@@@@@@@@@@@@@@@@@')
+                        elif self.blocks[i].type=='Kernel':
+                            kernel_block = self.blocks[i]
+                            kernel = kernel_block.block
+                            sx = kernel_block.sx
+                            sy = kernel_block.sy
+                            px = kernel_block.px
+                            py = kernel_block.py
+                            ix = kernel_block.ix
+                            iy = kernel_block.iy
+                            batch_size = sp_tensor.blocks[j].get_dense().shape[0]
+                            input_tensor = torch.permute(sp_tensor.blocks[j].get_dense().type(torch.float), (0,2,1))
+                            poly_size = input_tensor.shape[-2]
+                            input_tensor = input_tensor.reshape(batch_size*poly_size, kernel.shape[1], ix, iy)
+                            output_tensor = F.conv2d(input_tensor, kernel, stride=(sx, sy), padding=(px, py))
+                            block = output_tensor.reshape(batch_size, poly_size, -1).permute(0, 2, 1)
+                            # block = F.conv2d(sp_tensor.blocks[j].get_dense().type(torch.float).reshape(batch_size, kernel.shape[1], ix, iy), kernel, stride=(sx, sy), padding=(px, py))
+                        blocks.append(SparseBlock(block))
                         start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-2], self.start_indices[i][:-2]), self.start_indices[i][-2:-1], sp_tensor.start_indices[j][-1:]])
                         end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-2], self.end_indices[i][:-2]), self.end_indices[i][-2:-1], sp_tensor.end_indices[j][-1:]])
                     start_indices.append(start_index)
@@ -673,8 +886,22 @@ class SparseTensorBlock:
                             continue
                         if not self.block_overlap([self.start_indices[i][-1:], self.end_indices[i][-1:]], [sp_tensor.start_indices[j][-1:], sp_tensor.end_indices[j][-1:]]):
                             continue
-                        block = (self.blocks[i].type(torch.float) @ sp_tensor.blocks[j].type(torch.float).unsqueeze(-1)).squeeze(-1)
-                        blocks.append(block)
+                        if self.blocks[i].type=='Normal':
+                            block = (self.blocks[i].get_dense().type(torch.float) @ sp_tensor.blocks[j].get_dense().type(torch.float).unsqueeze(-1)).squeeze(-1)
+                        elif self.blocks[i].type=='Kernel':
+                            kernel_block = self.blocks[i]
+                            kernel = kernel_block.block
+                            sx = kernel_block.sx
+                            sy = kernel_block.sy
+                            px = kernel_block.px
+                            py = kernel_block.py
+                            ix = kernel_block.ix
+                            iy = kernel_block.iy
+                            batch_size = sp_tensor.blocks[j].get_dense().shape[0]
+                            block = F.conv2d(sp_tensor.blocks[j].get_dense().type(torch.float).reshape(batch_size, kernel.shape[1], ix, iy), kernel, stride=(sx, sy), padding=(px, py)).reshape(batch_size, -1)
+                            # print(block.shape)
+                        # block = (self.blocks[i].get_dense().type(torch.float) @ sp_tensor.blocks[j].get_dense().type(torch.float).unsqueeze(-1)).squeeze(-1)
+                        blocks.append(SparseBlock(block))
                         start_index = torch.concat([torch.min(sp_tensor.start_indices[j][:-1], self.start_indices[i][:-2]), self.start_indices[i][-2:-1]])
                         end_index = torch.concat([torch.max(sp_tensor.end_indices[j][:-1], self.end_indices[i][:-2]), self.end_indices[i][-2:-1]])
                     start_indices.append(start_index)
@@ -747,7 +974,7 @@ class SparseTensorBlock:
             if self.block_overlap([self.start_indices[i], self.end_indices[i]], [start_index, end_index]):
                 if self.contained([start_index, end_index], [self.start_indices[i], self.end_indices[i]]):
                     s = self.get_slice(start_index-self.start_indices[i], end_index-self.start_indices[i])
-                    self.blocks[i][s] = block
+                    self.blocks[i].block[s] = block.block
                     return 
                 else:
                     raise Exception('NOT IMPLEMENTED')
@@ -793,7 +1020,8 @@ class SparseTensorBlock:
         for i in range(self.num_blocks):
             start_indices.append(self.start_indices[i]*repeat_dims)
             end_indices.append(self.end_indices[i]*repeat_dims)
-            blocks.append(self.blocks[i].repeat(*repeat_dims))
+            # blocks.append(SparseBlock(self.blocks[i].get_dense().repeat(*repeat_dims)))
+            blocks.append(self.blocks[i].repeat(repeat_dims))
         return SparseTensorBlock(start_indices, blocks, self.dims, total_size, end_indices, self.type, self.dense_const)
 
             
@@ -805,7 +1033,7 @@ class SparseTensorBlock:
         for i in range(self.num_blocks):
             start_indices.append(torch.concat([self.start_indices[i][:dim], self.start_indices[i][dim+1:]]))
             end_indices.append(torch.concat([self.end_indices[i][:dim], self.end_indices[i][dim+1:]]))
-            blocks.append(self.blocks[i].sum(dim=dim))
+            blocks.append(SparseBlock(self.blocks[i].get_dense().sum(dim=dim)))
 
         overlap_classes = dict()
         for i in range(len(start_indices)):
@@ -859,6 +1087,6 @@ def sp_where(x:SparseTensorBlock, y:SparseTensorBlock, z:SparseTensorBlock):
         end_index = x.end_indices[i]
         block_y = y.get_dense_custom_range(start_index, end_index)
         block_z = z.get_dense_custom_range(start_index, end_index)
-        block = torch.where(x.blocks[i], block_y, block_z)
-        res.overwrite_block(start_index, end_index, block)
+        block = torch.where(x.blocks[i].get_dense(), block_y, block_z)
+        res.overwrite_block(start_index, end_index, SparseBlock(block))
     return res

@@ -13,6 +13,7 @@ class Network_graph:
         self.layers_end = dict()
         self.size = 0
         self.layers[0] = None
+        self.input_shape = shapes[0]
         self.layers_start[0] = 0
         self.layers_end[0] = compute_size(shapes[0])
         self.layers_size[0] = compute_size(shapes[0])
@@ -60,8 +61,8 @@ class PolyExpNew:
     def convert_to_polyexp(self):
         return PolyExp(self.const.shape[0], self.size, self.mat, self.const)
     
-    def convert_to_polyexp_sparse(self, network):
-        return PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([1, network.size, network.size])), self.const)
+    def convert_to_polyexp_sparse(self, network, batch_size=1):
+        return PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([batch_size, network.size, network.size])), self.const)
     
 
 
@@ -155,7 +156,7 @@ class PolyExpSparse:
         self.const = const
         if not isinstance(self.const, SparseTensorBlock):
             if isinstance(self.const, torch.Tensor):
-                self.const = SparseTensorBlock([torch.tensor([0]*self.const.dim())], [self.const], self.const.dim(), torch.tensor(self.const.shape))
+                self.const = SparseTensorBlock([torch.tensor([0]*self.const.dim())], [SparseBlock(self.const)], self.const.dim(), torch.tensor(self.const.shape))
             # else:
             #     self.const = SparseTensorBlock([torch.tensor(0)], [torch.tensor(self.const)], 0, torch.tensor(1))
 
@@ -168,7 +169,7 @@ class PolyExpSparse:
             return self.mat
         if dense:
             block = self.mat.get_dense()
-            sp_mat = SparseTensorBlock([torch.tensor([0]*block.dim())], [block], block.dim(), torch.tensor(block.shape))
+            sp_mat = SparseTensorBlock([torch.tensor([0]*block.dim())], [SparseBlock(block)], block.dim(), torch.tensor(block.shape))
         else:
             sp_mat = self.mat
         start, end = torch.nonzero(abs_elem.d['llist']).flatten().tolist()[0], torch.nonzero(abs_elem.d['llist']).flatten().tolist()[-1]
