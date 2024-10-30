@@ -1,9 +1,9 @@
 import torch
 import copy
-from common.polyexp import PolyExpSparse, SymExp
-from common.sparse_tensor import SparseTensorBlock
-from common.nlist import Llist
-from utils import *
+from compiled_code.common.polyexp import PolyExpSparse, SymExp
+from compiled_code.common.sparse_tensor import SparseTensorBlock
+from compiled_code.common.nlist import Llist
+from compiled_code.utils import *
 class deeppoly:
 	def Affine(self, abs_elem, prev, curr, poly_size, curr_size, prev_size, input_size, batch_size):
 		cse_var_24 = prev.dot(curr.get_metadata('weight'), abs_elem.get_poly_size())
@@ -38,15 +38,12 @@ class deeppoly:
 			cse_var_73 = var_2.get_mat(abs_elem)
 			cse_var_17 = ge(cse_var_82, cse_var_20)
 			cse_var_83 = convert_to_float(cse_var_17)
-			t = minus(cse_var_80, cse_var_83)
-			t2 = mult(t, cse_var_82)
-			cse_var_72 = t2.unsqueeze(3)
+			cse_var_72 = mult(minus(cse_var_80, cse_var_83), cse_var_82).unsqueeze(3)
 			cse_var_78 = mult(cse_var_83, cse_var_82)
 			cse_var_74 = cse_var_78.unsqueeze(3)
 			cse_var_67 = plus(inner_prod(cse_var_78, cse_var_70.squeeze(1)), inner_prod(mult(minus(cse_var_80, cse_var_83), cse_var_82), cse_var_69.squeeze(1)))
-			const = plus(cse_var_67, phi_trav_exp1_1_1.get_const())
 			cse_var_68 = plus(inner_prod(cse_var_74.squeeze(3), cse_var_73.squeeze(1)), inner_prod(cse_var_72.squeeze(3), cse_var_71.squeeze(1)))
-			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, cse_var_68 , const)
+			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, cse_var_68 , plus(cse_var_67, phi_trav_exp1_1_1.get_const()))
 			phi_trav_exp1_1_1 = trav_exp1_4_2
 		cse_var_25 = Llist(abs_elem.network, [1]*(phi_trav_exp1_2_3.mat.dims-1), None, None,torch.nonzero(abs_elem.d['llist']).flatten().tolist())
 		cse_var_85 = phi_trav_exp1_2_3.get_mat(abs_elem)

@@ -1,5 +1,5 @@
-from common.polyexp import *
-from specs.network import Network, LayerType
+from compiled_code.common.polyexp import *
+from compiled_code.specs.network import Network, LayerType
 
 import torch 
 import math

@@ -1,8 +1,8 @@
-from common.abs_elem import Abs_elem_sparse
-from common.polyexp import *
-from common.nlist import *
-from utils import *
-from specs.network import Network, LayerType
+from compiled_code.common.abs_elem import Abs_elem_sparse
+from compiled_code.common.polyexp import *
+from compiled_code.common.nlist import *
+from compiled_code.utils import *
+from compiled_code.specs.network import Network, LayerType
 
 import torch
 import time

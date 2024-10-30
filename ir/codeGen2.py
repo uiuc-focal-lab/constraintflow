@@ -5,8 +5,8 @@ from .ir_ast_stack2 import *
 class CodeGen(irVisitor.IRVisitor):
     def __init__(self,folder):
         self.folder = folder 
-        self.main_file = folder + '/main_compiled2.py'
-        self.transformers_file = folder + '/transformers_compiled2.py'
+        self.main_file = folder + '/output/main_compiled2.py'
+        self.transformers_file = folder + '/output/transformers_compiled2.py'
         self.functions_file = folder + '/functions_compiled.py'
         self.shape = None
         open(self.main_file, "w").close()
@@ -21,19 +21,18 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("import pickle")
         self.write("\n")
 
-        self.write("from specs.spec import *")
-        self.write("from certifier_sparse import Certifier")
-        self.write("from common.abs_elem import Abs_elem_sparse")
-        self.write("from specs.network import LayerType")
-        self.write("from transformers_compiled2 import *")
+        self.write("from compiled_code.specs.spec import *")
+        self.write("from compiled_code.certifier_sparse import Certifier")
+        self.write("from compiled_code.common.abs_elem import Abs_elem_sparse")
+        self.write("from compiled_code.specs.network import LayerType")
+        self.write("from compiled_code.transformers_compiled2 import *")
 
         self.write("\n")
-        self.write("batch_size = int(sys.argv[3])")
-        self.write("network_file = sys.argv[1]")
-        self.write("network = get_net(network_file)")
-        self.write("input_filename = sys.argv[2]")
-        self.write("with open(input_filename, 'rb') as file:")
-        self.write("\tinput_spec = pickle.load(file)")
+        self.write("batch_size = int(sys.argv[2])")
+        self.write("network = get_net(sys.argv[1])")
+        # self.write("input_filename = sys.argv[2]")
+        # self.write("with open(input_filename, 'rb') as file:")
+        # self.write("\tinput_spec = pickle.load(file)")
 
 
         self.visited = set()
@@ -61,18 +60,27 @@ class CodeGen(irVisitor.IRVisitor):
         key = 'llist'
         i = 0
         shapeDecl = key + ' = torch.tensor([True] + [False]*network.num_layers)'
+        self.write(shapeDecl)
+        shapeDecl = 'shapes = [layer.shape for layer in network]'
+        self.write(shapeDecl)
+        shapeDecl = "l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.01)"
+        self.write(shapeDecl)
+        shapeDecl = 'L = PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([batch_size, network.size, network.size])), 0)'
+        self.write(shapeDecl)
+        shapeDecl = 'U = PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([batch_size, network.size, network.size])), 0)'
+        self.write(shapeDecl)
         # shapeDecl = key + ' = torch.tensor([True, False, False, False, False, False, False])'
         temp_dict += "\'" + key + "\' : " + key + ', '
         self.write(shapeDecl)
         for i, key in enumerate(node.shape.keys()):
-            if self.shape[key] == 'PolyExp':
-                shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp_sparse(network, batch_size)'
-            else:
-                shapeDecl = key + ' = input_spec[' + str(i+1) + ']'
+            # if self.shape[key] == 'PolyExp':
+            #     shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp_sparse(network, batch_size)'
+            # else:
+            #     shapeDecl = key + ' = input_spec[' + str(i+1) + ']'
             temp_dict += "\'" + key + "\' : " + key 
             if i < len(node.shape.keys())-1:
                 temp_dict += ", "
-            self.write(shapeDecl)
+            # self.write(shapeDecl)
         temp_dict += '}'
 
         my_str = "l = convert_to_sparse(l, float(\'-inf\'), network.size, batch_size)"
@@ -98,10 +106,10 @@ class CodeGen(irVisitor.IRVisitor):
         self.open(self.transformers_file)
         self.write('import torch')
         self.write('import copy')
-        self.write('from common.polyexp import PolyExpSparse, SymExp')
-        self.write('from common.sparse_tensor import SparseTensorBlock')
-        self.write('from common.nlist import Llist')
-        self.write('from utils import *')
+        self.write('from compiled_code.common.polyexp import PolyExpSparse, SymExp')
+        self.write('from compiled_code.common.sparse_tensor import SparseTensorBlock')
+        self.write('from compiled_code.common.nlist import Llist')
+        self.write('from compiled_code.utils import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):
             self.write('class ' + transformer_name + ':')
