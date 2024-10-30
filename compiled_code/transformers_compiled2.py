@@ -17,12 +17,8 @@ class deeppoly:
 		cse_var_80 = SparseTensorBlock([], [], 0, torch.tensor([]), dense_const=1.0, type= type(1.0)).unsqueeze(0).unsqueeze(1).unsqueeze(2).repeat(torch.tensor([batch_size, curr_size, poly_size]))
 		phi_trav_exp1_1_1 = trav_exp1_0_0
 		phi_trav_exp1_2_3 = trav_exp1_0_0
-		i=0
 		while(True):
-			# print(i)
-			i+=1
 			cse_var_27 = phi_trav_exp1_1_1.get_mat(abs_elem)
-			# print(cse_var_27.total_size)
 			vertices_stop1 = False
 			vertices1_1_1 = ne(cse_var_27, cse_var_12)
 			vertices_stop_default1 = get_default_stop([batch_size, curr_size, poly_size])
@@ -40,34 +36,14 @@ class deeppoly:
 			cse_var_71 = var_3.get_mat(abs_elem)
 			cse_var_70 = var_2.get_const()
 			cse_var_73 = var_2.get_mat(abs_elem)
-			# if cse_var_73.num_blocks>0: 
-			# 	print(cse_var_73.blocks[0].type)
 			cse_var_17 = ge(cse_var_82, cse_var_20)
 			cse_var_83 = convert_to_float(cse_var_17)
-			t = minus(cse_var_80, cse_var_83)
-			# print((t.blocks[0].block))
-			# print((cse_var_82.blocks[0].block))
-			t2 = mult(t, cse_var_82)
-			# print(t2.blocks[0].block)
-			cse_var_72 = t2.unsqueeze(3)
+			cse_var_72 = mult(minus(cse_var_80, cse_var_83), cse_var_82).unsqueeze(3)
 			cse_var_78 = mult(cse_var_83, cse_var_82)
 			cse_var_74 = cse_var_78.unsqueeze(3)
-			# print(cse_var_70.total_size)
-			# kjds
 			cse_var_67 = plus(inner_prod(cse_var_78, cse_var_70.squeeze(1)), inner_prod(mult(minus(cse_var_80, cse_var_83), cse_var_82), cse_var_69.squeeze(1)))
-			# print(cse_var_67.blocks[0].total_shape)
-			# print(curr_size)
-			const = plus(cse_var_67, phi_trav_exp1_1_1.get_const())
-			# print(const.blocks[0].block)
-			# jddfkj
-			# if cse_var_74.num_blocks>0:
-			# 	print(cse_var_74.blocks[0].type)
-			# if cse_var_73.num_blocks>0:
-			# 	print(cse_var_73.blocks[0].type)
 			cse_var_68 = plus(inner_prod(cse_var_74.squeeze(3), cse_var_73.squeeze(1)), inner_prod(cse_var_72.squeeze(3), cse_var_71.squeeze(1)))
-			# if cse_var_68.num_blocks>0:     
-			# 	print(cse_var_68.blocks[0].type, '**************')
-			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, cse_var_68 , const)
+			trav_exp1_4_2 = PolyExpSparse(abs_elem.network, cse_var_68 , plus(cse_var_67, phi_trav_exp1_1_1.get_const()))
 			phi_trav_exp1_1_1 = trav_exp1_4_2
 		cse_var_25 = Llist(abs_elem.network, [1]*(phi_trav_exp1_2_3.mat.dims-1), None, None,torch.nonzero(abs_elem.d['llist']).flatten().tolist())
 		cse_var_85 = phi_trav_exp1_2_3.get_mat(abs_elem)

@@ -95,6 +95,12 @@ class IrMetadataElement:
             obj.broadcast.append(self.broadcast[i])
         return obj
     
+    def is_expanded(self):
+        for i in self.broadcast:
+            if i != 1:
+                return False 
+        return True
+    
     def __eq__(self,obj):
         return self.shape == obj.shape and self.type == obj.type and self.isConst == obj.isConst and self.broadcast == obj.broadcast
 
@@ -102,6 +108,26 @@ class IrMetadataElement:
         print(self.shape)
         print(self.broadcast)
         return ' '
+
+def is_expanded_metadata(irMetadata):
+    for i in range(len(irMetadata)):
+        if not irMetadata[i].is_expanded():
+            return False
+    return True
+
+def expand_irMetadata(irMetadata):
+    res = copy_metadata(irMetadata)
+    for i in range(len(res)):
+        for j in range(len(res[i].shape)):
+            if check_eq(res[i].broadcast[j], 1):
+                continue
+            if not check_eq(res[i].shape[j], 1):
+                print(check_eq(res[i].shape[j], 1))
+                print(check_eq(res[i].broadcast[j], 1))
+            assert(check_eq(res[i].shape[j], 1))
+            res[i].shape[j] = res[i].broadcast[j]
+            res[i].broadcast[j] = 1
+    return res
 
 def copy_metadata(irMetadata):
     new_irMetadata = []
@@ -364,6 +390,7 @@ class IrVar(IrExpression):
         self.hash_str = str(type(self))
         self.hash_str += self.name 
         return self.hash_str
+    
     
 class IrEpsilon(IrExpression):
     def __init__(self, num=None):
@@ -636,10 +663,10 @@ class IrBinaryOp(IrExpression):
     def __init__(self, lhsIr, rhsIr, op):
         super().__init__()
         self.op = op
-        
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
         lhsIrMetadata = lhsIr.irMetadata
         rhsIrMetadata = rhsIr.irMetadata
+
 
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         new_type = 'Float' if lhsIrMetadata[-1].type!=rhsIrMetadata[-1].type else lhsIrMetadata[-1].type
@@ -775,6 +802,7 @@ class IrDot(IrExpression):
         assert(lhsIr.irMetadata[-1].type == 'Neuron')
         assert(rhsIr.irMetadata[-1].type == 'Float')
 
+
         _, _, self.irMetadata, _ = createLcm(lhsIr.irMetadata, rhsIr.irMetadata)
         self.irMetadata[-1].shape = self.irMetadata[-1].shape[:-1]
         self.irMetadata[-1].broadcast = self.irMetadata[-1].broadcast[:-1]
@@ -829,6 +857,14 @@ class IrCombineToPoly(IrExpression):
     def __init__(self, coeffIr, constIr):
         super().__init__()
         if not check_eq(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape):
+            print(len(coeffIr.irMetadata[-1].shape)-1)
+            print(len(constIr.irMetadata[-1].shape))
+            for i in range(len(coeffIr.irMetadata[0].shape)-1):
+                print(coeffIr.irMetadata[-1].shape[i])
+                print(constIr.irMetadata[-1].shape[i])
+                print('done\n')
+            print(constIr.irMetadata[-1].shape[-1])
+            print('done\n')
             print(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape)
         assert(check_eq(coeffIr.irMetadata[-1].shape[:-1], constIr.irMetadata[-1].shape))
         assert(check_eq(coeffIr.irMetadata[-1].broadcast[:-1], constIr.irMetadata[-1].broadcast))

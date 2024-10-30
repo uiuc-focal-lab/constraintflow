@@ -4,31 +4,27 @@ import time
 from common.sparse_tensor import *
 
 
-class Network_graph:
-    def __init__(self, shapes, layers):
-        self.old_network = layers
-        self.layers = dict()
-        self.layers_size = dict()
-        self.layers_start = dict()
-        self.layers_end = dict()
-        self.size = 0
-        self.layers[0] = None
-        self.input_shape = shapes[0]
-        self.layers_start[0] = 0
-        self.layers_end[0] = compute_size(shapes[0])
-        self.layers_size[0] = compute_size(shapes[0])
-        self.size += self.layers_end[0]
-        for i in range(1, len(shapes)):
-            # print(layers[i-1].type)
-            # print(layers[i-1].weight)
-            self.layers[i] = layers[i-1]
-            self.layers_size[i] = compute_size(shapes[i])
-            self.layers_start[i] = self.size
-            self.size += self.layers_size[i]
-            self.layers_end[i] = self.size
-        self.input_size = self.layers_size[0]
-        # kjsd
-    
+# class Network_graph:
+#     def __init__(self, layers):
+#         self.old_network = layers
+#         self.layers = dict()
+#         self.layers_size = dict()
+#         self.layers_start = dict()
+#         self.layers_end = dict()
+#         self.size = 0
+#         self.layers[0] = None
+#         self.input_shape = layers.input_shape
+#         self.layers_start[0] = 0
+#         self.layers_end[0] = compute_size(layers.input_shape)
+#         self.layers_size[0] = compute_size(layers.input_shape)
+#         self.size += self.layers_end[0]
+#         for i, layer in enumerate(layers):
+#             self.layers[i+1] = layer
+#             self.layers_size[i+1] = compute_size(layer.shape)
+#             self.layers_start[i+1] = self.size
+#             self.size += self.layers_size[i+1]
+#             self.layers_end[i+1] = self.size
+#         self.input_size = self.layers_size[0]
 
 
 # NEEDED BECAUSE THE L, U, l, u in main_old ARE POLYEXPNEW
@@ -173,7 +169,7 @@ class PolyExpSparse:
         else:
             sp_mat = self.mat
         start, end = torch.nonzero(abs_elem.d['llist']).flatten().tolist()[0], torch.nonzero(abs_elem.d['llist']).flatten().tolist()[-1]
-        start, end = self.network.layers_start[start], self.network.layers_end[end]
+        start, end = self.network[start].start, self.network[end].end
         start_index = torch.zeros(sp_mat.dims, dtype=torch.int64)
         end_index = sp_mat.total_size
         start_index[-1] = start
@@ -188,13 +184,13 @@ class PolyExpSparse:
         dense_layers = set()
         for j, i in enumerate(self.mat.start_indices):
             while(True):
-                if self.network.layers_start[layer]<=i[-1]:
+                if self.network[layer].start<=i[-1]:
                     break
                 layer+=1
             
             while(True):
                 dense_layers.add(layer)
-                if self.network.layers_start[layer]<=self.mat.end_indices[j][-1]:
+                if self.network[layer].start<=self.mat.end_indices[j][-1]:
                     break
                 layer+=1
         return list(dense_layers)
