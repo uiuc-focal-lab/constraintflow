@@ -1,19 +1,18 @@
 import torch
 import math
-import itertools
 
 from torch.nn import ReLU, Linear, Conv2d
 from onnx import numpy_helper
-from specs.network import Layer, LayerType, Network
+from compiled_code.specs.network import Layer, LayerType, Network
+from compiled_code.utils import compute_size
 
-from test_torch import convert_to_fully_connected
 
-def compute_size(shape):
-    s = 1
-    while len(shape)>0:
-        s *= shape[0]
-        shape = shape[1:]
-    return s
+# def compute_size(shape):
+#     s = 1
+#     while len(shape)>0:
+#         s *= shape[0]
+#         shape = shape[1:]
+#     return s
 
 def forward_layers(net, relu_mask, transformers):
     for layer in net:

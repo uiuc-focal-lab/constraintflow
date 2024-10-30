@@ -1,8 +1,8 @@
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
-from common.polyexp import PolyExp, SymExp
-from specs.util import *
+from compiled_code.common.polyexp import PolyExp, SymExp
+from compiled_code.specs.util import *
 
 def product(iterable):
     result = 1
@@ -165,16 +165,15 @@ def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transfor
 
     l = create_l(image, eps, shapes=shapes)
     u = create_u(image, eps, shapes=shapes)
-    t = create_live(image, eps, shapes=shapes)
 
     if transformer == 'deeppoly':
         L = create_L(image, eps, shapes)
         U = create_U(image, eps, shapes)
-        return (t, l, u, L, U)
+        return (l, u, L, U)
 
     elif transformer == 'ibp':
-        return (t, l, u)
+        return (l, u)
     
     elif transformer == 'deepz':
         Z = create_Z(image, eps, shapes)
-        return (t, l, u, Z)
+        return (l, u, Z)

@@ -1,6 +1,6 @@
-from specs.networks import FullyConnected, Conv
-from specs.models import Models
-import specs.parse as parse 
+from compiled_code.specs.networks import FullyConnected, Conv
+from compiled_code.specs.models import Models
+import compiled_code.specs.parse as parse 
 
 import torch 
 import onnx

@@ -1,7 +1,7 @@
 import torch
 import copy
-from common.polyexp import *
-from .nlist import Llist
+from compiled_code.common.polyexp import *
+from compiled_code.common.nlist import Llist
 class Abs_elem:
     def __init__(self, d, types, shapes):
         if d.keys() != types.keys():
