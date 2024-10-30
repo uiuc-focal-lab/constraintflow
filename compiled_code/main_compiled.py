@@ -5,63 +5,27 @@ import pickle
 
 
 from specs.spec import *
-from certifier import Certifier
-from common.abs_elem import Abs_elem
-from common.transformer import *
+from certifier_sparse import Certifier
+from common.abs_elem import Abs_elem_sparse
 from specs.network import LayerType
-from transformers_compiled import *
-import torch.nn as nn
+from transformers_compiled2 import *
 
 
-def convert_onnx_to_pytorch(onnx_network):
-    layers = []
-    for onnx_layer in onnx_network:
-        if onnx_layer.type == LayerType.ReLU:
-            layer = nn.ReLU()
-        elif onnx_layer.type == LayerType.Linear:
-            layer = nn.Linear(onnx_layer.weight.shape[1], onnx_layer.weight.shape[0])
-            layer.weight = nn.Parameter(onnx_layer.weight)
-            layer.bias = nn.Parameter(onnx_layer.bias)
-            print(layer.weight.dtype)
-            print(layer.bias.dtype)
-        layers.append(layer)
-    pytorch_model = nn.Sequential(*layers)
-    return pytorch_model
-
-
-
-    #   def mnist_model():
-    #     model = nn.Sequential(
-    #         nn.Conv2d(1, 16, 4, stride=2, padding=1),
-    #         nn.ReLU(),
-    #         nn.Conv2d(16, 32, 4, stride=2, padding=1),
-    #         nn.ReLU(),
-    #         Flatten(),
-    #         nn.Linear(32*7*7,100),
-    #         nn.ReLU(),
-    #         nn.Linear(100, 10)
-    #     )
-    #     return model
-
+batch_size = int(sys.argv[3])
 network_file = sys.argv[1]
 network = get_net(network_file)
-
-pytorch_network = convert_onnx_to_pytorch(network)
-
-file_path = 'pytorch_mnist_relu.pkl'
-df
-with open(file_path, 'wb') as file:
-    pickle.dump(pytorch_network, file)
-fd
 input_filename = sys.argv[2]
-# input_spec = torch.load(input_filename)
 with open(input_filename, 'rb') as file:
-    input_spec = pickle.load(file)
-shapes = [network.input_shape]
-for layer in network:
-	shapes.append(layer.shape)
-l = input_spec[0]
-u = input_spec[1]
-abs_elem = Abs_elem({'l' : l, 'u' : u}, {'l': 'Float', 'u': 'Float'}, shapes)
-certifier = Certifier(abs_elem, Ibp(), network, None)
+	input_spec = pickle.load(file)
+llist = torch.tensor([True, False, False, False, False, False, False, False, False, False, False, False, False])
+l = input_spec[1]
+u = input_spec[2]
+L = input_spec[3].convert_to_polyexp_sparse(network, batch_size)
+U = input_spec[4].convert_to_polyexp_sparse(network, batch_size)
+l = convert_to_sparse(l, float('-inf'), network.size, batch_size)
+u = convert_to_sparse(u, float('inf'), network.size, batch_size)
+L.const = copy.deepcopy(l)
+U.const = copy.deepcopy(u)
+abs_elem = Abs_elem_sparse({'llist' : llist, 'l' : l, 'u' : u, 'L' : L, 'U' : U}, {'l': 'Float', 'u': 'Float', 'L': 'PolyExp', 'U': 'PolyExp', 'llist': 'bool'}, network, batch_size=batch_size)
+certifier = Certifier(abs_elem, deeppoly(), network, None)
 certifier.flow()

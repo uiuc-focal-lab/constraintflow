@@ -24,23 +24,17 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("from specs.spec import *")
         self.write("from certifier_sparse import Certifier")
         self.write("from common.abs_elem import Abs_elem_sparse")
-        self.write("from common.polyexp import Network_graph")
         self.write("from specs.network import LayerType")
         self.write("from transformers_compiled2 import *")
 
         self.write("\n")
+        self.write("batch_size = int(sys.argv[3])")
         self.write("network_file = sys.argv[1]")
         self.write("network = get_net(network_file)")
         self.write("input_filename = sys.argv[2]")
         self.write("with open(input_filename, 'rb') as file:")
         self.write("\tinput_spec = pickle.load(file)")
 
-        self.write("shapes = [network.input_shape]")
-        self.write("for layer in network:")
-        self.indent += 1
-        self.write("shapes.append(layer.shape)")
-        self.indent -= 1
-        self.write("network = Network_graph(shapes, network)")
 
         self.visited = set()
 
@@ -66,12 +60,13 @@ class CodeGen(irVisitor.IRVisitor):
         temp_dict = "{"
         key = 'llist'
         i = 0
-        shapeDecl = key + ' = torch.tensor([True, False, False, False, False, False, False])'
+        shapeDecl = key + ' = torch.tensor([True] + [False]*network.num_layers)'
+        # shapeDecl = key + ' = torch.tensor([True, False, False, False, False, False, False])'
         temp_dict += "\'" + key + "\' : " + key + ', '
         self.write(shapeDecl)
         for i, key in enumerate(node.shape.keys()):
             if self.shape[key] == 'PolyExp':
-                shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp_sparse(network)'
+                shapeDecl = key + ' = input_spec[' + str(i+1) + '].convert_to_polyexp_sparse(network, batch_size)'
             else:
                 shapeDecl = key + ' = input_spec[' + str(i+1) + ']'
             temp_dict += "\'" + key + "\' : " + key 
@@ -80,9 +75,9 @@ class CodeGen(irVisitor.IRVisitor):
             self.write(shapeDecl)
         temp_dict += '}'
 
-        my_str = "l = convert_to_sparse(l, float(\'-inf\'))"
+        my_str = "l = convert_to_sparse(l, float(\'-inf\'), network.size, batch_size)"
         self.write(my_str)
-        my_str = "u = convert_to_sparse(u, float(\'inf\'))"
+        my_str = "u = convert_to_sparse(u, float(\'inf\'), network.size, batch_size)"
         self.write(my_str)
         my_str = "L.const = copy.deepcopy(l)"
         # my_str = "L.const = l"
@@ -91,7 +86,7 @@ class CodeGen(irVisitor.IRVisitor):
         # my_str = "U.const = u"
         self.write(my_str)
 
-        my_str = "abs_elem = Abs_elem_sparse(" + temp_dict + ", " + str(temp_shape) + ", network)"
+        my_str = "abs_elem = Abs_elem_sparse(" + temp_dict + ", " + str(temp_shape) + ", network, batch_size=batch_size)"
         self.write(my_str)
 
         self.open(self.functions_file)

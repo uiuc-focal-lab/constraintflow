@@ -26,70 +26,42 @@ class Certifier:
     def flow(self):
         begin_time = time.time()
         t_time = time.time()
-        curr_s = compute_size(self.model.old_network.input_shape)
-        for tmp, layer in enumerate(self.model.old_network):
+        prev_size = self.model.input_size
+        size = self.model.input_size
+
+        for tmp, layer in enumerate(self.model):
             print(tmp+1, layer.type, layer.shape)
-            shape = tuple(layer.shape) 
-            size = compute_size(shape)
-            curr_e = curr_s + size - 1 
-            
+            poly_size = self.model[list(torch.nonzero(self.abs_elem.d['llist']))[-1].item()].end
+            curr_size = self.model[tmp].end-size
             if layer.type == LayerType.ReLU:
-                prev_s = curr_s - size
-                prev_e = curr_e - size
-
-                prev = Llist(self.model, [1], None, None, [tmp])
-                curr = Llist(self.model, [1], None, None, [tmp+1])
-
-                poly_size = self.model.layers_end[list(torch.nonzero(self.abs_elem.d['llist']))[-1].item()]
-                curr_size = curr_e+1-curr_s
-                prev_size = prev_e+1-prev_s
-
+                prev = Llist(self.model, [1], None, None, [tmp-1])
+                curr = Llist(self.model, [1], None, None, [tmp])
                 abs_shape = self.transformer.Relu(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
 
             elif layer.type == LayerType.Linear:
-                # W = layer.weight
-                # B = layer.bias
-                
-                prev_size = self.model.layers_size[tmp]
-                # prev_size = W.shape[1]
-                prev_s = curr_s - prev_size
-                prev_e = curr_s - 1
-                
-                poly_size = self.model.layers_end[list(torch.nonzero(self.abs_elem.d['llist']))[-1].item()]
-                curr_size = curr_e+1-curr_s
-                prev_size = prev_e+1-prev_s
-                prev = Llist(self.model, [1, 1], None, None, [tmp])
-                curr = Llist(self.model, [1], None, None, [tmp+1])
-                
+                prev = Llist(self.model, [1, 1], None, None, [tmp-1])
+                curr = Llist(self.model, [1], None, None, [tmp])
                 abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
 
             elif layer.type == LayerType.Conv2D:
-                # W = (layer.weight)
-                # B = layer.bias
-                
-                # prev_size = W.shape[1]
-                prev_size = self.model.layers_size[tmp]
-                prev_s = curr_s - prev_size
-                prev_e = curr_s - 1
-                
-                poly_size = self.model.layers_end[list(torch.nonzero(self.abs_elem.d['llist']))[-1].item()]
-                curr_size = curr_e+1-curr_s
-                prev_size = prev_e+1-prev_s
-                prev = Llist(self.model, [1, 1], None, None, [tmp])
-                curr = Llist(self.model, [1], None, None, [tmp+1])
-
-                print(prev_size, curr_size)
-                print('&&&&&&&&&&&&&&&&&&')
-                
+                prev = Llist(self.model, [1, 1], None, None, [tmp-1])
+                curr = Llist(self.model, [1], None, None, [tmp])
                 abs_shape = self.transformer.Affine(self.abs_elem, prev, curr, poly_size, curr_size, prev_size, self.input_size, self.batch_size)
-            
+
+            elif layer.type == LayerType.Input:
+                continue
+
+            else:
+                print(layer.type)
+                assert(False)
+            size += curr_size
+            prev_size = self.model[tmp].size
             self.abs_elem.update(curr, abs_shape)
-            curr_s = curr_e + 1
             print(time.time()-t_time)
             t_time = time.time()
-            print(abs_shape[0].get_dense())
-            print(abs_shape[1].get_dense())
-            # ldfyu
+        print(abs_shape[0].get_dense())
+        print(abs_shape[1].get_dense())
+        # ldfyu
         print()
         print('time taken', time.time() - begin_time)
 

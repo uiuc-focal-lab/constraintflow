@@ -136,25 +136,25 @@ class Llist:
             start_indices = []
             for k in range(self.start, self.end):
                 if elem == 'weight' or elem == 'w':
-                    if self.network.layers[k].type == LayerType.Linear:
-                        ret.append(SparseBlock(self.network.layers[k].weight.unsqueeze(0)))
+                    if self.network[k].type == LayerType.Linear:
+                        ret.append(SparseBlock(self.network[k].weight.unsqueeze(0)))
                         total_shape = torch.tensor(ret[0].block.shape)
                         dim = 3
-                    if self.network.layers[k].type == LayerType.Conv2D:
-                        if k-1==0:
-                            total_shape = torch.tensor([1, self.network.layers_size[k], self.network.input_size])
-                            ix, iy = self.network.input_shape[-2:]
-                        else:
-                            total_shape = torch.tensor([1, self.network.layers_size[k], self.network.layers_size[k-1]])
-                            ix, iy = self.network.layers[k-1].shape[-2:]
-                        ox, oy = self.network.layers[k].shape[-2:]
-                        sx, sy = self.network.layers[k].stride
-                        px, py = self.network.layers[k].padding
-                        ret.append(SparseBlock(self.network.layers[k].weight, 'Kernel', total_shape, ix, iy, ox, oy, sx, sy, px, py))
+                    if self.network[k].type == LayerType.Conv2D:
+                        # if k-1==0:
+                        #     total_shape = torch.tensor([1, self.network[k].size, self.network.input_size])
+                        #     ix, iy = self.network.input_shape[-2:]
+                        # else:
+                        total_shape = torch.tensor([1, self.network[k].size, self.network[k-1].size])
+                        ix, iy = self.network[k-1].shape[-2:]
+                        ox, oy = self.network[k].shape[-2:]
+                        sx, sy = self.network[k].stride
+                        px, py = self.network[k].padding
+                        ret.append(SparseBlock(self.network[k].weight, 'Kernel', total_shape, ix, iy, ox, oy, sx, sy, px, py))
                         dim = 3
                     start_indices.append(torch.tensor([0,0,0]))
                 elif elem == 'bias' or elem == 'b':
-                    ret.append(SparseBlock(self.network.layers[k].bias.unsqueeze(0)))
+                    ret.append(SparseBlock(self.network[k].bias.unsqueeze(0)))
                     start_indices.append(torch.tensor([0,0]))
                     dim = 2
                     total_shape = torch.tensor(ret[0].block.shape)
@@ -165,9 +165,9 @@ class Llist:
             ret = []
             for k in self.llist:
                 if elem == 'weight' or elem == 'w':
-                    ret.append(self.network.layers[k].weight.unsqueeze(0))
+                    ret.append(self.network[k].weight.unsqueeze(0))
                 elif elem == 'bias' or elem == 'b':
-                    ret.append(self.network.layers[k].bias.unsqueeze(0))
+                    ret.append(self.network[k].bias.unsqueeze(0))
             return ret
         
     def coalesce(self):
@@ -199,14 +199,14 @@ class Llist:
         polyexp_const = SparseTensorBlock([], [], 1, torch.tensor([1]))
         polyexp_const = 0.0
         if self.llist_flag:
-            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network.layers_start[i]]) for i in self.llist]
+            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network[i].start]) for i in self.llist]
         else:
-            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network.layers_start[i]]) for i in range(self.start, self.end)]
+            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network[i].start]) for i in range(self.start, self.end)]
         for j, mat in enumerate(mats):
             if self.llist_flag:
-                cols = self.network.layers_size[self.llist[j]]
+                cols = self.network[self.llist[j]].size
             else:
-                cols = self.network.layers_size[self.start+j]
+                cols = self.network[self.start+j].size
             # assert(list(mat.total_size[:-1]) == initial_shape)
             assert(mat.total_size[-1] == cols)
         
@@ -223,12 +223,12 @@ class Llist:
         mats = []
         if self.llist_flag:
             for i in self.llist:
-                mats.append(torch.ones(self.network.layers_size[i]))
-            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network.layers_start[i]]) for i in self.llist]
+                mats.append(torch.ones(self.network[i].size))
+            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network[i].start]) for i in self.llist]
         else:
             for i in range(self.start, self.end):
-                mats.append(torch.ones(self.network.layers_size[i]))
-            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network.layers_start[i]]) for i in range(self.start, self.end)]
+                mats.append(torch.ones(self.network[i].size))
+            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network[i].start]) for i in range(self.start, self.end)]
         return PolyExpSparse(self.network, SparseTensorBlock(start_indices, copy.deepcopy(mats), len(self.initial_shape)+1, torch.tensor(self.initial_shape+[self.network.size])), polyexp_const)
         return PolyExpSparse(self.network, initial_shape, SparseTensor(start_indices, copy.deepcopy(mats), self.network.size), polyexp_const)
 
@@ -238,10 +238,10 @@ class Llist:
         size = 0
         if self.llist_flag:
             for i in self.llist:
-                size += self.network.layers_size[i]
+                size += self.network[i].size
         else:
             for i in range(self.start, self.end):
-                size += self.network.layers_size[i]
+                size += self.network[i].size
         new_mat = res.mat.binary(size, '/')
         new_const = res.const.binary(size, '/')
         # polyexp_const = SparseTensorBlock([0], [new_const], 1, torch.tensor([1]))
@@ -255,20 +255,20 @@ class Llist:
         index = 0
         if self.llist:
             for i in self.llist:
-                # assert(self.initial_shape == self.network.layers_size[i])
-                mat = torch.eye(self.network.layers_size[i]).reshape(*self.initial_shape, self.network.layers_size[i], self.network.layers_size[i])
+                # assert(self.initial_shape == self.network[i].size)
+                mat = torch.eye(self.network[i].size).reshape(*self.initial_shape, self.network[i].size, self.network[i].size)
                 mats.append(SparseBlock(mat))
-                start_indices.append(torch.tensor([0]*len(self.initial_shape) + [index, self.network.layers_start[i]]))
-                index += self.network.layers_size[i]
-            # start_indices = [torch.tensor([0]*len(self.initial_shape) + [0+, self.network.layers_start[i]]) for i in self.llist]
+                start_indices.append(torch.tensor([0]*len(self.initial_shape) + [index, self.network[i].start]))
+                index += self.network[i].size
+            # start_indices = [torch.tensor([0]*len(self.initial_shape) + [0+, self.network[i].start]) for i in self.llist]
         else:
             raise Exception('NOT NEEDED')
             for i in range(self.start, self.end):
-                # assert(self.initial_shape == self.network.layers_size[i])
-                mat = torch.eye(self.network.layers_size[i]).reshape(*self.initial_shape, self.network.layers_size[i], self.network.layers_size[i])
+                # assert(self.initial_shape == self.network[i].size)
+                mat = torch.eye(self.network[i].size).reshape(*self.initial_shape, self.network[i].size, self.network[i].size)
                 mats.append(mat)
                 # mats.append(torch.eye(self.initial_shape))
-            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network.layers_start[i], self.network.layers_start[i]]) for i in range(self.start, self.end)]
+            start_indices = [torch.tensor([0]*len(self.initial_shape) + [self.network[i].start, self.network[i].start]) for i in range(self.start, self.end)]
         # const = 0.0
     
         polyexp_const = SparseTensorBlock([], [], len(self.initial_shape)+1, torch.tensor(self.initial_shape+[index]))
