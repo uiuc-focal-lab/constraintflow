@@ -1,6 +1,5 @@
-from .ir_ast_stack2 import *
-from . import representations
-from . import uses
+from compiler.ir import *
+from compiler.optimizations import uses
 
 
 counter = -1

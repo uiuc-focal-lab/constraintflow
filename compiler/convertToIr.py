@@ -1,10 +1,7 @@
-import sys, os
-# sys.path.append(os.path.join(os.path.dirname(__file__), '../ast'))
-
 from ast_cflow import astcf as AST
 from ast_cflow import astVisitor
-from .ir_ast_stack2 import *
-from . import representations
+from compiler.ir import *
+from compiler import representations
 
 class FuncDef:
     def __init__(self, retIr, argIrs):
@@ -333,7 +330,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
         if inputExpIr.irMetadata[-1].type=='Neuron':
             inputExpIr = IrConvertNeuronToPoly(inputExpIr)
         elif inputExpIr.irMetadata[-1].type=='Noise':
-            inputExpIr = IrConvertNoiseToSym(inputExpIr)
+            assert(False)
+            # inputExpIr = IrConvertNoiseToSym(inputExpIr)
         coeffIr = IrMapCoeff(inputExpIr)
         if inputExpIr.irMetadata[-1].type == 'PolyExp':
             neuronIr = IrMapNeuron(inputExpIr)

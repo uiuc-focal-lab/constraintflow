@@ -1,5 +1,6 @@
-from .ir_ast_stack2 import *
-from . import representations 
+from compiler.ir import *
+from compiler import representations
+
 
 counter = 0
 

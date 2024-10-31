@@ -1,29 +1,15 @@
 import sys
-# sys.path.append('../ast/')
-
 import antlr4 as antlr
+import time
 
 from ast_cflow import astcf as AST
 from ast_cflow import dslLexer
 from ast_cflow import dslParser
 from ast_cflow import astBuilder
 from ast_cflow import astTC
-from . import convert_to_ir_2 as c2r
-from . import cse
-from . import uses
-from . import dce
-from . import poly_opt
-from . import representations
-from . import copy_propagation
-from . import rewrite
-from . import codeGen2 as codeGen
-from .print import *
-
-
-
-import time
-from multiprocessing import Process
-from call_function_with_timeout import SetTimeout
+from compiler import convertToIr as c2r, representations
+from compiler.optimizations import copyPropagation, polyOpt, uses, cse, dce, rewrite
+from compiler import codeGen as codeGen
 
 
 def genAST(inputfile):
@@ -54,13 +40,13 @@ def genAST(inputfile):
 
     representations.ssa(y)
     cse.cse(y)
-    copy_propagation.copy_proagate(y)
+    copyPropagation.copy_proagate(y)
     cse.cse(y)
-    copy_propagation.copy_proagate(y)
-    poly_opt.poly_opt(y)
+    copyPropagation.copy_proagate(y)
+    polyOpt.poly_opt(y)
     rewrite.rewrite(y)
     cse.cse(y)
-    copy_propagation.copy_proagate(y)
+    copyPropagation.copy_proagate(y)
     # dce.dce(y)
     # copy_propagation.copy_proagate(y)
     dce.dce(y)

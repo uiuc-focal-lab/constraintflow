@@ -46,7 +46,7 @@ def create_Z(image, eps, shapes = []):
     return SymExp(l_const.shape[0], l_const.shape[0], coeff, const, 0, l_const.shape[0]-1)
 
 
-def get_input_spec(data_name = './data', n = 0, eps = 0.02, train=True, transformer='ibp', shapes = []):
+def get_input_spec(data_name = 'certifier/data', n = 0, eps = 0.02, train=True, transformer='ibp', shapes = []):
     transform = transforms.ToTensor()
     data = datasets.MNIST(root=data_name, train=train, download=False, transform=transform)
 

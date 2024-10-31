@@ -1,6 +1,6 @@
 from . import irVisitor 
 import copy
-from .ir_ast_stack2 import * 
+from .ir import * 
 
 class CodeGen(irVisitor.IRVisitor):
     def __init__(self,folder):
@@ -16,21 +16,23 @@ class CodeGen(irVisitor.IRVisitor):
         self.file = open(self.main_file, "a")
         self.indent = 0
         self.write("import torch")
-        self.write("import functools")
-        self.write("import sys")
-        self.write("import pickle")
+        # self.write("import functools")
+        # self.write("import sys")
+        # self.write("import pickle")
         self.write("\n")
 
         self.write("from certifier.lib.spec import *")
         self.write("from certifier.output.flow_sparse import Flow")
         self.write("from certifier.lib.abs_elem import Abs_elem_sparse")
         self.write("from certifier.lib.utils import *")
-        self.write("from certifier.lib.network import LayerType")
+        # self.write("from certifier.lib.network import LayerType")
         self.write("from certifier.output.transformers import *")
 
         self.write("\n")
-        self.write("batch_size = int(sys.argv[2])")
-        self.write("network = get_net(sys.argv[1])")
+        self.write("def run(network_file, batch_size, eps):")
+        self.indent += 1
+        # self.write("batch_size = int(sys.argv[2])")
+        self.write("network = get_net(network_file)")
         # self.write("input_filename = sys.argv[2]")
         # self.write("with open(input_filename, 'rb') as file:")
         # self.write("\tinput_spec = pickle.load(file)")
@@ -64,7 +66,7 @@ class CodeGen(irVisitor.IRVisitor):
         self.write(shapeDecl)
         shapeDecl = 'shapes = [layer.shape for layer in network]'
         self.write(shapeDecl)
-        shapeDecl = "l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=0.01)"
+        shapeDecl = "l, u = get_input_spec(shapes=shapes, n=0, transformer='ibp', eps=eps)"
         self.write(shapeDecl)
         shapeDecl = 'L = PolyExpSparse(network, SparseTensorBlock([], [], 3, torch.tensor([batch_size, network.size, network.size])), 0)'
         self.write(shapeDecl)
@@ -105,6 +107,7 @@ class CodeGen(irVisitor.IRVisitor):
 
         # GENERATE TRANSFORMERS
         self.open(self.transformers_file)
+        self.indent = 0
         self.write('import torch')
         self.write('import copy')
         self.write('from certifier.lib.polyexp import PolyExpSparse, SymExp')
@@ -462,5 +465,7 @@ class CodeGen(irVisitor.IRVisitor):
         return node.name
     
     def visitIrFlow(self, node):
+        self.indent += 1
         self.write('flow = Flow(abs_elem, ' + str(node.transformer) + '(), network, None)')
         self.write('flow.flow()')
+        self.indent -= 1

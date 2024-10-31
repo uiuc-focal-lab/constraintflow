@@ -1,4 +1,5 @@
-from .ir_ast_stack2 import *
+from compiler.ir import *
+
 import networkx as nx
 import matplotlib.pyplot as plt
 import graphviz

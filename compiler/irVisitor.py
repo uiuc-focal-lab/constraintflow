@@ -1,4 +1,4 @@
-from . import ir_ast_stack2 as IR 
+from compiler import ir as IR 
 
 class IRVisitor:
     def visit(self, node):

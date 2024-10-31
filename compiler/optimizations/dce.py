@@ -1,5 +1,6 @@
-from . import uses
-from .ir_ast_stack2 import *
+from compiler.ir import *
+from compiler.optimizations import uses
+
 
 def dce_block(block):
     ir_list = block.children
