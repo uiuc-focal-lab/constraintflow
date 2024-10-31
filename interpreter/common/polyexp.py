@@ -1,10 +1,10 @@
-# from common.abs_elem import Abs_elem
-# from common.nlist import Nlist
+# from lib.abs_elem import Abs_elem
+# from lib.nlist import Nlist
 import torch 
 import itertools
 import copy
 import time 
-# from common.transformer import replace_lower_new
+# from lib.transformer import replace_lower_new
 
 class Nlist:
     def __init__(self, size=0, start=None, end=None, nlist=None):

@@ -1,7 +1,7 @@
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
-from common.polyexp import PolyExp, SymExp
+from lib.polyexp import PolyExp, SymExp
 from specs.util import *
 
 def product(iterable):

@@ -1,22 +1,15 @@
 from specs.spec import *
 from certifier import Certifier
-from common.abs_elem import Abs_elem
-# from common.transformer import *
+from lib.abs_elem import Abs_elem
+# from lib.transformer import *
 from specs.network import LayerType
 from newtransformer import *
 import copy
+from compiled_code.lib.utils import *
 
 import matplotlib.pyplot as plt
 import itertools
 import pickle
-
-def compute_size(shape):
-    s = 1
-    while len(shape)>0:
-        s *= shape[0]
-        shape = shape[1:]
-    return s
-
 
 net = get_net(net_name='nets/ACASXU_run2a_1_1_batch_2000.onnx')
 # net = get_net(net_name='nets/mnist_relu_3_50.onnx')

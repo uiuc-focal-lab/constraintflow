@@ -1,6 +1,6 @@
 import torch
 import copy
-from common.polyexp import PolyExpNew
+from lib.polyexp import PolyExpNew
 
 class Abs_elem:
     def __init__(self, d, types, shapes):

@@ -1,4 +1,4 @@
-from compiled_code.common.polyexp import *
+from compiled_code.lib.polyexp import *
 from compiled_code.specs.network import Network, LayerType
 
 import torch 

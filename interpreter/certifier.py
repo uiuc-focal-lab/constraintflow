@@ -1,6 +1,6 @@
-from common.abs_elem import Abs_elem
-from common.polyexp import Nlist
-from common.transformer import Transformer
+from lib.abs_elem import Abs_elem
+from lib.polyexp import Nlist
+from lib.transformer import Transformer
 from specs.network import Network, LayerType
 
 import torch

@@ -3,8 +3,9 @@ import copy
 import functools
 import time
 import math
-from .sparse_block import SparseBlock
+from compiled_code.lib.sparse_block import SparseBlock
 import torch.nn.functional as F
+# from compiled_code.utils import *
 
 def compute_size(shape):
     s = 1

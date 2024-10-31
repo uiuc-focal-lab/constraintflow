@@ -1,6 +1,6 @@
-from common.polyexp import PolyExpNew, Nlist
-# from common.nlist import Nlist
-from common.symexp import SymExp
+from lib.polyexp import PolyExpNew, Nlist
+# from lib.nlist import Nlist
+from lib.symexp import SymExp
 import torch 
 import time 
 

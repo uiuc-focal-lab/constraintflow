@@ -23,8 +23,8 @@ class CodeGen(irVisitor.IRVisitor):
 
         self.write("from specs.spec import *")
         self.write("from certifier import Certifier")
-        self.write("from common.abs_elem import Abs_elem")
-        self.write("from common.transformer import *")
+        self.write("from lib.abs_elem import Abs_elem")
+        self.write("from lib.transformer import *")
         self.write("from specs.network import LayerType")
         self.write("from transformers_compiled2 import *")
 
@@ -85,7 +85,7 @@ class CodeGen(irVisitor.IRVisitor):
         # GENERATE TRANSFORMERS
         self.open(self.transformers_file)
         self.write('import torch')
-        self.write('from common.polyexp import PolyExpNew, Nlist')
+        self.write('from lib.polyexp import PolyExpNew, Nlist')
         self.write('from utils import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):

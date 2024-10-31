@@ -5,8 +5,8 @@ import sys
 
 from interpreter.specs.spec import *
 from interpreter.certifier import Certifier
-from interpreter.common.abs_elem import Abs_elem
-from interpreter.common.transformer import *
+from interpreter.lib.abs_elem import Abs_elem
+from interpreter.lib.transformer import *
 from interpreter.specs.network import LayerType
 from transformer import *
 

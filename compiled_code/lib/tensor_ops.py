@@ -1,8 +1,10 @@
 import torch 
 import math
-from compiled_code.common.sparse_tensor import *
+from compiled_code.lib.sparse_tensor import *
 
 input_size = 784
+
+
 
 types = {bool: torch.bool, int: torch.int, float: torch.float}
 
@@ -383,12 +385,9 @@ def get_shape_0(x):
         return x.total_size[0]
     return x.shape[0]
 
-def phi(l):
-    pass
 
-
-def convert_to_sparse(mat, dense_const, network_size, batch_size=1):
-    return SparseTensorBlock([torch.tensor([0, 0])], [SparseBlock(mat[:784].reshape(1,-1).repeat(batch_size, 1))], 2, torch.tensor([batch_size, network_size]), dense_const=dense_const)
+# def convert_to_sparse(mat, dense_const, network_size, batch_size=1):
+#     return SparseTensorBlock([torch.tensor([0, 0])], [SparseBlock(mat[:784].reshape(1,-1).repeat(batch_size, 1))], 2, torch.tensor([batch_size, network_size]), dense_const=dense_const)
 
 def repeat(mat, repeat_dims):
     if isinstance(mat, float):
