@@ -1,7 +1,7 @@
-from common.abs_elem import Abs_elem
-from common.polyexp import Nlist, PolyExp
-from utils import *
-# from common.transformer import Transformer
+from lib.abs_elem import Abs_elem
+from lib.polyexp import Nlist, PolyExp
+from compiled_code.lib.utils import *
+# from lib.transformer import Transformer
 from specs.network import Network, LayerType
 
 import torch
@@ -9,12 +9,6 @@ import time
 
 # torch.set_printoptions(edgeitems=100000000, threshold=100000000)
 
-def compute_size(shape):
-    s = 1
-    while len(shape)>0:
-        s *= shape[0]
-        shape = shape[1:]
-    return s
 
 class Certifier:
     def __init__(self, abs_elem: Abs_elem, transformer, model: Network, neighbours):

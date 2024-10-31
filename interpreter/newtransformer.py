@@ -1,7 +1,7 @@
-from common.abs_elem import Abs_elem
-# from common.polyexp import PolyExp
-from common.symexp import SymExp
-from common.transformer import Transformer
+from lib.abs_elem import Abs_elem
+# from lib.polyexp import PolyExp
+from lib.symexp import SymExp
+from lib.transformer import Transformer
 import torch
 import functools
 

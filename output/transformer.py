@@ -1,6 +1,6 @@
 import torch
 import sys
-from common.polyexp import PolyExpNew
+from lib.polyexp import PolyExpNew
 from utils import *
 class ibp:
 	def Affine(self, abs_elem, neighbours, prev, curr, debug_flag=False):

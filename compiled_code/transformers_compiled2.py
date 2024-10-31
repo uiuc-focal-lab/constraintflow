@@ -1,9 +1,9 @@
 import torch
 import copy
-from compiled_code.common.polyexp import PolyExpSparse, SymExp
-from compiled_code.common.sparse_tensor import SparseTensorBlock
-from compiled_code.common.nlist import Llist
-from compiled_code.utils import *
+from compiled_code.lib.polyexp import PolyExpSparse, SymExp
+from compiled_code.lib.sparse_tensor import SparseTensorBlock
+from compiled_code.lib.nlist import Llist
+from compiled_code.lib.utils import *
 class deeppoly:
 	def Affine(self, abs_elem, prev, curr, poly_size, curr_size, prev_size, input_size, batch_size):
 		cse_var_24 = prev.dot(curr.get_metadata('weight'), abs_elem.get_poly_size())

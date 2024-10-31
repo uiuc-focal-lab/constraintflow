@@ -1,4 +1,4 @@
-# from common.polyexp import PolyExpNew
+# from lib.polyexp import PolyExpNew
 
 # import torch 
 

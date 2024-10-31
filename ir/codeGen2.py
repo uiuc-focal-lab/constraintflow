@@ -23,9 +23,10 @@ class CodeGen(irVisitor.IRVisitor):
 
         self.write("from compiled_code.specs.spec import *")
         self.write("from compiled_code.certifier_sparse import Certifier")
-        self.write("from compiled_code.common.abs_elem import Abs_elem_sparse")
+        self.write("from compiled_code.lib.abs_elem import Abs_elem_sparse")
+        self.write("from compiled_code.lib.utils import *")
         self.write("from compiled_code.specs.network import LayerType")
-        self.write("from compiled_code.transformers_compiled2 import *")
+        self.write("from compiled_code.output.transformers_compiled2 import *")
 
         self.write("\n")
         self.write("batch_size = int(sys.argv[2])")
@@ -106,10 +107,10 @@ class CodeGen(irVisitor.IRVisitor):
         self.open(self.transformers_file)
         self.write('import torch')
         self.write('import copy')
-        self.write('from compiled_code.common.polyexp import PolyExpSparse, SymExp')
-        self.write('from compiled_code.common.sparse_tensor import SparseTensorBlock')
-        self.write('from compiled_code.common.nlist import Llist')
-        self.write('from compiled_code.utils import *')
+        self.write('from compiled_code.lib.polyexp import PolyExpSparse, SymExp')
+        self.write('from compiled_code.lib.sparse_tensor import SparseTensorBlock')
+        self.write('from compiled_code.lib.nlist import Llist')
+        self.write('from compiled_code.lib.tensor_ops import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):
             self.write('class ' + transformer_name + ':')

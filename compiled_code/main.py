@@ -1,19 +1,14 @@
 from specs.spec import *
 from certifier import Certifier
-from common.abs_elem import Abs_elem
-from common.transformer import *
+from lib.abs_elem import Abs_elem
+from lib.transformer import *
 from specs.network import LayerType
 from newtransformer import *
+from compiled_code.lib.utils import *
 
 import matplotlib.pyplot as plt
 import itertools
 
-def compute_size(shape):
-    s = 1
-    while len(shape)>0:
-        s *= shape[0]
-        shape = shape[1:]
-    return s
 
 def get_all_indices(nested_list, current_index=None):
     if current_index is None:

@@ -6,7 +6,7 @@ import pickle
 
 from compiled_code.specs.spec import *
 from compiled_code.certifier_sparse import Certifier
-from compiled_code.common.abs_elem import Abs_elem_sparse
+from compiled_code.lib.abs_elem import Abs_elem_sparse
 from compiled_code.specs.network import LayerType
 from compiled_code.transformers_compiled2 import *
 

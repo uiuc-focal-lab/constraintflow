@@ -8,10 +8,10 @@ class AstInterpret(astVisitor.ASTVisitor):
 		open(filename, "w").close()
 		self.file = open(filename, "a")
 		self.indent = ""
-		self.file.write("from common.abs_elem import Abs_elem\n")
-		self.file.write("from common.polyexp import PolyExp\n")
-		self.file.write("from common.symexp import SymExp\n")
-		self.file.write("from common.transformer import Transformer\n")
+		self.file.write("from lib.abs_elem import Abs_elem\n")
+		self.file.write("from lib.polyexp import PolyExp\n")
+		self.file.write("from lib.symexp import SymExp\n")
+		self.file.write("from lib.transformer import Transformer\n")
 		self.file.write("import torch\n")
 		self.file.write("import functools\n")
 		self.file.write("\n");

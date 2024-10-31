@@ -1,4 +1,4 @@
-from common.astinterpreter import *
+from lib.astinterpreter import *
 
 import sys
 
@@ -12,8 +12,8 @@ import astTC
 
 from specs.spec import *
 from certifier import Certifier
-from common.abs_elem import Abs_elem
-from common.transformer import *
+from lib.abs_elem import Abs_elem
+from lib.transformer import *
 from specs.network import LayerType
 
 import matplotlib.pyplot as plt

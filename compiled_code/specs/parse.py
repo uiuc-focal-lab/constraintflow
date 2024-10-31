@@ -1,18 +1,30 @@
 import torch
 import math
+import onnx
 
-from torch.nn import ReLU, Linear, Conv2d
 from onnx import numpy_helper
 from compiled_code.specs.network import Layer, LayerType, Network
-from compiled_code.utils import compute_size
+from compiled_code.lib.utils import compute_size
 
 
-# def compute_size(shape):
-#     s = 1
-#     while len(shape)>0:
-#         s *= shape[0]
-#         shape = shape[1:]
-#     return s
+def get_net_format(net_name):
+    net_format = None
+    if 'pt' in net_name:
+        net_format = 'torch'
+    if 'onnx' in net_name:
+        net_format = 'onnx'
+    return net_format
+
+def get_net(net_name, dataset=None):
+    net_format = get_net_format(net_name)
+    if net_format == 'onnx':
+        net_onnx = onnx.load(net_name)
+        net = parse_onnx_layers(net_onnx)
+    else:
+        raise ValueError("Unsupported net format!")
+
+    net.net_name = net_name
+    return net
 
 def forward_layers(net, relu_mask, transformers):
     for layer in net:
@@ -102,28 +114,7 @@ def parse_onnx_layers(net):
         layer.end = layers.size
         shape = layer.shape
 
-        # if len(layers)>0:
         print(cur_layer, layers[-1].type, layers[-1].shape, layers[-1].size)
 
     return layers
 
-
-def parse_torch_layers(net):
-    layers = Network(torch_net=net, net_format='torch')
-
-    for torch_layer in net:
-        if isinstance(torch_layer, ReLU):
-            layers.append(Layer(type=LayerType.ReLU))
-        elif isinstance(torch_layer, Linear):
-            layer = Layer(weight=torch_layer.weight, bias=torch_layer.bias, type=LayerType.Linear)
-            layers.append(layer)
-        elif isinstance(torch_layer, Conv2d):
-            layer = Layer(weight=torch_layer.weight, bias=torch_layer.bias,
-                          type=LayerType.Conv2D)
-            layer.kernel_size = torch_layer.kernel_size
-            layer.padding = torch_layer.padding
-            layer.stride = torch_layer.stride
-            layer.dilation = (1, 1)
-            layers.append(layer)
-
-    return layers

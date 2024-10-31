@@ -1,18 +1,12 @@
-from compiled_code.common.abs_elem import Abs_elem_sparse
-from compiled_code.common.polyexp import *
-from compiled_code.common.nlist import *
-from compiled_code.utils import *
+from compiled_code.lib.abs_elem import Abs_elem_sparse
+from compiled_code.lib.polyexp import *
+from compiled_code.lib.nlist import *
+from compiled_code.lib.utils import *
 from compiled_code.specs.network import Network, LayerType
 
 import torch
 import time
 
-def compute_size(shape):
-    s = 1
-    while len(shape)>0:
-        s *= shape[0]
-        shape = shape[1:]
-    return s
 
 class Certifier:
     def __init__(self, abs_elem: Abs_elem_sparse, transformer, model: Network, neighbours):
