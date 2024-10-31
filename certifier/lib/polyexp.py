@@ -1,7 +1,7 @@
 import torch 
 import copy
 import time 
-from compiled_code.lib.sparse_tensor import *
+from certifier.lib.sparse_tensor import *
 
 
 # class Network_graph:

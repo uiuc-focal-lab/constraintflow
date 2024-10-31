@@ -1,6 +1,6 @@
 import torch 
 import math
-from compiled_code.lib.sparse_tensor import *
+from certifier.lib.sparse_tensor import *
 
 input_size = 784
 
