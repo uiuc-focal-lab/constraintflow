@@ -5,9 +5,9 @@ from .ir_ast_stack2 import *
 class CodeGen(irVisitor.IRVisitor):
     def __init__(self,folder):
         self.folder = folder 
-        self.main_file = folder + '/output/main_compiled2.py'
-        self.transformers_file = folder + '/output/transformers_compiled2.py'
-        self.functions_file = folder + '/functions_compiled.py'
+        self.main_file = folder + '/output/main.py'
+        self.transformers_file = folder + '/output/transformers.py'
+        self.functions_file = folder + '/output/functions.py'
         self.shape = None
         open(self.main_file, "w").close()
         open(self.transformers_file, "w").close()
@@ -26,7 +26,7 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("from compiled_code.lib.abs_elem import Abs_elem_sparse")
         self.write("from compiled_code.lib.utils import *")
         self.write("from compiled_code.lib.network import LayerType")
-        self.write("from compiled_code.output.transformers_compiled2 import *")
+        self.write("from compiled_code.output.transformers import *")
 
         self.write("\n")
         self.write("batch_size = int(sys.argv[2])")

@@ -9,7 +9,7 @@ from compiled_code.lib.certifier_sparse import Certifier
 from compiled_code.lib.abs_elem import Abs_elem_sparse
 from compiled_code.lib.utils import *
 from compiled_code.lib.network import LayerType
-from compiled_code.output.transformers_compiled2 import *
+from compiled_code.output.transformers import *
 
 
 batch_size = int(sys.argv[2])
