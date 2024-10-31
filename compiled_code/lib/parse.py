@@ -3,7 +3,7 @@ import math
 import onnx
 
 from onnx import numpy_helper
-from compiled_code.specs.network import Layer, LayerType, Network
+from compiled_code.lib.network import Layer, LayerType, Network
 from compiled_code.lib.utils import compute_size
 
 
