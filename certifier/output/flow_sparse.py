@@ -1,14 +1,14 @@
-from compiled_code.lib.abs_elem import Abs_elem_sparse
-from compiled_code.lib.polyexp import *
-from compiled_code.lib.nlist import *
-from compiled_code.lib.utils import *
-from compiled_code.lib.network import Network, LayerType
+from certifier.lib.abs_elem import Abs_elem_sparse
+from certifier.lib.polyexp import *
+from certifier.lib.nlist import *
+from certifier.lib.utils import *
+from certifier.lib.network import Network, LayerType
 
 import torch
 import time
 
 
-class Certifier:
+class Flow:
     def __init__(self, abs_elem: Abs_elem_sparse, transformer, model: Network, neighbours):
         self.abs_elem = abs_elem 
         self.transformer = transformer 

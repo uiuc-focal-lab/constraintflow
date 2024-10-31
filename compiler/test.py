@@ -73,12 +73,12 @@ def genAST(inputfile):
     
 
     representations.remove_phi(y)
-    z = codeGen.CodeGen('compiled_code').visit(y)
+    z = codeGen.CodeGen('certifier').visit(y)
     print('Code Generation', time.time()-ttime)
     ttime = time.time()
 
 if(len(sys.argv) <= 1):
-    filename = 'compiled_code/testcases/deeppoly'
+    filename = 'certifier/testcases/deeppoly'
 else:
     filename = sys.argv[1]
 genAST(filename)

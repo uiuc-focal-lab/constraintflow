@@ -1,5 +1,5 @@
-from compiled_code.lib.polyexp import *
-from compiled_code.lib.network import Network, LayerType
+from certifier.lib.polyexp import *
+from certifier.lib.network import Network, LayerType
 
 import torch 
 import math

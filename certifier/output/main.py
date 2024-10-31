@@ -4,12 +4,12 @@ import sys
 import pickle
 
 
-from compiled_code.lib.spec import *
-from compiled_code.lib.certifier_sparse import Certifier
-from compiled_code.lib.abs_elem import Abs_elem_sparse
-from compiled_code.lib.utils import *
-from compiled_code.lib.network import LayerType
-from compiled_code.output.transformers import *
+from certifier.lib.spec import *
+from certifier.output.flow_sparse import Flow
+from certifier.lib.abs_elem import Abs_elem_sparse
+from certifier.lib.utils import *
+from certifier.lib.network import LayerType
+from certifier.output.transformers import *
 
 
 batch_size = int(sys.argv[2])
@@ -25,5 +25,5 @@ u = convert_to_sparse(u, float('inf'), network.size, batch_size)
 L.const = copy.deepcopy(l)
 U.const = copy.deepcopy(u)
 abs_elem = Abs_elem_sparse({'llist' : llist, 'l' : l, 'u' : u, 'L' : L, 'U' : U}, {'l': 'Float', 'u': 'Float', 'L': 'PolyExp', 'U': 'PolyExp', 'llist': 'bool'}, network, batch_size=batch_size)
-certifier = Certifier(abs_elem, deeppoly(), network, None)
-certifier.flow()
+flow = Flow(abs_elem, deeppoly(), network, None)
+flow.flow()

@@ -21,12 +21,12 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("import pickle")
         self.write("\n")
 
-        self.write("from compiled_code.lib.spec import *")
-        self.write("from compiled_code.lib.certifier_sparse import Certifier")
-        self.write("from compiled_code.lib.abs_elem import Abs_elem_sparse")
-        self.write("from compiled_code.lib.utils import *")
-        self.write("from compiled_code.lib.network import LayerType")
-        self.write("from compiled_code.output.transformers import *")
+        self.write("from certifier.lib.spec import *")
+        self.write("from certifier.output.flow_sparse import Flow")
+        self.write("from certifier.lib.abs_elem import Abs_elem_sparse")
+        self.write("from certifier.lib.utils import *")
+        self.write("from certifier.lib.network import LayerType")
+        self.write("from certifier.output.transformers import *")
 
         self.write("\n")
         self.write("batch_size = int(sys.argv[2])")
@@ -107,10 +107,10 @@ class CodeGen(irVisitor.IRVisitor):
         self.open(self.transformers_file)
         self.write('import torch')
         self.write('import copy')
-        self.write('from compiled_code.lib.polyexp import PolyExpSparse, SymExp')
-        self.write('from compiled_code.lib.sparse_tensor import SparseTensorBlock')
-        self.write('from compiled_code.lib.nlist import Llist')
-        self.write('from compiled_code.lib.tensor_ops import *')
+        self.write('from certifier.lib.polyexp import PolyExpSparse, SymExp')
+        self.write('from certifier.lib.sparse_tensor import SparseTensorBlock')
+        self.write('from certifier.lib.nlist import Llist')
+        self.write('from certifier.lib.tensor_ops import *')
 
         for i, transformer_name in enumerate(node.tstore.keys()):
             self.write('class ' + transformer_name + ':')
@@ -462,5 +462,5 @@ class CodeGen(irVisitor.IRVisitor):
         return node.name
     
     def visitIrFlow(self, node):
-        self.write('certifier = Certifier(abs_elem, ' + str(node.transformer) + '(), network, None)')
-        self.write('certifier.flow()')
+        self.write('flow = Flow(abs_elem, ' + str(node.transformer) + '(), network, None)')
+        self.write('flow.flow()')

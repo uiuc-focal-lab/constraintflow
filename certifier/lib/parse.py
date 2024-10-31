@@ -3,8 +3,8 @@ import math
 import onnx
 
 from onnx import numpy_helper
-from compiled_code.lib.network import Layer, LayerType, Network
-from compiled_code.lib.utils import compute_size
+from certifier.lib.network import Layer, LayerType, Network
+from certifier.lib.utils import compute_size
 
 
 def get_net_format(net_name):

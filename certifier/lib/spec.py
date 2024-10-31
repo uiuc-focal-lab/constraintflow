@@ -1,8 +1,8 @@
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 from matplotlib import pyplot as plt
-from compiled_code.lib.polyexp import PolyExp, SymExp
-from compiled_code.lib.parse import *
+from certifier.lib.polyexp import PolyExp, SymExp
+from certifier.lib.parse import *
 
 
 def create_l(image, eps = 0.02, shapes = []):
