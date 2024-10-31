@@ -2,7 +2,7 @@ from compiled_code.lib.abs_elem import Abs_elem_sparse
 from compiled_code.lib.polyexp import *
 from compiled_code.lib.nlist import *
 from compiled_code.lib.utils import *
-from compiled_code.specs.network import Network, LayerType
+from compiled_code.lib.network import Network, LayerType
 
 import torch
 import time

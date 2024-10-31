@@ -21,11 +21,11 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("import pickle")
         self.write("\n")
 
-        self.write("from compiled_code.specs.spec import *")
-        self.write("from compiled_code.certifier_sparse import Certifier")
+        self.write("from compiled_code.lib.spec import *")
+        self.write("from compiled_code.lib.certifier_sparse import Certifier")
         self.write("from compiled_code.lib.abs_elem import Abs_elem_sparse")
         self.write("from compiled_code.lib.utils import *")
-        self.write("from compiled_code.specs.network import LayerType")
+        self.write("from compiled_code.lib.network import LayerType")
         self.write("from compiled_code.output.transformers_compiled2 import *")
 
         self.write("\n")
