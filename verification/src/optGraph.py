@@ -1,16 +1,6 @@
 from z3 import *
 
-x = Real('x')
-y = Real('y')
-b = True
-plus = (x + y).decl()
-conjunction = (And(b, b)).decl()
-lt = (x < y).decl()
-le = (x <= y).decl()
-gt = (x > y).decl()
-ge = (x >= y).decl()
-eqq = (x == y).decl()
-comparison = [lt, le, gt, ge, eqq]
+from verification.src.utils import *
 
 class Node():
     def __init__(self, counter, v):
@@ -222,9 +212,5 @@ class OptGraph():
                                 return common * self.num_form[l1[i]], 1
         return expr, 0
 
-def get_summands(expr):
-    if str(expr.decl()) == '+':
-        return get_summands(expr.children()[0]) + get_summands(expr.children()[1])
-    else:
-        return [expr]
+
     
