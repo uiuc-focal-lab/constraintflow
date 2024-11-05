@@ -1,21 +1,17 @@
+from z3 import *
+import time
+
 from ast_cflow import astVisitor
 from ast_cflow import astcf as AST
-from z3 import *
-#from cvc5.pythonic import * 
-from .value import *
-from .symbolicos import *
-# from optimization import *
-import copy
-import time
-from ast_cflow import astPrinter
-from .solver import Opt_solver
+
+from verification.src.value import *
+from verification.src.symbolicSemantics import *
 
 
 def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 	for var in vars.keys():
 		if not var in v.symmap.keys():
-			#vname = str(v.name) #uncomment when using cvc5
-			vname = v.name.decl().name() #uncomment when using Z3
+			vname = v.name.decl().name()
 			if(vars[var] == "Bool" or vars[var] == "Ct"):
 				v.symmap[var] = (Bool(vname + "_" + var + "_" + str(number.nextn())), vars[var])
 			elif(vars[var] == "Int"):
@@ -46,7 +42,6 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 		visitedc = os.visit(cons)
 		if(not flag):
 			os.flag = True
-		# print(os.E)
 		Ctemp.append(os.convertToZ3(visitedc))
 		if(not flag):
 			os.flag = False
@@ -56,8 +51,7 @@ def populate_vars(vars, v, C, store, os, constraint, number, flag = True):
 		C += Ctemp
 	return Ctemp
 
-class SymbolicGraph(astVisitor.ASTVisitor):
-
+class SymbolicDNN(astVisitor.ASTVisitor):
 	def __init__(self, store, F, constraint, shape, Nprev, Nzono, number, M, V, C, E, old_eps, old_neurons, solver, arrayLens, prevLength):
 		self.M = M
 		self.V = V 
@@ -71,7 +65,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.shape = shape
 		self.Nprev = Nprev
 		self.Nzono = Nzono
-		self.os = SymbolicOperationalSemantics(self.store, self.F, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.shape, self.Nprev, self.Nzono, arrayLens)
+		self.ss = SymbolicSemantics(self.store, self.F, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.shape, self.Nprev, self.Nzono, arrayLens)
 		self.number = number 
 		self.currop = None #Stores the relationship between curr and prev for traverse proof
 		g = getVars(self.constraint, self.shape)
@@ -130,7 +124,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = newvar_list
-						self.os.arrayLens[str(newvar_list)] = self.prevLength
+						self.ss.arrayLens[str(newvar_list)] = self.prevLength
 					elif(node.metadata.name == "layer"):
 						newvar = (Int('X' + str(self.number.nextn())), "Int")
 					elif(node.metadata.name == "serial"):
@@ -142,7 +136,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 						for i in range(self.Nprev):
 							newvar_list[i] = (Real('X' + str(self.number.nextn())), "PolyExp")
 						newvar = newvar_list
-						self.os.arrayLens[str(newvar_list)] = self.prevLength
+						self.ss.arrayLens[str(newvar_list)] = self.prevLength
 					self.V[n[0]].symmap[node.metadata.name] = newvar
 			else:
 				for ni in n:
@@ -150,7 +144,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def visitGetMetadata(self, node):
 		self.visit(node.expr)
-		n = self.os.visit(node.expr)
+		n = self.ss.visit(node.expr)
 		self.get_getMetadata(n, node)
 
 
@@ -176,7 +170,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def visitGetElement(self, node):
 		self.visit(node.expr)
-		n = self.os.visit(node.expr)
+		n = self.ss.visit(node.expr)
 		self.get_getElement(n, node)
 
 	def visitGetElementAtIndex(self, node):
@@ -191,28 +185,12 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			self.get_map(val.left, node)
 			self.get_map(val.right, node)
 		else:
-			# u_type = self.os.get_type(val)
-			# if u_type=='PolyExp' or u_type=='Neuron':
-			# 	expr = self.os.convertToPoly(val)
-			# else:
-			# 	expr = self.os.convertToZono(val)
-
-			# for n in expr.coeffs.keys():
-			# 	if isinstance(node.func, AST.VarNode):
-			# 		elist = []
-			# 	else:	
-			# 		elist = self.os.visit(node.func)
-			# 	elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
-			# 	print(elist.exprlist)
-			# 	jf
-			# 	fcall = AST.FuncCallNode(node.func, elist)
-			# 	self.visitFuncCall(fcall, True)
 			if isinstance(val, ADD) or isinstance(val, SUB):
 				self.get_map(val.left, node)
 				self.get_map(val.right, node)
 			elif isinstance(val, MULT):
-				lhstype = self.os.get_type(val.left)
-				rhstype = self.os.get_type(val.right)
+				lhstype = self.ss.get_type(val.left)
+				rhstype = self.ss.get_type(val.right)
 
 				if isinstance(node.func, AST.VarNode):
 					elist = []
@@ -230,7 +208,7 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 					fcall = AST.FuncCallNode(fname, elist)
 					self.visitFuncCall(fcall, True)
 			elif isinstance(val, DIV):
-				lhstype = self.os.get_type(val.left)
+				lhstype = self.ss.get_type(val.left)
 				if isinstance(node.func, AST.VarNode):
 					elist = []
 					fname = node.func
@@ -257,9 +235,8 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 	def visitMap(self, node):
 		self.visit(node.expr)
-		checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
-		p = self.os.visit(node.expr)
-		# print('2', type(p))
+		expandSymbolicDNN(self.ss, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
+		p = self.ss.visit(node.expr)
 		self.get_map(p, node)
 		
 
@@ -272,15 +249,14 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 				if isinstance(node.func, AST.VarNode):
 					elist = []
 				else:	
-					elist = self.os.visit(node.func)
+					elist = self.ss.visit(node.func)
 				elist = AST.ExprListNode(elist + [n])
 				fcall = AST.FuncCallNode(node.func, elist)
 				self.visitFuncCall(fcall, True)
 
 	def visitMapList(self, node):
-		#checkPoly(self.os, self.vars, self.constraint, self.number, self.Nzono).visit(node.expr)
 		self.visit(node.expr)
-		p = self.os.visit(node.expr)
+		p = self.ss.visit(node.expr)
 		self.get_maplist(p, node)
 
 	def visitFuncCall(self, node, preeval = False):
@@ -295,12 +271,9 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 
 		if(not preeval):
 			self.visit(node.arglist)
-			elist = self.os.visit(node.arglist)
+			elist = self.ss.visit(node.arglist)
 		else:
 			elist = node.arglist.exprlist
-			# if isinstance(elist[0], ADD):
-			# 	print(elist[0].left, elist[0].right)
-
 		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
 			if arg.name in self.store.keys():
 				oldvalues[arg.name] = self.store[arg.name]
@@ -320,19 +293,6 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 	def visitLp(self, node):
 		self.visit(node.expr)
 		self.visit(node.constraints)
-		# expr = self.os.visit(node.expr)
-		# constraints = self.os.convertToZ3(self.os.visit(node.constraints))
-		# if(str(node.constraints) in self.os.arrayLens):
-		# 	x = self.os.arrayLens[str(node.constraints)]
-		# 	for i in range(len(constraints)):
-		# 		constraints[i] = Or(constraints[i],x < i+1)
-
-		# out = Real('Lp_'+str(self.number.nextn()))
-		# self.M[LP(node.op, expr, constraints)] = out
-		# if(node.op == "maximize"):
-		# 	self.C.append(Implies(self.os.convertToZ3(constraints), out >= self.os.convertToZ3(expr)))
-		# else:
-		# 	self.C.append(Implies(self.os.convertToZ3(constraints), out <= self.os.convertToZ3(expr)))
 
 	def visitArgmaxOp(self, node):
 		self.visit(node.expr)
@@ -350,31 +310,21 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.fexpr)
 
 	def check_invariant(self, node):
-		# newV = copy.copy(self.os.V)
-		# newM = copy.copy(self.os.M)
-		# newC = copy.copy(self.os.C)
-		# newStore = copy.copy(self.store)
-		
-		# oldV = copy.copy(self.os.V)
-		# # oldM = copy.copy(self.os.M)
-		# oldC = copy.copy(self.os.C)
-		# oldStore = copy.copy(self.store)
-
 		const = Real('inv_X' + str(self.number.nextn()))
 		input = (const, "Float")
 		output = (const, "Float")
 		for i in range(self.Nzono):
 			if len(self.old_neurons)==i:
 				neuron = Vertex('V' + str(self.number.nextn()))
-				self.os.V[neuron.name] = neuron 
-				populate_vars(self.vars, neuron, self.os.C, self.store, self.os, self.constraint, self.number)
+				self.ss.V[neuron.name] = neuron 
+				populate_vars(self.vars, neuron, self.ss.C, self.store, self.ss, self.constraint, self.number)
 				self.old_neurons.append(neuron)
 			neuron = self.old_neurons[i]
 			coeff = (Real('inv_X' + str(self.number.nextn())), "Float")
 			if isinstance(node.stop, AST.VarNode):
 				elist_stop = []
 			else:	
-				elist_stop = self.os.visit(node.stop)
+				elist_stop = self.ss.visit(node.stop)
 			if(isinstance(node.stop, AST.VarNode)):
 				self.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			elif(isinstance(node.stop, AST.FuncCallNode)):
@@ -383,164 +333,96 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 			if isinstance(node.func, AST.VarNode):
 				elist_func = []
 			else:	
-				elist_func = self.os.visit(node.func)
+				elist_func = self.ss.visit(node.func)
 			if(isinstance(node.func, AST.VarNode)):
 				self.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode(elist_func + [(neuron.name, "Neuron"), coeff])), True)
 
-			# print(type(node.stop))
 			if(isinstance(node.stop, AST.VarNode)):
-				val_stop = self.os.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
+				val_stop = self.ss.visitFuncCall(AST.FuncCallNode(node.stop, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			elif(isinstance(node.stop, AST.FuncCallNode)):
-				val_stop = self.os.visitFuncCall(AST.FuncCallNode(node.stop.name, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
+				val_stop = self.ss.visitFuncCall(AST.FuncCallNode(node.stop.name, AST.ExprListNode(elist_stop + [(neuron.name, "Neuron"), coeff])), True)
 			else: #expression like True
-				val_stop = self.os.visit(node.stop)
+				val_stop = self.ss.visit(node.stop)
 
 			if(isinstance(node.func, AST.VarNode)):
-				val_func = self.os.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode(elist_func + [(neuron.name, "Neuron"), coeff])), True)
+				val_func = self.ss.visitFuncCall(AST.FuncCallNode(node.func, AST.ExprListNode(elist_func + [(neuron.name, "Neuron"), coeff])), True)
 			else: #expression like True
-				val_func = self.os.visit(node.func)
+				val_func = self.ss.visit(node.func)
 
 			input = ADD(input, MULT(coeff, (neuron.name, "Neuron")))
 			output_temp = IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron')))
 			cond = EQQ(coeff, (0, "Float"))
 			output_temp = IF(cond, (0, 'Float'), output_temp)
-			output = self.os.get_binop(output, output_temp, ADD)
+			output = self.ss.get_binop(output, output_temp, ADD)
 
-			# input = ADD(input, MULT(coeff, (neuron.name, "Neuron")))
-			# output = self.os.get_binop(output, IF(val_stop, val_func, MULT(coeff, (neuron.name, 'Neuron'))), ADD)
-		# s = Solver()
-		old_val = self.os.store[node.expr.name]
-		self.os.store[node.expr.name] = input 
-		p_input = self.os.convertToZ3(self.os.visit(node.p))
+		old_val = self.ss.store[node.expr.name]
+		self.ss.store[node.expr.name] = input 
+		p_input = self.ss.convertToZ3(self.ss.visit(node.p))
 
-		self.os.store[node.expr.name] = output  
-		p_output = self.os.convertToZ3(self.os.visit(node.p))
-		# print((p_output))
-		# dfhg
-		# self.os.store[node.expr.name] = old_val
-		lhs = And(self.os.C + [p_input]+ self.os.tempC)
+		self.ss.store[node.expr.name] = output  
+		p_output = self.ss.convertToZ3(self.ss.visit(node.p))
+		lhs = And(self.ss.C + [p_input]+ self.ss.tempC)
 		rhs = p_output
-		# print(lhs)
-		# print(rhs.children()[1])
-		# solver = Opt_solver()
 		w = self.solver.solve(lhs, rhs)
-		print("end",time.time())
+		# print("end",time.time())
 		if w:
-			print('Induction step proved')
+			pass
+			# print('Induction step proved')
 		else:
 			raise Exception("Induction step is not true")
-		# p = Not(Implies(lhs, p_output))
-		# flag = True 
-		# opt = None
-		# if opt:
-		# 	d = p_output.decl()
-		# 	flag = True 
-		# 	for i in range(len(opt)):
-		# 		solver = Solver()
-		# 		p = Not(Implies(And(lhs), d(opt[i][0], opt[i][1])))
-		# 		print(p)
-		# 		solver.add(p)
-		# 		if(not (solver.check() == unsat)):
-		# 			flag = False 
-		# 			dhgdhgfd
-		# 			break 
-		# 		else:
-		# 			print('proved ', i)
-		# else:
-		# 	flag = False 
-		# print(flag)
-
-		# s.add(p)
-		# print("gen",time.time())
-		# #set_param('timeout', 30)
-		# #print("timeout place")
-		# #s.set("timeout",10000)
-		# #print(p)
-		# #z3.set_option(timeout=30)
-		# print(p)
-		# jhdsg
-		# if(not (s.check() == unsat)):
-		# 	print(p)
-		# 	print(s.model())
-		# 	print("end",time.time())
-		# 	raise Exception("Induction step is not true")
-		# else:
-		# 	print("Induction step proved")
 		
-		# print("end",time.time())
-		
-		# self.os.M = oldM
-		# self.os.V = oldV
-		# self.os.C = oldC
-		# self.os.store = oldStore
-
-		# self.M = self.os.M
-		# self.V = self.os.V
-		# self.C = self.os.C 
-		# self.store = self.os.store 
 
 		const = Real('out_trav_X' + str(self.number.nextn()))
 		output_poly = (const, "Float")
 		for i in range(self.Nzono):
-			if len(self.os.old_neurons)==i:
+			if len(self.ss.old_neurons)==i:
 				neuron = Vertex('V' + str(self.number.nextn()))
-				self.os.V[neuron.name] = neuron 
-				populate_vars(self.vars, neuron, self.os.C, self.store, self.os, self.constraint, self.number)
-				self.os.old_neurons.append(neuron)
-			neuron = self.os.old_neurons[i]
+				self.ss.V[neuron.name] = neuron 
+				populate_vars(self.vars, neuron, self.ss.C, self.store, self.ss, self.constraint, self.number)
+				self.ss.old_neurons.append(neuron)
+			neuron = self.ss.old_neurons[i]
 			coeff = (Real('out_trav_c' + str(self.number.nextn())), "Float")
 			output_poly = ADD(output_poly, MULT(coeff, (neuron.name, "Neuron")))
 
-		# print(type(output))
-		#self.C.append(self.os.convertToZ3(output) == self.os.convertToZ3(output_poly))
-		self.os.store[node.expr.name] = output_poly 
-		p_output = self.os.convertToZ3(self.os.visit(node.p))
-		self.os.store[node.expr.name] = old_val
-		self.os.C.append(p_output)
+		self.ss.store[node.expr.name] = output_poly 
+		p_output = self.ss.convertToZ3(self.ss.visit(node.p))
+		self.ss.store[node.expr.name] = old_val
+		self.ss.C.append(p_output)
 
 		return output_poly, p_output
 
 	def visitTraverse(self, node):
 		self.visit(node.expr)
-		e = self.os.visit(node.expr)
-		p = self.os.visit(node.p)
+		e = self.ss.visit(node.expr)
+		p = self.ss.visit(node.p)
 		
-		pz3 = self.os.convertToZ3(p)
-		prop = Not(Implies(And(self.os.C + [self.currop]+self.os.tempC), pz3))
+		pz3 = self.ss.convertToZ3(p)
+		prop = Not(Implies(And(self.ss.C + [self.currop]+self.ss.tempC), pz3))
 		s = Solver()
-		#s.set("timeout",3000)
 		s.add(prop)
-		print("gen",time.time())
-		# lhs = And(self.os.C + [self.currop]+self.os.tempC)
-		# rhs = pz3 
-
-		#print("induction query:")
-		#print(prop)
+		# print("gen",time.time())
 		
 		if(not (s.check() == unsat)):
-			# print(s)
-			# print(s.model())
-			print("end",time.time())
+			# print("end",time.time())
 			raise Exception("Invariant is not true on input")
-		else:
-			print("Invariant true on input")
+		# else:
+			# print("Invariant true on input")
 		
-		print("end",time.time())
+		# print("end",time.time())
 
 		output, prop_output = self.check_invariant(node)
 
 		if(isinstance(node.priority, AST.VarNode)):
 			p_name = node.priority.name
 		else:
-			p_name = self.os.visit(node.priority)
+			p_name = self.ss.visit(node.priority)
 
 		if(isinstance(node.stop, AST.VarNode)):
 			s_name = node.stop.name
 		else:
-			s_name = self.os.visit(node.stop)
+			s_name = self.ss.visit(node.stop)
 
-		self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output 
-		# self.os.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output 
+		self.ss.M[TRAVERSE(e, node.direction, p_name, s_name, node.func.name)] = output 
 
 	def visitTransRetBasic(self, node):
 		self.visit(node.exprlist)
@@ -551,10 +433,10 @@ class SymbolicGraph(astVisitor.ASTVisitor):
 		self.visit(node.fret)
 
 
-class checkPoly(astVisitor.ASTVisitor):
+class expandSymbolicDNN(astVisitor.ASTVisitor):
 	
 	def __init__(self, os, vars, constraint, number, Nzono):
-		self.os = os
+		self.ss = os
 		self.vars = vars 
 		self.constraint = constraint
 		self.number = number
@@ -615,25 +497,6 @@ class checkPoly(astVisitor.ASTVisitor):
 
 	def visitListOp(self, node: AST.ListOpNode):
 		self.visit(node.expr)
-
-	# def visitMap(self, node: AST.MapNode):
-	# 	self.visit(node.expr)
-	# 	val = self.os.visit(node.expr)
-		
-	# 	u_type = self.os.get_type(val)
-	# 	if u_type=='PolyExp' or u_type=='Neuron':
-	# 		expr = self.os.convertToPoly(val)
-	# 	else:
-	# 		expr = self.os.convertToZono(val)
-
-	# 	for n in expr.coeffs.keys():
-	# 		if isinstance(node.func, AST.VarNode):
-	# 			elist = []
-	# 		else:	
-	# 			elist = self.os.visit(node.func)
-	# 		elist = AST.ExprListNode(elist + [n, expr.coeffs[n]])
-	# 		fcall = AST.FuncCallNode(node.func, elist)
-	# 		self.visitFuncCall(fcall, True)
  
 	def get_map(self, val, node):
 		if isinstance(val, IF):
@@ -644,8 +507,8 @@ class checkPoly(astVisitor.ASTVisitor):
 				self.get_map(val.left, node)
 				self.get_map(val.right, node)
 			elif isinstance(val, MULT):
-				lhstype = self.os.get_type(val.left)
-				rhstype = self.os.get_type(val.right)
+				lhstype = self.ss.get_type(val.left)
+				rhstype = self.ss.get_type(val.right)
 
 				if isinstance(node.func, AST.VarNode):
 					elist = []
@@ -663,7 +526,7 @@ class checkPoly(astVisitor.ASTVisitor):
 					fcall = AST.FuncCallNode(fname, elist)
 					self.visitFuncCall(fcall, True)
 			elif isinstance(val, DIV):
-				lhstype = self.os.get_type(val.left)
+				lhstype = self.ss.get_type(val.left)
 				if isinstance(node.func, AST.VarNode):
 					elist = []
 					fname = node.func
@@ -690,14 +553,8 @@ class checkPoly(astVisitor.ASTVisitor):
 
 	def visitMap(self, node):
 		self.visit(node.expr)
-		val = self.os.visit(node.expr)
+		val = self.ss.visit(node.expr)
 		self.get_map(val, node)
-
-
-
-
-
-
 
 	def visitDot(self, node: AST.DotNode):
 		self.visit(node.left)
@@ -708,40 +565,36 @@ class checkPoly(astVisitor.ASTVisitor):
 		self.visit(node.right)
 	
 	def visitFuncCall(self, node: AST.FuncCallNode, preeval=False):
-		# name = node.name.name
-		# self.visit(self.os.F[name].expr)
-		# self.visit(node.arglist)
-
 		name = node.name.name
 		if(isinstance(name, str)): 
-			func = self.os.F[node.name.name]
+			func = self.ss.F[node.name.name]
 		else:
-			func = self.os.F[node.name.name.name]
+			func = self.ss.F[node.name.name.name]
 
 		newvars = []
 		oldvalues = {}
 
 		if(not preeval):
 			self.visit(node.arglist)
-			elist = self.os.visit(node.arglist)
+			elist = self.ss.visit(node.arglist)
 		else:
 			elist = node.arglist.exprlist
 
 		for (exp,(t, arg)) in zip(elist, func.decl.arglist.arglist):
-			if arg.name in self.os.store.keys():
-				oldvalues[arg.name] = self.os.store[arg.name]
+			if arg.name in self.ss.store.keys():
+				oldvalues[arg.name] = self.ss.store[arg.name]
 			else:
 				newvars.append(arg.name)
 
-			self.os.store[arg.name] = exp
+			self.ss.store[arg.name] = exp
 
 		self.visit(func.expr)
 		
 		for v in newvars:
-			del self.os.store[v]
+			del self.ss.store[v]
 
 		for ov in oldvalues.keys():
-			self.os.store[ov] = oldvalues[ov]
+			self.ss.store[ov] = oldvalues[ov]
 
 
 	def get_getMetadata(self, val, node):
@@ -755,29 +608,29 @@ class checkPoly(astVisitor.ASTVisitor):
 			name = node.metadata.name
 			if name == "equations":
 				newlist = []
-				for eq in (self.os.V[val[0]].symmap[name]):
+				for eq in (self.ss.V[val[0]].symmap[name]):
 					if(isinstance(eq, tuple)):
 
 						oldvar = eq[0]
 						newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 						for i in range(self.Nzono):
-							if len(self.os.old_neurons) == i:
+							if len(self.ss.old_neurons) == i:
 								neuron = Vertex('V' + str(self.number.nextn()))
-								self.os.old_neurons.append(neuron)
-								self.os.V[neuron.name] = neuron
-								populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
-							neuron = self.os.old_neurons[i]
+								self.ss.old_neurons.append(neuron)
+								self.ss.V[neuron.name] = neuron
+								populate_vars(self.vars, neuron, self.ss.C, self.ss.store, self.ss, self.constraint, self.number)
+							neuron = self.ss.old_neurons[i]
 							const = (Real('c' + str(self.number.nextn())), "Float")
 							newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
 
 						newlist.append(newvar)
-						self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+						self.ss.C.append(oldvar == self.ss.convertToZ3(newvar))
 				if newlist != []:
-					self.os.V[val[0]].symmap[name] = newlist
+					self.ss.V[val[0]].symmap[name] = newlist
 
 	def visitGetMetadata(self, node: AST.GetMetadataNode):
-		n = self.os.visit(node.expr)
+		n = self.ss.visit(node.expr)
 		self.get_getMetadata(n, node)
 
 	def get_getElement(self, val, node):
@@ -789,47 +642,44 @@ class checkPoly(astVisitor.ASTVisitor):
 			self.get_getElement(val.right, node)
 		else:
 			name = node.elem.name
-			if isinstance(self.os.V[val[0]].symmap[name], tuple):
-				if (self.os.V[val[0]].symmap[name])[1] == 'PolyExp':
-					oldvar = self.os.V[val[0]].symmap[name][0]
+			if isinstance(self.ss.V[val[0]].symmap[name], tuple):
+				if (self.ss.V[val[0]].symmap[name])[1] == 'PolyExp':
+					oldvar = self.ss.V[val[0]].symmap[name][0]
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 					for i in range(self.Nzono):
-						if len(self.os.old_neurons) == i:
+						if len(self.ss.old_neurons) == i:
 							neuron = Vertex('V' + str(self.number.nextn()))
-							self.os.old_neurons.append(neuron)
-							self.os.V[neuron.name] = neuron
-							populate_vars(self.vars, neuron, self.os.C, self.os.store, self.os, self.constraint, self.number)
-						neuron = self.os.old_neurons[i]
+							self.ss.old_neurons.append(neuron)
+							self.ss.V[neuron.name] = neuron
+							populate_vars(self.vars, neuron, self.ss.C, self.ss.store, self.ss, self.constraint, self.number)
+						neuron = self.ss.old_neurons[i]
 						const = (Real('c' + str(self.number.nextn())), "Float")
 						newvar = ADD(newvar, MULT(const, (neuron.name, "Neuron")))
 
-					self.os.V[val[0]].symmap[name] = newvar
-					self.os.C.append(oldvar == self.os.convertToZ3(newvar))
-				elif (self.os.V[val[0]].symmap[name])[1] == 'ZonoExp':
-					oldvar = self.os.V[val[0]].symmap[name][0]
+					self.ss.V[val[0]].symmap[name] = newvar
+					self.ss.C.append(oldvar == self.ss.convertToZ3(newvar))
+				elif (self.ss.V[val[0]].symmap[name])[1] == 'ZonoExp':
+					oldvar = self.ss.V[val[0]].symmap[name][0]
 					newvar = (Real('X' + str(self.number.nextn())), "Float")
 
 					for i in range(self.Nzono):
-						# epsilon = Real('eps' + str(self.number.nextn()))
-						if len(self.os.old_eps) == i:
+						if len(self.ss.old_eps) == i:
 							epsilon = Real('eps_'+str(self.number.nextn()))
-							self.os.old_eps.append(epsilon)
-							self.os.C.append(epsilon <= 1)
-							self.os.C.append(epsilon >= -1)
-						epsilon = self.os.old_eps[i]
+							self.ss.old_eps.append(epsilon)
+							self.ss.C.append(epsilon <= 1)
+							self.ss.C.append(epsilon >= -1)
+						epsilon = self.ss.old_eps[i]
 						const = (Real('X' + str(self.number.nextn())), "Float")
 						newvar = ADD(newvar, MULT(const, (epsilon, "Noise")))
 						
 
-					self.os.V[val[0]].symmap[name] = newvar
-					self.os.C.append(oldvar == self.os.convertToZ3(newvar))
+					self.ss.V[val[0]].symmap[name] = newvar
+					self.ss.C.append(oldvar == self.ss.convertToZ3(newvar))
 			return
 
 	def visitGetElement(self, node):
-		n = self.os.visit(node.expr)
-		# print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		# print(n)
+		n = self.ss.visit(node.expr)
 		self.get_getElement(n, node)
 
 class getVars(astVisitor.ASTVisitor):

@@ -1,72 +1,16 @@
+from z3 import *
+import time
+
 from ast_cflow import astVisitor
 from ast_cflow import astcf as AST
-from z3 import *
-import sys 
-#from cvc5.pythonic import * 
-from .value import *
-
-sys.path.append('src/')
-from .symbolicos import *
-from .symbolicgraph import *
-from .solver import Opt_solver
-import time
-set_param('parallel.enable', True) #uncomment when using Z3
+from verification.src.value import *
+from verification.src.utils import *
+from verification.src.symbolicDNN import SymbolicDNN, populate_vars
+from verification.src.optSolver import OptSolver
 
 exptemp = None
 op_ = None 
-
-# def z3_vars(x, verbose = False):
-# 	# if not isinstance(x, z3.z3.ArithRef):
-# 	# 	if verbose:
-# 	# 		print(x, type(x))
-# 	# 	return set()
-# 	if x.children() == []:
-# 		if verbose:
-# 			print(x)
-# 		if isinstance(x, float) or isinstance(x, int) or isinstance(x, bool) or isinstance(x, z3.z3.RatNumRef)  or isinstance(x, z3.z3.IntNumRef) or isinstance(x, z3.z3.BoolRef):
-# 			return set()
-# 		return {x}
-# 	s = set()
-# 	for i in x.children():
-# 		s = s.union(z3_vars(i))
-# 	return s
-
-
-# class AstRefKey:
-#     def __init__(self, n):
-#         self.n = n
-#     def __hash__(self):
-#         return self.n.hash()
-#     def __eq__(self, other):
-#         return self.n.eq(other.n)
-#     def __repr__(self):
-#         return str(self.n)
-
-# def askey(n):
-#     assert isinstance(n, AstRef)
-#     return AstRefKey(n)
-
-# def get_vars(f):
-#     r = set()
-#     def collect(f):
-#       if is_const(f): 
-#           if f.decl().kind() == Z3_OP_UNINTERPRETED and not askey(f) in r:
-#               r.add(askey(f))
-#       else:
-#           for c in f.children():
-#               collect(c)
-#     collect(f)
-#     return r
-
-# x = Real('x')
-# y = Real('y')
-# plus = (x + y).decl()
-# lt = (x<y).decl()
-# le = (x<=y).decl()
-# gt = (x>y).decl()
-# ge = (x>=y).decl()
-# eq = (x==y).decl()
-# comparison = [lt, le, gt, ge, eq]
+case_ = 0
 
 class Verify(astVisitor.ASTVisitor):
 
@@ -76,7 +20,6 @@ class Verify(astVisitor.ASTVisitor):
 		self.theta = {}
 		self.Nprev = 3
 		self.Nzono = 3
-		self.Ncurr = 3 #Not used anymore
 		self.number = Number()
 		self.M = {}
 		self.V = {}
@@ -84,17 +27,9 @@ class Verify(astVisitor.ASTVisitor):
 		self.E = []
 		self.old_eps = []
 		self.old_neurons = []
-		# for i in range(self.Nzono):
-		# 	e = Real('eps_'+str(self.number.nextn()))
-		# 	self.old_eps.append(e)
-		# 	self.C.append(e <= 1)
-		# 	self.C.append(e >= -1)
-			# n = Real('V_'+str(self.number.nextn()))
-			# self.old_neurons.append(n)
 		self.store = {}
 		self.arrayLens = {}
-		#set_param("timeout", 30)
-		self.solver = Opt_solver()
+		self.solver = OptSolver()
 
 	def visitShapeDecl(self, node):
 		for (t,e) in node.elements.arglist:
@@ -111,7 +46,8 @@ class Verify(astVisitor.ASTVisitor):
 	def visitFlow(self, node):
 		global exptemp
 		global op_
-		print("start ",time.time())
+		global case_
+		start_time = time.time()
 		node = self.theta[node.trans.name]
 		for op_i in range(len(node.oplist.olist)):
 			self.E.clear()
@@ -124,55 +60,38 @@ class Verify(astVisitor.ASTVisitor):
 			if self.Nprev > 1:
 				self.C.append(prevLength[0]>0)
 				self.C.append(prevLength[0] <= self.Nprev)
+			
 			op_ = op.op.op_name
+			case_ = 0
+
+			print(f"{op_} transformer")
+			start_time = time.time()
+			
 			if(op_ == "Relu" or op_ == "Relu6" or op_ == "Abs" or op_=='rev_Relu' or op_=='rev_Relu6' or op_=='rev_Abs' or op_ == 'rev_Maxpool' or op_ == "HardTanh" or op_ == "rev_HardTanh" or op_ == "HardSigmoid" or op_ == "rev_HardSigmoid" or op_ == "HardSwish" or op_ == "rev_HardSwish"):
 				nprev= 1
-			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min':
-				nprev = 2
-			elif op_ == 'rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min':
+			elif op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min' or op_ == 'rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min':
 				nprev = 2
 			else:
 				nprev = self.Nprev
-			s = SymbolicGraph(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.solver, self.arrayLens, prevLength)
-			s.os.hasE = hasE
-			#node = self.theta[node.trans.name]
-			required_neurons = []
-			is_list = True 
-			# op_ = node.oplist.olist[op_i].op.op_name
+				
+			required_neurons = ['curr', 'prev']
+			is_list = False 
+			if 'Affine' in op_ or 'pool' in op_:
+				is_list = True
 
-			if op_ == 'Affine':
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'rev_Affine':
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'Relu' or op_ == 'rev_Relu' or op_ == 'Relu6' or op_ == 'rev_Relu6':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'Abs' or op_ == 'rev_Abs':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardTanh' or op_ == 'rev_HardTanh':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardSigmoid' or op_ == 'rev_HardSigmoid':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'HardSwish' or op_ == 'rev_HardSwish':
-				is_list = False 
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'Maxpool' or op_ == 'Minpool' or op_ == 'Avgpool':
-				required_neurons = ['curr', 'prev']
-			elif op_ == 'rev_Maxpool':
+
+			if op_ == 'rev_Maxpool':
 				required_neurons = ['curr', 'prev', 'curr_list']
-			elif (op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min' or 
-				'rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min'):
+			elif (op_ == 'Neuron_mult' or op_ == 'Neuron_add' or op_ == 'Neuron_max' or op_ == 'Neuron_min' or op_=='rev_Neuron_mult' or op_ == 'rev_Neuron_add' or op_ == 'rev_Neuron_max' or op_ == 'rev_Neuron_min' or op_ == 'Neuron_list_mult'):
 				required_neurons = ['curr', 'prev_0', 'prev_1']
-				is_list = False 
-			elif op_ == 'Neuron_list_mult':
-				required_neurons = ['curr', 'prev_0', 'prev_1']
+
+			s = SymbolicDNN(self.store, self.F, self.constraint, self.shape, nprev, self.Nzono, self.number, self.M, self.V, self.C, self.E, self.old_eps, self.old_neurons, self.solver, self.arrayLens, prevLength)
+			s.ss.hasE = hasE
+			
 			if("curr" in required_neurons):
 				curr = Vertex('Curr')
 				self.V[curr.name] =  curr 
-				populate_vars(s.vars, curr, self.C, self.store, s.os, self.constraint, self.number)
+				populate_vars(s.vars, curr, self.C, self.store, s.ss, self.constraint, self.number)
 				store["curr"] = (curr.name, "Neuron")
 			if("prev" in required_neurons):
 				prev = []
@@ -180,13 +99,24 @@ class Verify(astVisitor.ASTVisitor):
 					p = Vertex('Prev'+str(i))
 					prev.append((p.name, "Neuron"))
 					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
 				if(is_list):
 					store["prev"] = prev
 				else:
 					store["prev"] = prev[0] 
 				if(len(prev) > 1):
 					arrayLens[str(prev)] = prevLength
+			
+			if("curr_list" in required_neurons):
+				curr_list = []
+				for i in range(self.Nprev):
+					p = Vertex('curr_list'+str(i))
+					curr_list.append((p.name, "Neuron"))
+					self.V[p.name] = p
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
+				store["curr_list"] = curr_list
+				arrayLens[str(curr_list)] = prevLength
+
 			if(op_ == 'Neuron_list_mult'):
 				prev_0 = []
 				prev_1 = []
@@ -194,12 +124,12 @@ class Verify(astVisitor.ASTVisitor):
 					p = Vertex('Prev0_'+str(i))
 					prev_0.append((p.name, "Neuron"))
 					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
 
 					p = Vertex('Prev1_'+str(i))
 					prev_1.append((p.name, "Neuron"))
 					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
 				store["prev_0"] = prev_0 
 				arrayLens[str(prev_0)] = prevLength
 				store["prev_1"] = prev_1
@@ -210,7 +140,7 @@ class Verify(astVisitor.ASTVisitor):
 					p = Vertex('Prev'+str(i))
 					prev.append((p.name, "Neuron"))
 					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
 				store["prev_0"] = prev[0] 
 				store["prev_1"] = prev[1] 
 			elif("prev_0" in required_neurons):
@@ -219,21 +149,10 @@ class Verify(astVisitor.ASTVisitor):
 					p = Vertex('Prev'+str(i))
 					prev.append((p.name, "Neuron"))
 					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
+					populate_vars(s.vars, p, self.C, self.store, s.ss, self.constraint, self.number)
 				store["prev_0"] = prev[0] 
-			if("curr_list" in required_neurons):
-				curr_list = []
-				for i in range(self.Nprev):
-					p = Vertex('curr_list'+str(i))
-					curr_list.append((p.name, "Neuron"))
-					self.V[p.name] = p
-					populate_vars(s.vars, p, self.C, self.store, s.os, self.constraint, self.number)
-				store["curr_list"] = curr_list
-				arrayLens[str(curr_list)] = prevLength
+			
 
-		#for op_i in range(len(node.oplist.olist)):
-			#self.E.clear()
-			#op = node.oplist.olist[op_i]
 			curr_prime = Vertex('curr_prime' + str(op_i))
 			s.V[curr_prime.name] = curr_prime
 
@@ -246,17 +165,16 @@ class Verify(astVisitor.ASTVisitor):
 					curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
 				exptemp = curr.symmap["bias"]
 				for i in range(len(prev)):
-					# exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
 					exptemp = ADD(exptemp, IF(LEQ(i+1,prevLength),(MULT(prev[i], curr.symmap["weight"][i])),(0, "Int")))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 			elif(op_ == "Neuron_list_mult"):
 				exptemp = (0, 'Float')
 				for i in range(nprev):
 					exptemp = ADD(exptemp, IF(LEQ(i+1,prevLength),MULT(prev_0[i], prev_1[i]),(0, "Int")))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 			elif(op_ == "rev_Affine"):
 				if(not "equations" in curr.symmap.keys()):
@@ -268,14 +186,14 @@ class Verify(astVisitor.ASTVisitor):
 					exptemp = AND(exptemp, IF(LEQ(j+1,prevLength),EQQ(curr.name, t),(True, "Bool")))
 					j = j + 1
 
-				s.currop = s.os.convertToZ3(exptemp)
+				s.currop = s.ss.convertToZ3(exptemp)
 			elif(op_ == "Relu"):
 				exptemp = (0, "Float") 
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Relu6"):
@@ -285,7 +203,7 @@ class Verify(astVisitor.ASTVisitor):
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, (0, 'Float'))
 				exptemp = IF(LEQ(exptemp, (6, 'Float')), exptemp, (6, 'Float'))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Abs"):
@@ -294,7 +212,7 @@ class Verify(astVisitor.ASTVisitor):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(GEQ(exptemp, (0, 'Float')), exptemp, NEG(exptemp))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "HardTanh"):
@@ -303,7 +221,7 @@ class Verify(astVisitor.ASTVisitor):
 					exptemp = ADD(exptemp, prev[i])
 				exptemp = IF(LEQ(exptemp, (-1, 'Float')), -1, IF(GEQ(exptemp, (1, 'Float')), 1, exptemp))
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "HardSigmoid"):
@@ -311,7 +229,7 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				exptemp = If(If((exptemp + 1)/2 > 1, 1, (exptemp + 1)/2) < 0, 0, If((exptemp + 1)/2 > 1, 1, (exptemp + 1)/2))
 				
 				s.currop = (curr.name == exptemp)
@@ -321,7 +239,7 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				exptemp = If(exptemp <= -3, 0, If(exptemp >= 3, exptemp, exptemp * (exptemp+3)/6))
 				
 				s.currop = (curr.name == exptemp)
@@ -329,42 +247,42 @@ class Verify(astVisitor.ASTVisitor):
 			elif(op_ == "Neuron_mult"):
 				exptemp = MULT(prev[0], prev[1])
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Neuron_add"):
 				exptemp = ADD(prev[0], prev[1])
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 			
 			elif(op_ == "Neuron_max"):
 				exptemp = IF(GEQ(prev[0], prev[1]), prev[0], prev[1])
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Neuron_min"):
 				exptemp = IF(LEQ(prev[0], prev[1]), prev[0], prev[1])
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "rev_Neuron_mult"): #prev_0 is the output neuron and prev_1 is the other input neuron
 				exptemp = EQQ(prev[0], MULT(curr.name, prev[1]))
-				s.currop = s.os.convertToZ3(exptemp)
+				s.currop = s.ss.convertToZ3(exptemp)
 
 			elif(op_ == "rev_Neuron_add"):
 				exptemp = EQQ(prev[0], ADD(curr.name, prev[1]))
-				s.currop = s.os.convertToZ3(exptemp)
+				s.currop = s.ss.convertToZ3(exptemp)
 
 			elif(op_ == "rev_Neuron_max"):
 				exptemp = EQQ(prev[0],IF(GEQ(curr.name, prev[1]), curr.name, prev[1]))
-				s.currop = s.os.convertToZ3(exptemp)
+				s.currop = s.ss.convertToZ3(exptemp)
 
 			elif(op_ == "rev_Neuron_min"):
 				exptemp = EQQ(prev[0],IF(LEQ(curr.name, prev[1]), curr.name, prev[1]))
-				s.currop = s.os.convertToZ3(exptemp)
+				s.currop = s.ss.convertToZ3(exptemp)
 
 			elif(op_ == "rev_Relu"):
 
@@ -372,9 +290,9 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "rev_Relu6"):
 
@@ -382,10 +300,10 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, (0, 'Float'))
 				prevexp = IF(LEQ(curr.name, (6, 'Float')), prevexp, (6, 'Float'))
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "rev_Abs"):
 
@@ -393,9 +311,9 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (0, 'Float')), curr.name, NEG(curr.name))
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "rev_HardTanh"):
 
@@ -403,10 +321,10 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (-1, 'Float')), curr.name, (-1, 'Float'))
 				prevexp = IF(LEQ(curr.name, (1, 'Float')), prevexp, (1, 'Float'))
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "rev_HardSigmoid"):
 
@@ -414,10 +332,10 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					exptemp = ADD(exptemp, prev[i])
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(curr.name, (-1, 'Float')), DIV(ADD(curr.name, (1, "Float")), (2, "Float")), (0, 'Float'))
 				prevexp = IF(LEQ(curr.name, (1, 'Float')), prevexp, (1, 'Float'))
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "rev_HardSwish"):
 
@@ -427,12 +345,12 @@ class Verify(astVisitor.ASTVisitor):
 				
 				temp_curr_name = ADD(curr.name, (3, "Float"))
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				prevexp = IF(GEQ(temp_curr_name, (0, 'Float')), temp_curr_name, (0, 'Float'))
 				prevexp = IF(LEQ(temp_curr_name, (6, 'Float')), prevexp, (6, 'Float'))
 				prevexp = DIV(prevexp, (6, "Float"))
 				prevexp = MULT(prevexp, curr.name)
-				s.currop = ( s.os.convertToZ3(prevexp) == exptemp)
+				s.currop = ( s.ss.convertToZ3(prevexp) == exptemp)
 
 			elif(op_ == "Maxpool"):
 				exptemp = prev[0]
@@ -446,7 +364,7 @@ class Verify(astVisitor.ASTVisitor):
 
 					exptemp = IF(cond, prev[i], exptemp)
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Minpool"):
@@ -461,7 +379,7 @@ class Verify(astVisitor.ASTVisitor):
 
 					exptemp = IF(cond, prev[i], exptemp)
 
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "Avgpool"):
@@ -471,7 +389,7 @@ class Verify(astVisitor.ASTVisitor):
 					summation = ADD(summation, prev[i])
 					exptemp = IF(EQQ(i+1,prevLength), DIV(summation, prevLength), exptemp)
 				
-				exptemp = s.os.convertToZ3(exptemp)
+				exptemp = s.ss.convertToZ3(exptemp)
 				s.currop = (curr.name == exptemp)
 
 			elif(op_ == "rev_Maxpool"):
@@ -487,170 +405,76 @@ class Verify(astVisitor.ASTVisitor):
 				for i in range(len(prev)):
 					prevexp = ADD(prevexp, prev[i])
 
-				exptemp = s.os.convertToZ3(exptemp)
-				prevexp = s.os.convertToZ3(prevexp)
+				exptemp = s.ss.convertToZ3(exptemp)
+				prevexp = s.ss.convertToZ3(prevexp)
 				s.currop = (prevexp == exptemp)
 			
 			for m in curr.symmap.keys():
 				curr_prime.symmap[m] = curr.symmap[m]
 			
 			computation = (curr_prime.name == curr.name)
-			# computation = s.os.tempC
-			if(len(s.os.arrayLens) != 0):
-				computation = [s.currop, computation, prevLength[0] > 0, prevLength[0] <= nprev] + s.os.tempC
+			if(len(s.ss.arrayLens) != 0):
+				computation = [s.currop, computation, prevLength[0] > 0, prevLength[0] <= nprev] + s.ss.tempC
 			else:
-				computation = [s.currop, computation] + s.os.tempC
-			# print(computation)
-			s.os.tempC = []
+				computation = [s.currop, computation] + s.ss.tempC
+			s.ss.tempC = []
 			s.flag = True
 			s.visit(op.ret)
-			print("graph expansion done", time.time())
+
+			gen_symbolicDNN_time = time.time()
+			print(f"\tCreated Symbolic DNN in {gen_symbolicDNN_time - start_time : .5f}s")
+			# print("graph expansion done", time.time())
 			vallist = None
-			#s.os.flag = True
-
-			# for k in range(2, self.Nprev):
-			# 	print(k)
-			# 	# self.solver.reveal()
-			# 	self.Nprev = k
-			# 	s.os.Nprev = k
-			# 	s.Nprev = k
-			# 	if(op.op.op_name == "Affine"):
-			# 		# if(not "weight" in curr.symmap.keys()):
-			# 		# 	curr.symmap["weight"] = [(Real('weight_curr' + str(op_i) + "_" + str(self.number.nextn())), "Float") for i in range(nprev)]
-			# 		# if(not "bias" in curr.symmap.keys()):
-			# 		# 	curr.symmap["bias"] = ((Real('bias_curr' + str(self.number.nextn())), "Float"))
-			# 		exptemp = (0, 'Float')
-			# 		for i in range(self.Nprev):
-			# 			exptemp = ADD(exptemp, MULT(prev[i], curr.symmap["weight"][i]))
-			# 		exptemp = ADD(exptemp, curr.symmap["bias"])
-
-			# 		exptemp = s.os.convertToZ3(exptemp)
-			# 		s.currop = (curr.name == exptemp)
-				
-			# computation = (curr_prime.name == curr.name)
-			# # computation = s.os.tempC
-			# computation = [computation,] + s.os.tempC
-			# # print(computation)
-			# s.os.tempC = []
-			# print(s.os.C)
-			# sdj
-				
+			
 			if(isinstance(op.ret, AST.TransRetIfNode)):
 				vallist = self.visitTransRetIf(op.ret, s)
 			else:
-				#print('here')
 				vallist = self.visitTransRetBasic(op.ret, s)
-			print("symbolic output", time.time())
-			# print(computation)
-			# print(s.currop)
-			# print()
-			# print(s.os.C)
-			# print()
-			# print(s.os.C)
-			leftC = computation + s.os.C 
-			# for j in range(len(s.os.C)):
-			# 	constraint = s.os.C[j]
-			# 	vars = self.solver.vars(constraint)
-			# 	flag = True 
-			# 	# print(vars)
-			# 	for v_ in vars:
-			# 		v = v_.sexpr()
-			# 		# print(v, 'prev' in v)
-			# 		# print(type(v.sexpr()))
-			# 		if 'Prev' in v:
-			# 			if int(v.split('_')[0][4:])>=k:
-			# 				flag = False 
-			# 				break 
-			# 	# jhdg
-			# 	if flag:
-			# 		leftC.append(constraint) 
-			# 	print(type(v[0]))
-			# jshc
-			# print(leftC)
-			# dkj
-			# leftC = computation + s.os.C
+			# print("symbolic output", time.time())
+			leftC = computation + s.ss.C 
 			
-			# print(s.os.C)
-			
-			# leftC = And(And(And(s.os.convertToZ3(s.os.C)), computation), s.currop)
-
 			self.applyTrans(leftC, vallist, s, curr_prime, computation)
-			print("Proved ", op.op.op_name)
+			end_time = time.time()
+			print(f"Proved {op_}\n")
 
 	def applyTrans(self, leftC, vallist, s, curr_prime, computation):
-		# print(leftC)
+		global case_
 		if(isinstance(vallist, list)):
-			# print(leftC)
 			for (elem, val) in zip(self.shape.keys(), vallist):
 				curr_prime.symmap[elem] = val
-				# print(elem)
-				# print(s.os.convertToZ3(val))
-				# jshdfkj
-		
 
-			# print(self.store)
-			# print(s.os.store)
-			#Put this somewhere before so it only runs once
 			conslist = [self.constraint]
 			if isinstance(self.constraint, AST.ExprListNode):
 				conslist = self.constraint.exprlist
 			set_option(max_args=10000000, max_lines=1000000, max_depth=10000000, max_visited=1000000)
-			for one_cons in conslist:
-				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.os, one_cons, self.number, False)
-				
-				# jfhd
-				# print('here')
-				# print(c)
-				z3constraint = s.os.convertToZ3(c)
+
+			case_ += 1
+			print(f"\tChecking soundness of Case {case_}")
+			start_time = time.time()
+			for cons_id, one_cons in enumerate(conslist):
+				start_time = time.time()
+				c = populate_vars(s.vars, curr_prime, self.C, self.store, s.ss, one_cons, self.number, False)
+				z3constraint = s.ss.convertToZ3(c)
 				if(isinstance(z3constraint, bool)):
 					z3constraint = BoolSort().cast(z3constraint)
-				# print(z3constraint)
 				if isinstance(exptemp, z3.z3.ArithRef) and not('rev' in op_):
 					z3constraint = substitute(z3constraint, (curr_prime.name, exptemp))
-				# print(z3constraint)
-				# sdkj
-				#print("time", time.time())
-				# print(self.E)
-				# print(z3_vars(z3constraint, True))
 				eps_constraints = []
-				# print(self.E)
-				# kjf
 				for eps in self.E:
 					eps_constraints.append(eps >= -1)
 					eps_constraints.append(eps <= 1)
-				# if len(self.E) > 0:
-				# 	epsilons = []
-				# 	for epsilon in self.E:
-				# 		if epsilon in z3_vars(z3constraint):
-				# 			epsilons.append(epsilon)
-				# 	if len(epsilons)>0: 
-				# 		conds_eps = [z3constraint]
-				# 		for e in self.E:
-				# 			conds_eps.append(e <= 1)
-				# 			conds_eps.append(e >= -1)
-				# 		z3constraint = Exists(epsilons, And(conds_eps))
-					
-				#solver.set(timeout=30)
-				# leftC += s.os.C 
-				# print(leftC)
-				newLeftC = leftC + s.os.tempC + eps_constraints + s.os.C
-
 				
-				print("gen",time.time())
+				newLeftC = leftC + s.ss.tempC + eps_constraints + s.ss.C
+
+
+				print(f"\t\tConstraint {cons_id}")
+				
+				gen_time = time.time()
+				print(f"\t\t\tQuery Generated in {gen_time - start_time : .5f}s")
 				lhs = And(newLeftC)
 				rhs = z3constraint
-				# print()
-				# print(lhs)
-				# print()
-				# print(rhs)
-				# print()
-				# fc
-				print('!!!!!!!!!!!!!!!!')
 				w = self.solver.solve(lhs, rhs)
-				print('@@@@@@@@@@@@@@@')
-				# print(lhs)
-				# print()
-				# print(rhs)
+				end_time = time.time()
 				if(not w):
 					print(lhs)
 					print()
@@ -660,56 +484,23 @@ class Verify(astVisitor.ASTVisitor):
 					c = s.check()
 					if c==sat:
 						print(s.model())
-					print("end",time.time())
-					#print(solver)
-					#print(solver.model())
-					raise Exception("Transformer"+ " " + " not true")
-				print("end",time.time())
-				s.os.tempC = []
+					raise Exception(f"\t\t\tConstraint Unsound. Proved in {end_time - gen_time : .5f}s")
+				print(f"\t\t\tConstraint Sound. Proved in {end_time - gen_time : .5f}s")
+				s.ss.tempC = []
 
-				# opt = optimization(z3constraint)
-				# flag = True 
-				# opt = None
-				# if opt:
-				# 	d = z3constraint.decl()
-				# 	flag = True 
-				# 	for i in range(len(opt)):
-				# 		solver = Solver()
-				# 		p = Not(Implies(And(newLeftC), d(opt[i][0], opt[i][1])))
-				# 		print(p)
-				# 		solver.add(p)
-				# 		if(not (solver.check() == unsat)):
-				# 			flag = False 
-				# 			dhgdhgfd
-				# 			break 
-				# 		else:
-				# 			print('proved ', i)
-				# else:
-				# 	flag = False 
-				# print(flag)
-				# if not flag:
-				# 	solver = Solver()
-				# 	p = Not(Implies(And(newLeftC), z3constraint))
-				# 	solver.add(p)
-				# 	print("gen",time.time())
-				# 	if(not (solver.check() == unsat)):
-				# 		print("end",time.time())
-				# 		raise Exception("Transformer"+ " " + " not true")
-				# 	print("end",time.time())
-				# s.os.tempC = []
 		else:
-			condz3 = s.os.convertToZ3(vallist.cond)
-			preC = leftC + s.os.tempC
-			s.os.tempC = []
+			condz3 = s.ss.convertToZ3(vallist.cond)
+			preC = leftC + s.ss.tempC
+			s.ss.tempC = []
 			self.applyTrans(preC + [condz3], vallist.left, s, curr_prime, computation)
 			self.applyTrans(preC + [Not(condz3)], vallist.right, s, curr_prime, computation)
 
 	
 	def visitTransRetBasic(self, node, s):
-		return s.os.visit(node.exprlist)
+		return s.ss.visit(node.exprlist)
 
 	def visitTransRetIf(self, node, s):
-		cond = s.os.visit(node.cond)
+		cond = s.ss.visit(node.cond)
 		left = None
 		right = None
 		if(isinstance(node.tret, AST.TransRetIfNode)):

@@ -1,17 +1,14 @@
 import sys
-sys.path.append('src/')
-sys.path.append('../ast/')
-
 import antlr4 as antlr
-
-import astcf as AST
-import astTC
-from astVisitor import ASTVisitor
-import random
-
 import time
 from multiprocessing import Process
 from call_function_with_timeout import SetTimeout
+
+from ast_cflow import astcf as AST
+from ast_cflow import astTC
+from ast_cflow.astVisitor import ASTVisitor
+import random
+
 
 
 class BuggyAst(ASTVisitor):
