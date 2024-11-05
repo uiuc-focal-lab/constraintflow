@@ -3,6 +3,19 @@ from z3 import *
 one = Real('one')
 minus_one = Real('minus_one')
 
+x = Real('x')
+y = Real('y')
+b = True
+plus = (x + y).decl()
+conjunction = (And(b, b)).decl()
+lt = (x < y).decl()
+le = (x <= y).decl()
+gt = (x > y).decl()
+ge = (x >= y).decl()
+eqq = (x == y).decl()
+if_ = If(x>0, x, y).decl()
+comparison = [lt, le, gt, ge, eqq]
+
 def z3_vars(x):
 	# if not isinstance(x, z3.z3.ArithRef):
 	# 	return set()
@@ -61,6 +74,14 @@ def get_z3max_eps(E, e):
 def get_z3min_eps(E, e):
 	es = get_all_combs(E, [e], 0)
 	return z3min_list(es)
+
+
+def get_summands(expr):
+    if str(expr.decl()) == '+':
+        return get_summands(expr.children()[0]) + get_summands(expr.children()[1])
+    else:
+        return [expr]
+
 
 
 class Number:
