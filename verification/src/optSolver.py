@@ -1,18 +1,8 @@
 from z3 import *
-from verification.src.optGraph import OptGraph
 
-x = Real('x')
-y = Real('y')
-b = True
-plus = (x + y).decl()
-conjunction = (And(b, b)).decl()
-lt = (x < y).decl()
-le = (x <= y).decl()
-gt = (x > y).decl()
-ge = (x >= y).decl()
-eqq = (x == y).decl()
-if_ = If(x>0, x, y).decl()
-comparison = [lt, le, gt, ge, eqq]
+from verification.src.optGraph import OptGraph
+from verification.src.utils import *
+
 
 class OptSolver:
     def __init__(self):
@@ -45,16 +35,6 @@ class OptSolver:
             s = s.union(self.vars(i))
         return s
 
-    def get_summands(self, x):
-        top_level = x.decl()
-        if top_level != plus:
-            return [x]
-        else:
-            left = x.children()[0]
-            right = x.children()[1]
-            return self.get_summands(left) + self.get_summands(right)
-
-
     def get_clauses(self, x):
         top_level = x.decl()
         if top_level != conjunction:
@@ -70,7 +50,7 @@ class OptSolver:
         lhs, rhs = q.children()
         flag = 0
         if lhs.decl()==plus and rhs.decl()==plus:
-            if len(self.get_summands(lhs)) == len(self.get_summands(rhs)):
+            if len(get_summands(lhs)) == len(get_summands(rhs)):
                 flag = 1
         lhs = self.vars(lhs)
         rhs = self.vars(rhs)
@@ -97,8 +77,8 @@ class OptSolver:
                 m2 = [(left.children()[2], right)]
             m = m1 + m2
             return m 
-        left_ = self.get_summands(left)
-        right_ = self.get_summands(right)
+        left_ = get_summands(left)
+        right_ = get_summands(right)
         m = []
         if default_order:
             for i in range(len(left_)):
@@ -130,8 +110,8 @@ class OptSolver:
         if flag:
             return m
         else:
-            left_ = self.get_summands(left)
-            right_ = self.get_summands(right)
+            left_ = get_summands(left)
+            right_ = get_summands(right)
             for i in range(len(left_)):
                 m.append((left_[i], right_[i]))
             return m
