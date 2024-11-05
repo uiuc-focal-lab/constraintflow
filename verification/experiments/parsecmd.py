@@ -10,16 +10,19 @@ else:
 lines = [line for line in input_stream]
 
 if len(lines) > 0:
-    start = float(lines[0].split(" ")[1])
     gen = 0
     solve = 0
     for l in lines:
-        if(l.split(" ")[0] == "gen"):
-            gen = gen + float(l.split(" ")[1]) - start
-            start = float(l.split(" ")[1])
-        if(l.split(" ")[0] == "end"):
-            solve = solve + float(l.split(" ")[1]) - start
-            start = float(l.split(" ")[1])
+        if("Query Generated in" in l):
+            num = l.split(" ")[-1]
+            while(num[-1] == "\n" or num[-1] =="s"):
+                num = num[0:-1]
+            gen = gen + float(num)
+        if("Proved in" in l):
+            num = l.split(" ")[-1]
+            while(num[-1] == "\n" or num[-1] =="s"):
+                num = num[0:-1]
+            solve = solve + float(num)
 
     print(gen)
     print(solve)
