@@ -1,7 +1,5 @@
 from z3 import *
-from .graph import Opt_graph
-import time
-import threading
+from verification.src.optGraph import OptGraph
 
 x = Real('x')
 y = Real('y')
@@ -16,7 +14,7 @@ eqq = (x == y).decl()
 if_ = If(x>0, x, y).decl()
 comparison = [lt, le, gt, ge, eqq]
 
-class Opt_solver:
+class OptSolver:
     def __init__(self):
         self.solved = []
         self.counter = -1
@@ -29,16 +27,9 @@ class Opt_solver:
 
 
     def check(self, lhs, rhs):
-        # print('CHECKING NOW')
-        # print(lhs)
-        # print()
-        # print(rhs)
         s = Solver()
         s.add(Not(Implies(lhs, rhs))) 
         ret = s.check()
-        # if(ret == sat):
-        #     print(s.model())
-        # print('CHECKED')
         return (ret==unsat)
     
     def common_vars(self, a, b):
@@ -86,13 +77,9 @@ class Opt_solver:
         return (flag, len(lhs.intersection(rhs)))
 
     def get_sufficient_formulae(self, lhs, rhs):        
-        g = Opt_graph(lhs)
+        g = OptGraph(lhs)
         l = g.get_sufficient_queries(rhs)
         l.sort(reverse=True, key=self.priority)
-        # print(len(l))
-        # if len(l)==5:
-        #     for i in range(len(l)):
-        #         print(l[i])
         return l
 
     def get_sub_lemmas(self, rhs, default_order = False):
@@ -157,27 +144,16 @@ class Opt_solver:
             return True
         i = 0
         for r in m:
-            #print(i)
             i= i+1
-            # print(r)
             l_, r_ = r
             l_top_level = l_.decl()
             r_top_level = r_.decl()
             if l_top_level == if_ and r_top_level == if_:
-                # print('here')
                 if l_.children()[0] == r_.children()[0]:
-                    # print('here')
-                    # t1 = self.check(And(lhs, l_.children()[0]), top_level(l_.children()[1], r_.children()[1]))
                     ll = lhs 
                     rr = top_level(l_.children()[1], r_.children()[1])
-                    # print(ll)
-                    # print(rr)
                     t1 = self.check(ll, rr)
-                    # t1 = self.check(lhs, top_level(l_.children()[1], r_.children()[1]))
-                    # print('here')
-                    # t2 = self.check(And(lhs, Not(l_.children()[0])), top_level(l_.children()[2], r_.children()[2]))
                     t2 = self.check(lhs, top_level(l_.children()[2], r_.children()[2]))
-                    # print('here')
                     if  (t1 and t2):
                         continue 
             res = self.check(lhs, top_level(*r))
@@ -229,14 +205,7 @@ class Opt_solver:
     def solve_temp(self, lhs, rhs):
         m = self.get_sufficient_formulae(lhs, rhs)
         if m:
-            # i=0
-            # for r in m:
-            #     if self.fast_solve(lhs, r):
-            #         return True 
-            # i=0
             for r in m:
-                # print(i)
-                # i = i+1
                 if self.opt_solve(lhs, r):
                     return True 
         return self.opt_solve(lhs, rhs)
@@ -244,79 +213,15 @@ class Opt_solver:
     def check_quantifier(self, lhs, rhs):
         return isinstance(rhs, z3.z3.QuantifierRef)
     
-    # def solve_without_opt(self, lhs, rhs):
-    #     ret = self.check(lhs, rhs)
-    #     # if ret:
-    #     self.final_answer = ret 
-    #     self.result_event.set()
-
-    #     return  
     
-    # def solve_with_opt(self, lhs, rhs):
-    #     if self.check_quantifier(lhs, rhs):
-    #         return self.check(lhs, rhs)
-    #     m_if = self.check_if(lhs, rhs)
-    #     for i in m_if:
-    #         ret = self.solve_temp(*i)
-    #         if not ret:
-    #             # print(lhs)
-    #             # print()
-    #             # print(rhs)
-    #             self.final_answer = ret 
-    #             self.result_event.set()
-    #             return  
-    #     self.final_answer = ret 
-    #     self.result_event.set()
-    #     return 
-
-    # def solve(self, lhs, rhs):
-    #     self.final_answer = None
-    #     self.result_event = threading.Event()
-    #     thread1 = threading.Thread(target=self.solve_without_opt, args=(lhs, rhs))
-    #     thread2 = threading.Thread(target=self.solve_with_opt, args=(lhs, rhs))
-
-    #     thread1.start()
-    #     thread2.start()
-
-    #     # Wait for one of the threads to finish
-    #     self.result_event.wait()
-    #     # print('hdsgfjhgsd')
-    #     # thread1.join()
-    #     # thread2.join()
-    #     return self.final_answer
     def solve(self, lhs, rhs):
-        # print(lhs)
-        # print()
-        # print(rhs)
-        # print()
-        # return self.check(lhs, rhs)
-        
         if self.check_quantifier(lhs, rhs):
             return self.check(lhs, rhs)
 
         m_if = self.check_if(lhs, rhs)
 
-        # if len(m_if)<=1:
-        #     ret = self.solve_temp(*m_if[0])
-        #     if not ret:
-        #         # print(lhs)
-        #         # print()
-        #         # print(rhs)
-        #         return False
-        #     return True
-        # for i in m_if:
-        #     ret = self.solve(*i)
-        #     if not ret:
-        #         # print(lhs)
-        #         # print()
-        #         # print(rhs)
-        #         return False
-        # return True
         for i in m_if:
             ret = self.solve_temp(*i)
             if not ret:
-                # print(lhs)
-                # print()
-                # print(rhs)
                 return False 
         return True

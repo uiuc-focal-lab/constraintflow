@@ -7,6 +7,38 @@
 
 from z3 import *
 
+class Vertex:
+	#Store the expression for the vertex polyhedral element when it is defined(say if we are using a map function)
+	def __init__(self, name):
+		self.symmap = {} #ex) "layer" -> (Int('X1'), "Int")
+		self.name = Real(name) #Should be unique name
+
+
+class PolyExpValue():
+
+	#Coeffs have type float if they could be concretely evaluated, but they can be values such as argmax(prev, l)[bias]
+	def __init__(self, coeffs, const):
+		self.const = const #const : tuple
+		self.coeffs = coeffs #{neuron name -> coeff: tuple}
+
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, PolyExpValue)):
+	# 		return self.coeffs == obj.coeffs and self.const == obj.const
+	# 	else:
+	# 		return False
+
+class ZonoExpValue():
+
+	def __init__(self, coeffs, const):
+		self.const = const #const : tuple
+		self.coeffs = coeffs #{noise variable -> coeff: tuple}
+
+	# def __eq__(self, obj):
+	# 	if(isinstance(obj, ZonoExpValue)):
+	# 		return self.coeffs == obj.coeffs 
+	# 	else:
+	# 		return False
+
 class TerminalValue:
 	def __init__(self):
 		pass
@@ -120,7 +152,6 @@ def create_mult(left, right):
 		return IF(right.cond, create_mult(left, right.left), create_mult(left, right.right))
 	elif (isinstance(left, tuple) or get_type(left)=='Float') and isinstance(right, MULT):
 		multiplicands = [left] + get_multiplicands(right)
-		print(multiplicands)
 		coeff = 1
 		others = []
 		for i in range(len(multiplicands)):
@@ -155,8 +186,6 @@ def create_mult(left, right):
 
 	else:
 		return MULT(left, right)
-		# print(left, right)
-		# raise Exception('IMPLEMENT THIS')
 	
 
 class DIV(TerminalValue):
@@ -328,49 +357,6 @@ class IF(TerminalValue):
 	def __hash__(self):
 		return hash(('IF', self.cond, self.left, self.right))
 
-# class LIST(TerminalValue):
-# 	def __init__(self, l, f):
-# 		self.elist = l 
-# 		self.list_func = f 
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, LIST)):
-# 			return self.list_func.name() == obj.list_func.name() and self.elist == obj.elist 
-	
-# 	def __hash__(self):
-# 		return (('LIST', str(self.elist), self.list_func.name()))
-
-
-# class EPSILON(NonTerminalValue):
-
-# 	def __init__(self, identifier):
-# 		self.identifier = identifier
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, EPSILON)):
-# 			return self.identifier == obj.identifier
-# 		else:
-# 			return False
-
-# 	def __hash__(self):
-# 		return hash(("EPSILON", self.identifier))
-
-# class TERNARY(NonTerminalValue):
-
-# 	def __init__(self, cond, left, right):
-# 		self.cond = cond
-# 		self.left = left
-# 		self.right = right
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, TERNARY)):
-# 			return self.cond == obj.cond and self.left == obj.left and self.right == obj.right
-# 		else:
-# 			return False
-
-# 	def __hash__(self):
-# 		return hash(("TERNARY", self.cond, self.left, self.right))
-
 class MAX(NonTerminalValue):
 
 	def __init__(self, e):
@@ -398,38 +384,6 @@ class MIN(NonTerminalValue):
 
 	def __hash__(self):
 		return hash(("MIN", str(self.e)))
-
-# class ARGMAX(NonTerminalValue):
-
-# 	def __init__(self, e, f, arglist = []):
-# 		self.e = e
-# 		self.f = f
-# 		self.arglist = arglist
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, ARGMAX)):
-# 			return self.e == obj.e and self.f == obj.f and self.arglist == obj.arglist 
-# 		else:
-# 			return False
-
-# 	def __hash__(self):
-# 		return hash(("ARGMAX", str(self.e), self.f))
-
-# class ARGMIN(NonTerminalValue):
-
-# 	def __init__(self, e, s):
-# 		self.e = e
-# 		self.s = s
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, ARGMIN)):
-# 			return self.e == obj.e and self.s == obj.s
-# 		else:
-# 			return False
-
-# 	def __hash__(self):
-# 		return hash(("ARGMIN", str(self.e), self.s))
-
 
 class TRAVERSE(NonTerminalValue):
 
@@ -465,40 +419,3 @@ class LP(NonTerminalValue):
 
 	def __hash__(self):
 		return hash(("LP", self.op, self.e, str(self.c)))
-
-# class DOT(NonTerminalValue):
-
-# 	def __init__(self, l1, l2):
-# 		self.list1 = l1 #LIST TerminalValue
-# 		self.list2 = l2
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, LIST)):
-# 			return self.list1 == obj.list1 and self.list2 == obj.list2
-	
-# 	def __hash__(self):
-# 		return hash(("DOT", l1, l2))
-
-# class GETELEMENT(NonTerminalValue):
-# 	def __init__(self, elist, elem):
-# 		self.elist = elist
-# 		self.elem = elem 
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, GETELEMENT)):
-# 			return self.elist==obj.elist and self.elem==obj.elem 
-
-# 	def __hash__(self):
-# 		return hash(('GETELEMENT', elist, elem))
-
-# class GETMETADATA(NonTerminalValue):
-# 	def __init__(self, elist, metadata):
-# 		self.elist = elist
-# 		self.metadata = metadata 
-
-# 	def __eq__(self, obj):
-# 		if(isinstance(obj, GETMETADATA)):
-# 			return self.elist==obj.elist and self.metadata==obj.metadata 
-
-# 	def __hash__(self):
-# 		return hash(('GETMETADATA', elist, metadata))

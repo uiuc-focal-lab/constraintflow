@@ -9,14 +9,14 @@ lt = (x < y).decl()
 le = (x <= y).decl()
 gt = (x > y).decl()
 ge = (x >= y).decl()
-eq = (x == y).decl()
-comparison = [lt, le, gt, ge, eq]
+eqq = (x == y).decl()
+comparison = [lt, le, gt, ge, eqq]
 
-class Vertex():
+class Node():
     def __init__(self, counter, v):
         self.v = v 
         self.counter = counter 
-        self.eq = []
+        self.eqq = []
         self.le = []
         self.lt = []
         self.ge = []
@@ -24,7 +24,7 @@ class Vertex():
 
         
 
-class Opt_graph():
+class OptGraph():
     def __init__(self):
         self.form_num = dict()
         self.num_form = dict()
@@ -70,13 +70,13 @@ class Opt_graph():
                 if lhs not in self.form_num.keys():
                     self.form_num[lhs] = self.counter
                     self.num_form[self.counter] = lhs
-                    v = Vertex(self.counter, lhs)
+                    v = Node(self.counter, lhs)
                     self.num_vertex[self.counter] = v
                     self.counter += 1
                 if rhs not in self.form_num.keys():
                     self.form_num[rhs] = self.counter
                     self.num_form[self.counter] = rhs
-                    v = Vertex(self.counter, rhs)
+                    v = Node(self.counter, rhs)
                     self.num_vertex[self.counter] = v
                     self.counter += 1
                 
@@ -86,9 +86,9 @@ class Opt_graph():
                 v_lhs = self.num_vertex[num_lhs]
                 v_rhs = self.num_vertex[num_rhs]
 
-                if clause.decl()==eq:
-                    v_lhs.eq.append(num_rhs)
-                    v_rhs.eq.append(num_lhs)
+                if clause.decl()==eqq:
+                    v_lhs.eqq.append(num_rhs)
+                    v_rhs.eqq.append(num_lhs)
 
                 if clause.decl()==lt:
                     v_lhs.gt.append(num_rhs)
@@ -108,14 +108,14 @@ class Opt_graph():
 
     def travel_up(self, num):
         v = self.num_vertex[num]
-        for i in v.eq + v.ge + v.gt:
+        for i in v.eqq + v.ge + v.gt:
             if i not in self.up:
                 self.up.add(i)
                 self.travel_up(i)
 
     def travel_down(self, num):
         v = self.num_vertex[num]
-        for i in v.eq + v.le + v.lt:
+        for i in v.eqq + v.le + v.lt:
             if i not in self.down:
                 self.down.add(i)
                 self.travel_down(i)
