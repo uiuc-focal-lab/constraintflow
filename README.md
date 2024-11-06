@@ -1,4 +1,4 @@
-# ProveSound
+# ConstraintFlow
 
 ###  DNN Certifier Specifications
 The DNN certifier specifications can be found in:
@@ -7,8 +7,11 @@ The DNN certifier specifications can be found in:
 ### Directory Structure
 
 ```
-provesound/
+constraintflow/
 ├── ast_cflow/
+├── certifier/
+├── compiler/
+├── interpreter/
 ├── verification/
 │   ├── data/
 |   ├── experiments/
@@ -29,7 +32,7 @@ pip install -r requirements.txt
 python3 -m verification.experiments.experiments_full 
 ```
 
-### To run ProveSound for a sound DNN certifier
+### To run ConstraintFlow for a sound DNN certifier
 
 ```
 python3 -m verification.experiments.experiments_correct certifier_file [n_prev] [n_sym]
@@ -40,7 +43,7 @@ Example:
 python3 -m verification.experiments.experiments_correct verification/data/test_cases_correct/deeppoly_relu 1 1
 ```
 
-### To run ProveSound for an unsound DNN certifier
+### To run ConstraintFlow for an unsound DNN certifier
 
 ```
 python3 -m verification.experiments.experiments_incorrect certifier_file [n_prev] [n_sym]
