@@ -1,0 +1,16 @@
+def Shape as (Float l, Float u, Float b, SymExp z){[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[z] + (curr[b]*eps))]};
+
+func abs(Float x) = x > 0 ? x : -x;
+func simplify(Noise n, Float coeff) = abs(coeff);
+
+func compute_l(Neuron n1, Neuron n2) = min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+func compute_u(Neuron n1, Neuron n2) = max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+
+func priority(Neuron n) = n[layer];
+func relu(Float r) = r >= 0 ? r : 0;
+
+transformer hybridzono{
+    Neuron_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1), max(abs(compute_l(prev_0, prev_1)), abs(compute_u(prev_0, prev_1))), 0);
+}
+
+flow(forward, priority, true, hybridzono);

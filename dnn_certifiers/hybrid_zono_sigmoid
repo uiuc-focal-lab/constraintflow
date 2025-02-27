@@ -1,0 +1,18 @@
+def Shape as (Float l, Float u, Float b, SymExp z){[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[z] + (curr[b]*eps))]};
+
+func simplify_lower(Noise n, Float coeff) = (coeff >= 0) ? (coeff * (-1)) : (coeff * 1);
+func simplify_upper(Noise n, Float coeff) = (coeff >= 0) ? (coeff * 1) : (coeff * (-1));
+
+func compute_min(Neuron n) = n[z].map(simplify_lower) - n[b];
+func compute_max(Neuron n) = n[b] + n[z].map(simplify_upper);
+
+func priority(Neuron n) = n[layer];
+func sigmoid(Float r) = r >= -1 ? (r <= 1 ? (r + 1)/2 : 1) : 0;
+
+func abs(Float x) = x > 0 ? x : -1*x;
+
+transformer hybridzono{
+    HardSigmoid -> (sigmoid(prev[l]), sigmoid(prev[u]), sigmoid(prev[u]), 0);
+}
+
+flow(forward, priority, true, hybridzono);

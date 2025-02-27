@@ -1,0 +1,51 @@
+def Shape as (Float l, Float u, Float b, SymExp z)
+{[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[z] + (curr[b]*eps))]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_abs(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[b]) : (-coeff * n[b]);
+
+func priority(Neuron n) = n[layer];
+
+func relu(Float r) = r >= 0 ? r : 0;
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+func abs(Float x) = x > 0 ? x : -x;
+
+func s1(Float x1, Float x2) = ((x1 * (x1 + 3))-(x2 * (x2 + 3))) / (6 * (x1-x2));
+func i1(Float x1, Float x2) = x1 * ((x1 + 3) / 6) - (s1(x1, x2) * x1);
+
+func f1(Float x) = x < 3 ? x * ((x + 3) / 6) : x;
+func f2(Float x) = x * ((x + 3) / 6);
+
+transformer HybridZonotope{
+    Neuron_add -> ((prev_0[l] + prev_1[l]), (prev_0[u] + prev_1[u]), (prev_0[b] + prev_1[b]), (prev_0[z] + prev_1[z]));
+    Maxpool -> (max(prev[l]), max(prev[u]), max(abs(max(prev[l])), abs(max(prev[u]))),0);
+    Relu -> abs(prev[l]) > abs(prev[u]) ? 
+                ((prev[l]) >= 0) ? 
+                (prev[l], prev[u], (prev[b]), (prev[z])) : 
+                (-prev[b], prev[b] + relu(prev[u]), prev[b], ((1 + eps) * (relu(prev[u]/2)))) :
+                (((prev[l]) < 0) and ((prev[u]) > 0)) ? 
+                (0, prev[u], (prev[b]), (prev[z] - (((1 + eps) * (prev[l])) / 2))) : 
+                (((prev[l]) >= 0) ? 
+                    (prev[l], prev[u], (prev[b]), (prev[z])) : 
+                    (0, 0, prev[b], ((1 + eps) * (relu(prev[u]/2)))));
+    Abs -> (prev[l] > 0) ?
+                (prev[l], prev[u], prev[b], prev[z]) :
+                (prev[u] < 0) ?
+                    (-prev[u], -prev[l], prev[b], -prev[z]) : 
+                    (0, max(-prev[l], prev[u]), max(-prev[l], prev[u]), 0);
+    HardSwish -> (prev[l] < -3) ? 
+                    (prev[u] < -3 ? 
+                        (0, 0, 0, 0) : 
+                        (prev[u] < 0 ? 
+                            (-3/8, 0, 3/8, 0) : 
+                            (-3/8, f1(prev[u]), max(f1(prev[u]), 3/8), 0))) : 
+                    ((prev[l] < 3) ? 
+                        ((prev[u] < 3) ? 
+                            (-3/8, max(f2(prev[l]), f2(prev[u])),max(3/8, max(f2(prev[l]), f2(prev[u]))), 0) : 
+                            (-3/8, prev[u], max(3/8, f1(prev[u])), 0 )) :
+                        (prev[l], prev[u], prev[b], prev[z])); 
+}
+
+flow(forward, priority, true, HybridZonotope);

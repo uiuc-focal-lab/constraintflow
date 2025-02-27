@@ -1,0 +1,20 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, SymExp z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func get_l(Neuron n1, Neuron n2) = max(n1[l], n2[l]);
+func get_u(Neuron n1, Neuron n2) = max(n1[u], n2[u]);
+
+func priority(Neuron n) = n[layer];
+
+transformer polyz{
+    Neuron_max -> 
+    (prev_0[l] >= prev_1[u]) ? 
+    (prev_0[l], prev_0[u], prev_0, prev_0, prev_0[z]) : 
+    (
+        (prev_1[l] >= prev_0[u]) ? 
+        (prev_1[l], prev_1[u], prev_1, prev_1, prev_1[z]) : 
+        (max(prev_0[l], prev_1[l]), max(prev_0[u], prev_1[u]), max(prev_0[l], prev_1[l]), max(prev_0[u], prev_1[u]), 
+        ((max(prev_0[u], prev_1[u]) + max(prev_0[l], prev_1[l])) / 2) + (((max(prev_0[u], prev_1[u]) - max(prev_0[l], prev_1[l])) / 2) * eps))
+    );
+}
+
+flow(forward, priority, true, polyz);

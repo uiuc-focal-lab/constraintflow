@@ -1,0 +1,24 @@
+def Shape as (Float l, Float u, SymExp z, Ct c){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z]),curr[c]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func foo(Neuron n) = n[c];
+
+transformer deepz{
+    HardTanh -> ((prev[l]) >= 1) ? 
+                    (1, 1, 1, curr == 1) : 
+                    (((prev[u]) <= -1) ? 
+                        (-1, -1, -1, curr == -1) : 
+                        ((prev[l] >= -1) and (prev[u] <= 1) ? 
+                            (prev[l], prev[u], prev[z], curr == prev) : 
+                            (prev[l] > -1 ? 
+                                (prev[l], 1, (prev[l] + 1)/2 + (eps * (1 - prev[l])/2), curr <= 1 ) : 
+                                (prev[u] < 1 ? 
+                                    (-1, prev[u], (prev[u] - 1)/2 + (((prev[u] + 1)/2) * eps), curr >= -1) :
+                                    (-1, 1, eps, ((curr >= -1) and (curr <= 1)))
+                                    ))));
+}
+
+flow(forward, priority, true, deepz);

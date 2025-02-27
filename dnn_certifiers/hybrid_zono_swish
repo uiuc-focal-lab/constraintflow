@@ -1,0 +1,27 @@
+def Shape as (Float l, Float u, Float b, SymExp z)
+{[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[z] + (curr[b]*eps))]};
+
+func priority(Neuron n) = n[layer];
+
+func s1(Float x1, Float x2) = ((x1 * (x1 + 3))-(x2 * (x2 + 3))) / (6 * (x1-x2));
+func i1(Float x1, Float x2) = x1 * ((x1 + 3) / 6) - (s1(x1, x2) * x1);
+
+func f(Float x) = x < 3 ? x * ((x + 3) / 6) : x;
+func f2(Float x) = x * ((x + 3) / 6);
+
+transformer hybridzono{
+    HardSwish -> (prev[l] < -3) ? 
+                    (prev[u] < -3 ? 
+                        (0, 0, 0, 0) : 
+                        (prev[u] < 0 ? 
+                            (-3/8, 0, 3/8, 0) : 
+                            (-3/8, f(prev[u]), max(f(prev[u]), 3/8), 0))) : 
+                    ((prev[l] < 3) ? 
+                        ((prev[u] < 3) ? 
+                            (-3/8, max(f2(prev[l]), f2(prev[u])),max(3/8, max(f2(prev[l]), f2(prev[u]))), 0) : 
+                            (-3/8, prev[u], max(3/8, f(prev[u])), 0 )) :
+                        (prev[l], prev[u], prev[b], prev[z])); 
+}
+
+
+flow(forward, priority, true, hybridzono);

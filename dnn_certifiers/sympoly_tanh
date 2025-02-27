@@ -1,0 +1,34 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n) = -n[layer];
+func slopeL(Float l, Float u) = (1 - l) / (u - l);
+func slopeU(Float l, Float u) = (u + 1) / (u - l);
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_upper){e >= n}).map(simplify_upper);
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+transformer SymPoly{
+    HardTanh -> ((prev[l]) >= 1) ? 
+                    (1, 1, 1, 1) : 
+                    (((prev[u]) <= -1) ? 
+                        (-1, -1, -1, -1) : 
+                        ((prev[l] >= -1) and (prev[u] <= 1) ? 
+                            (prev[l],prev[u], prev, prev) : 
+                            (prev[l] > -1 ? 
+                                (prev[l], 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), (((1 + eps)/2) * (prev - 1)) +  1) : 
+                                (prev[u] < 1 ? 
+                                    (-1, (prev[u]), (((1 + eps)/2) * (prev + 1)) -  1, (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
+                                    (-1, 1, (2 / (prev[u] - prev[l])) * prev - ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])), (2 / (prev[u] - prev[l])) * prev + ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])))
+                                    ))));
+}
+
+flow(forward, priority, true, SymPoly);

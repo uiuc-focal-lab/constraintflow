@@ -1,0 +1,13 @@
+def Shape as (Float l, Float u, SymExp z){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z])]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? coeff : -coeff;
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? coeff : -coeff;
+
+func priority(Neuron n) = n[layer];
+
+
+transformer deepz{
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev[z])) : (((prev[u]) <= 0) ? (0, 0, 0) : (0, (prev[u]), ((prev[u]) / 2) + (((prev[u]) / 2) * eps)));
+}
+
+flow(forward, priority, true, deepz);

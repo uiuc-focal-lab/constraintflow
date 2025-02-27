@@ -1,0 +1,38 @@
+def Shape as (Float l, Float u, SymExp z){[(curr[u]>=curr),(curr In curr[z]),(curr[l]<=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+func s1(Float x1, Float x2) = ((x1 * (x1 + 3))-(x2 * (x2 + 3))) / (6 * (x1-x2));
+func i1(Float x1, Float x2) = x1 * ((x1 + 3) / 6) - (s1(x1, x2) * x1);
+
+func f1(Float x) = x < 3 ? x * ((x + 3) / 6) : x;
+func f2(Float x) = x * ((x + 3) / 6);
+
+transformer deepz{
+    Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper), prev[z].dot(curr[weight]) + (curr[bias]));
+    Maxpool -> len(argmax(prev, f)) > 0 ? (max(prev[l]), max(prev[u]),  avg(argmax(prev, f)[z])) :
+     (max(prev[l]), max(prev[u]), ((max(prev[u]) + max(prev[l])) / 2) + (((max(prev[u]) - max(prev[l])) / 2) * eps));
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u]), (prev[z])) : (((prev[u]) <= 0) ? (0, 0, 0) : (0, (prev[u]), ((prev[u]) / 2) + (((prev[u]) / 2) * eps)));
+    Abs -> ((prev[l]) >= 0) ? 
+                ((prev[l]), (prev[u]), (prev[z])) : 
+                (((prev[u]) <= 0) ? 
+                    (-(prev[u]), -(prev[l]), -(prev[z])) : 
+                    (0, max(-prev[l], prev[u]), ((max(-prev[l], prev[u])) / 2) + (((max(-prev[l], prev[u])) / 2) * eps)));
+    HardSwish -> (prev[l] < -3) ? 
+                    (prev[u] < -3 ? 
+                        (0, 0, 0) : 
+                        (prev[u] < 0 ? 
+                            (-3/8, 0, (-3/16) * (1 - eps)) : 
+                            (-3/8, f1(prev[u]), (f1(prev[u])/2 - (3/16)) + ((f1(prev[u])/2 + (3/16)) * eps) ))) : 
+                    ((prev[l] < 3) ? 
+                        ((prev[u] < 3) ? 
+                            (-3/8, max(f2(prev[l]), f2(prev[u])), ((max(f2(prev[l]), f2(prev[u]))/2 )- (3/16)) + (eps * (max(f2(prev[l]), f2(prev[u]))/2 + (3/16)))) : 
+                            (-3/8, prev[u], (prev[u]/2 - (3/16)) + (eps * (prev[u]/2 + (3/16))) )) :
+                        (prev[l], prev[u], prev[z])); 
+}
+
+flow(forward, priority, true, deepz);

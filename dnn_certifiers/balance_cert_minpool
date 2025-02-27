@@ -1,0 +1,13 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+
+func f(Neuron n1, Neuron n2) = n1[u] <= n2[l];
+
+transformer balance_cert{
+    Minpool -> len(argmax(prev, f)) > 0 ? 
+                (min(prev[l]), min(prev[u]), avg(argmax(prev, f)), avg(argmax(prev, f))) : 
+                (min(prev[l]), min(prev[u]), min(prev[l]), min(prev[u]));
+}
+
+flow(forward, priority, true, balance_cert);

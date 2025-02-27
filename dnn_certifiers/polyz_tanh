@@ -1,0 +1,24 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, SymExp z)
+{[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func priority(Neuron n) = n[layer];
+
+func slopeL(Float l, Float u) = (1 - l) / (u - l);
+func slopeU(Float l, Float u) = (u + 1) / (u - l);
+
+transformer polyz{
+    HardTanh -> ((prev[l]) >= 1) ? 
+                    (1, 1, 1, 1, 1) : 
+                    (((prev[u]) <= -1) ? 
+                        (-1, -1, -1, -1, -1) : 
+                        ((prev[l] >= -1) and (prev[u] <= 1) ? 
+                            (prev[l],prev[u], prev, prev, prev[z]) : 
+                            (prev[l] > -1 ? 
+                                (prev[l], 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 1, (prev[l] + 1)/2 + (eps * (1 - prev[l])/2)) : 
+                                (prev[u] < 1 ? 
+                                    (-1, (prev[u]), (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[u], prev[l]))), (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])) , (prev[u] - 1)/2 + (((prev[u] + 1)/2) * eps)) :
+                                    (-1, 1, (2 / (prev[u] - prev[l])) * prev - ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])), (2 / (prev[u] - prev[l])) * prev + ((prev[u] - prev[l] - 2) / (prev[u] - prev[l])), eps)
+                                    ))));
+}
+
+flow(forward, priority, true, polyz);

@@ -1,0 +1,12 @@
+def Shape as (Float l, Float u, SymExp z){[(curr In curr[z]),(curr[u]>=curr),(curr[l]<=curr)]};
+
+func compute_l(Neuron n1, Neuron n2) = min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+func compute_u(Neuron n1, Neuron n2) = max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+
+func priority(Neuron n) = n[layer];
+
+transformer deepz{
+    Neuron_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1), (compute_u(prev_0, prev_1) + compute_l(prev_0, prev_1))/2 + (((compute_u(prev_0, prev_1) - compute_l(prev_0, prev_1))/2)*eps));
+}
+
+flow(forward, priority, true, deepz);

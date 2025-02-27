@@ -1,0 +1,24 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, SymExp z)
+{[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func priority(Neuron n) = n[layer];
+
+func slopeL(Float l, Float u) = (1 - l) / (2*(u - l));
+func slopeU(Float l, Float u) = (u + 1) / (2*(u - l));
+
+transformer polyz{
+    HardSigmoid -> ((prev[l]) >= 1) ? 
+                    (1, 1, 1, 1, 1) : 
+                    (((prev[u]) <= -1) ? 
+                        (0, 0, 0, 0, 0) : 
+                        ((prev[l] >= -1) and (prev[u] <= 1) ? 
+                            ((prev[l] + 1)/2,(prev[u] + 1)/2, (1+prev)/2, (1+prev)/2, (1+prev[z])/2) : 
+                            (prev[l] > -1 ? 
+                                ((prev[l] + 1)/2, 1, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 1, (prev[l] + 3)/4 + (eps * (1 - prev[l])/4)) : 
+                                (prev[u] < 1 ? 
+                                    (-1, (prev[u] + 1)/2, 0, (slopeU(prev[l], prev[u]) * prev) -  ( (slopeU(prev[l], prev[u])*prev[l])), (1 + eps) * ((prev[u] + 1)/4) ) :
+                                    (-1, 1, (1 / (prev[u] - prev[l])) * (prev + 1), (1 / (prev[u] - prev[l])) * (prev - 1) + 1, (1 + eps)/2)
+                                    ))));
+}
+
+flow(forward, priority, true, polyz);

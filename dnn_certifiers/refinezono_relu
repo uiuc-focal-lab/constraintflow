@@ -1,0 +1,22 @@
+def Shape as (Float l, Float u, SymExp z, Ct c){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z]),curr[c]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func foo(Neuron n) = n[c];
+
+transformer refinezono{
+    Relu -> (prev[l] >= 0) ? 
+        (prev[l], prev[u], prev[z], (prev[l] <= curr) and (prev[u] >= curr)) : 
+        (
+            (prev[u] <= 0) ? 
+            (0, 0, 0, curr == 0) : 
+            (0, prev[u], (prev[u] / 2) + ((prev[u] / 2) * eps), 
+            (prev[l] <= prev) and (prev[u] >= prev) and 
+            (((prev <= 0) and (curr == 0) ) or ((prev > 0) and (curr == prev)) )
+            )
+        );
+}
+
+flow(forward, priority, true, refinezono);

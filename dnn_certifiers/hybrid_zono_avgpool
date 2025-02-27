@@ -1,0 +1,15 @@
+def Shape as (Float l, Float u, Float b, SymExp z){[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[z] + (curr[b]*eps))]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+func abs(Float x) = x > 0 ? x : -x;
+
+transformer hybridzono{
+    Avgpool -> (avg(prev[l]), avg(prev[u]), max(abs(avg(prev[l])), abs(avg(prev[u]))),0);
+}
+
+flow(forward, priority, true, hybridzono);

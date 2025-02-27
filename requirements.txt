@@ -1,2 +1,6 @@
 z3-solver
-antlr4-python3-runtime
+antlr4-python3-runtime==4.7.2
+matplotlib
+tabulate
+call_function_with_timeout
+seaborn

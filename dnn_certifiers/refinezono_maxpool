@@ -1,0 +1,15 @@
+def Shape as (Float l, Float u, SymExp z, Ct c){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[z]),curr[c]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func foo(Neuron n) = n[c];
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+transformer refinezono{
+    Maxpool -> len(argmax(prev, f)) > 0 ? (max(prev[l]), max(prev[u]),  avg(argmax(prev, f)[z]), (curr <= max(prev[u])) and (curr >= max(prev[l]))) :
+     (max(prev[l]), max(prev[u]), ((max(prev[u]) + max(prev[l])) / 2) + (((max(prev[u]) - max(prev[l])) / 2) * eps), (curr <= max(prev[u])) and (curr >= max(prev[l])));
+}
+
+flow(forward, priority, true, refinezono);

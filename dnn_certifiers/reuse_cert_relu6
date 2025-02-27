@@ -1,0 +1,36 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, PolyExp Lc, PolyExp Uc)
+{[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr),(curr[Lc]<=curr),(curr[Uc]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n) = -n[layer];
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_upper){e >= n}).map(simplify_upper);
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+func slopeL(Float l, Float u) = (6 - l) / (u - l);
+func slopeU(Float l, Float u) = (u) / (u - l);
+
+transformer reuse_cert{
+    Relu6 -> ((prev[l]) >= 6) ? 
+                (6, 6, 6, 6, 6, 6) : 
+                (((prev[u]) <= 0) ? 
+                    (0, 0, 0, 0, 0, 0) : 
+                    ((prev[l] >= 0) and (prev[u] <= 6) ? 
+                        (prev[l],prev[u], prev, prev, prev[Lc], prev[Uc]) : 
+                        (prev[l] > 0 ? 
+                            (prev[l], 6, (slopeL(prev[l], prev[u]) * prev) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 6, (slopeL(prev[l], prev[u]) * prev[Lc]) +  (1 - (slopeL(prev[l], prev[u])*prev[u])), 6) : 
+                            (prev[u] < 6 ? 
+                                (0, (prev[u]), 0, (slopeU(prev[l], prev[u]) * prev) +  ( (slopeU(prev[u], prev[l])*prev[u])), 0, (slopeU(prev[l], prev[u]) * prev[Uc]) +  ( (slopeU(prev[u], prev[l])*prev[u])) ) :
+                                (0, 6, (6 / (prev[u] - prev[l])) * prev, (6 / (prev[u] - prev[l])) * prev + ((6 * (prev[u] - prev[l] - 6)) / (prev[u] - prev[l])), (6 / (prev[u] - prev[l])) * prev[Lc], (6 / (prev[u] - prev[l])) * prev[Uc] + ((6 * (prev[u] - prev[l] - 6)) / (prev[u] - prev[l])))
+                                ))));
+}
+
+flow(forward, priority, true, reuse_cert);

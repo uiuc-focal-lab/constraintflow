@@ -1,0 +1,12 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr), (curr[L]<=curr), (curr[U]>=curr)]};
+
+func compute_l(Neuron n1, Neuron n2) = min([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+func compute_u(Neuron n1, Neuron n2) = max([n1[l]*n2[l], n1[l]*n2[u], n1[u]*n2[l], n1[u]*n2[u]]);
+
+func priority(Neuron n) = n[layer];
+
+transformer reuse_cert{
+    Neuron_mult -> (compute_l(prev_0, prev_1), compute_u(prev_0, prev_1), compute_l(prev_0, prev_1), compute_u(prev_0, prev_1));
+}
+
+flow(forward, priority, true, reuse_cert);

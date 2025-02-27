@@ -1,0 +1,21 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, SymExp z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[z]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n) = -n[layer];
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, true, replace_upper){e >= n}).map(simplify_upper);
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+transformer polyz{
+    Affine -> (max((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower),backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr)), min((prev.dot(curr[weight]) + curr[bias]).map(simplify_upper),backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr)), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias], prev[z].dot(curr[weight]) + curr[bias]);
+}
+
+flow(forward, priority, true, polyz);
