@@ -1,0 +1,22 @@
+def Shape as (Float l, Float u, SymExp Z){[(curr[l]<=curr),(curr[u]>=curr),(curr In curr[Z])]};
+
+func abs(Float x) = x > 0.0 ? x : 0.0-x;
+
+func deepz_lower(Noise n, Float c) = (c > 0.0) ? c*(0.0 - 1.0) : c*(1.0);
+func deepz_upper(Noise n, Float c) = (c > 0.0) ? c*(1.0) : c*(0.0 - 1.0);
+
+func priority(Neuron n) = n[layer];
+func stop(Neuron n) = true;
+
+func x(Float l, Float u, SymExp z) = ((u * z) / (u - l)) + (((u * l) * (eps - 1)) / (2 * (u - l)));
+func y(Float l, Float u, SymExp z) = (u / 2) * (1 + eps);
+
+func compute_l(Float u, Float l) = (u * l) / (u - (l + 0.0001)) ;
+
+transformer zono{
+    Affine -> ((prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_lower), (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_upper), prev[Z].dot(curr[weight]) + (curr[bias]));
+    Relu -> (0, 0, (prev[l] >= 0.0 ? prev[Z] : (prev[u] <= 0.0 ? 0.0 : x(prev[l], prev[u], prev[Z]))));
+}
+
+flow(forward, priority, stop, zono);
+

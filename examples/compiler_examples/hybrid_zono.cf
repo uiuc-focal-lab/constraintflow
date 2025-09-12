@@ -1,0 +1,29 @@
+def Shape as (Float l, Float u, Float b, SymExp Z){[curr[b] >= 0, curr[l] <= curr, curr[u] >= curr, curr In (curr[Z] + (curr[b]*eps))]};
+
+
+func relu(Float r) = r >= 0 ? r : 0;
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+func abs(Float x) = x > 0 ? x : -x;
+
+
+func deepz_lower(Noise n, Float c) = (c > 0.0) ? c*(0.0 - 1.0) : c*(1.0);
+func deepz_upper(Noise n, Float c) = (c > 0.0) ? c*(1.0) : c*(0.0 - 1.0);
+
+func priority(Neuron n) = n[layer];
+
+
+transformer HybridZonotope{
+    Relu -> abs(prev[l]) > abs(prev[u]) ? 
+                ((prev[l]) >= 0) ? 
+                (prev[l], prev[u], (prev[b]), (prev[Z])) : 
+                (-prev[b], prev[b] + relu(prev[u]), prev[b], ((1 + eps) * (relu(prev[u]/2)))) :
+                (((prev[l]) < 0) and ((prev[u]) > 0)) ? 
+                (0, prev[u], (prev[b]), (prev[Z] - (((1 + eps) * (prev[l])) / 2))) : 
+                (((prev[l]) >= 0) ? 
+                    (prev[l], prev[u], (prev[b]), (prev[Z])) : 
+                    (0, 0, prev[b], ((1 + eps) * (relu(prev[u]/2)))));
+
+    Affine -> ((prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_lower), (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_upper), prev[Z].dot(curr[weight]) + (curr[bias]));
+}
+
+flow(forward, priority, true, HybridZonotope);

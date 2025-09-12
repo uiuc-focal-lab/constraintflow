@@ -1,0 +1,82 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U, SymExp Z){[curr[l]<=curr,curr[u]>=curr,curr[L]<=curr,curr[U]>=curr,curr In curr[Z]]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func deepz_lower(Noise n, Float c) = (c > 0.0) ? c*(0.0 - 1.0) : c*(1.0);
+func deepz_upper(Noise n, Float c) = (c > 0.0) ? c*(1.0) : c*(0.0 - 1.0);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n, Float c) = -n[layer];
+func stop(Neuron n) = false;
+func stop_traverse(Neuron n, Float c) = false;
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_upper){e >= n}).map(simplify_upper);
+
+
+func relu(Float x) = x > 0.0 ? x : 0.0;
+func relu_n(Neuron n) = n[l] + n[u] > 0.0 ? n : 0.0;
+func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] < 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+
+
+
+func x(Float l, Float u, SymExp z) = ((u * z) / (u - l)) + (((u * l) * (eps - 1)) / (2 * (u - l)));
+func y(Float l, Float u, SymExp z) = (u / 2) * (1 + eps);
+
+
+transformer deeppoly{
+    Affine -> curr[last_layer] == 1 ? (
+        backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), 
+        backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), 
+        prev.dot(curr[weight]) + curr[bias], 
+        prev.dot(curr[weight]) + curr[bias], 
+        0
+    ) : 
+    (curr[layer] <= 4 ? (
+        (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_lower), 
+        (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_upper), 
+        prev.dot(curr[weight]) + curr[bias], 
+        prev.dot(curr[weight]) + curr[bias], 
+        prev[Z].dot(curr[weight]) + curr[bias]
+    ) : 
+    (
+        (prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), 
+        (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper), 
+        prev.dot(curr[weight]) + curr[bias], 
+        prev.dot(curr[weight]) + curr[bias], 
+        0
+    )
+    )
+    ;
+
+    Relu -> curr[last_layer] == 1 ? (
+        relu(prev[l]), 
+        relu(prev[u]), 
+        relu_n(prev), 
+        compute_upper(prev),
+        0
+    ) : 
+    (curr[layer] <= 4 ? (
+        relu(prev[l]), 
+        relu(prev[u]), 
+        relu_n(prev), 
+        compute_upper(prev),
+        ((prev[l]) >= 0.0) ? (prev[Z]) : (((prev[u]) <= 0.0) ? 0.0 : x(prev[l], prev[u], prev[Z]))
+    ) : 
+    (
+        relu(prev[l]), 
+        relu(prev[u]), 
+        relu_n(prev), 
+        compute_upper(prev), 
+        0
+    )
+    )
+    ;
+}
+
+
+flow(forward, priority, stop, deeppoly);

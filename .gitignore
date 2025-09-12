@@ -3,3 +3,15 @@ __pycache__/
 interpreter/common/__pycache__/*
 interpreter/specs/__pycache__/*
 verification/ast/*
+certifier/output/transformers.py
+certifier/output/main.py
+certifier/output/functions.py
+data/*
+nets/*
+output/*
+MNIST/*
+*.egg-info/
+__pycache__/
+*.pyc
+dist/
+build/

@@ -1,0 +1,46 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (n[l] * coeff) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n, Float c) = -n[layer];
+func stop(Neuron n) = false;
+func stop_traverse(Neuron n, Float c) = false;
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_upper){e >= n}).map(simplify_upper);
+
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+func abs(Float x) = x >= 0.0 ? x : -x;
+
+func relu(Float x) = x >= 0.0 ? x : 0.0;
+func relu_n(Neuron n) = n[l] + n[u] >= 0.0 ? n : 0.0;
+func compute_upper(Neuron n) = n[l] >= 0.0 ? n : (n[u] <= 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+
+func deriv(Float x) = sigma(x) * (1 - sigma(x));
+
+func my_min(Float a, Float b) = (a < b) ? a : b;
+
+func lambda(Float l, Float u) = (sigma(u) - sigma(l)) / (u - l);
+func lambda_prime(Float l, Float u) = my_min(deriv(l), deriv(u));
+
+func sigmoid_l(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[l] > 0.0 ? ((sigma(n[l])) + (lambda(n[l], n[u]) * n) - (lambda(n[l], n[u]) * n[l])) : ((sigma(n[l])) + (lambda_prime(n[l], n[u]) * n) - (lambda_prime(n[l], n[u]) * n[l]))) ;
+
+func sigmoid_u(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[u] <= 0.0 ? ((sigma(n[u])) + (lambda(n[l], n[u]) * n) - (lambda(n[l], n[u]) * n[u])) : ((sigma(n[u])) + (lambda_prime(n[l], n[u]) * n) - (lambda_prime(n[l], n[u]) * n[u]))) ;
+
+
+transformer deeppoly{
+    Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
+    
+    Relu -> (relu(prev[l]), relu(prev[u]), relu_n(prev), compute_upper(prev));
+
+
+}
+
+flow(forward, priority, stop, deeppoly);

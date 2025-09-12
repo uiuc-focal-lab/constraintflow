@@ -1,0 +1,15 @@
+def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[l]) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func stop(Neuron n) = true;
+
+transformer ibp{
+    Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper));
+    
+    Relu -> (curr[layer] > 1) ? (((prev[l]<=0) ? 0 : prev[l]), ((prev[u]<=0) ? 0 : prev[u])) : (((prev[l]<=0) ? 0 : prev[l]), ((prev[u]<=0) ? 0 : prev[u])) ;
+}
+
+flow(forward, priority, stop, ibp);

@@ -1,0 +1,10 @@
+def Shape as (Float l, Float u){[(curr[l]<=curr),(curr[u]>=curr)]};
+
+func priority(Neuron n) = n[layer];
+func stop(Neuron n) = false;
+
+transformer ibp{
+    Relu -> ((prev[l]) >= 0) ? ((prev[l]), (prev[u])) : (((prev[u]) <= 0) ? (0, 0) : (0, (prev[u])));
+}
+
+flow(forward, priority, stop, ibp);
