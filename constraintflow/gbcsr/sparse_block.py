@@ -295,19 +295,45 @@ class DenseBlock(SparseBlock):
                 res = ConstBlock(0, new_total_shape)
             else:
                 raise NotImplementedError
+        elif isinstance(sp_block, PatchesBlock):
+            # Efficient DenseBlock @ PatchesBlock (backsubstitute a dense coefficient
+            # matrix through a conv-like layer stored as per-position patches). This is
+            # the adjoint of the forward patches application: contract the dense rows
+            # with each position's patch (batched over spatial positions), then fold the
+            # results back into the layer's input space. Avoids densifying the patches.
+            P = sp_block
+            C = self.block                       # (B, M, K1*Pox*Poy)
+            B = C.shape[0]
+            M = C.shape[1]
+            K1 = P.num_kernels
+            Pox, Poy = P.ox, P.oy
+            c0 = P.num_channels
+            Pkx, Pky = P.kx, P.ky
+            S = Pox * Poy
+            pw = c0 * Pkx * Pky
+            Cr = C.reshape(B, M, K1, S).permute(0, 3, 1, 2).reshape(B * S, M, K1)
+            Pb = P.block
+            if Pb.shape[0] != B:
+                Pb = Pb.expand(B, *Pb.shape[1:])
+            Pr = Pb.reshape(B, K1, S, pw).permute(0, 2, 1, 3).reshape(B * S, K1, pw)
+            T = torch.bmm(Cr, Pr)                # (B*S, M, pw)
+            T = T.reshape(B, S, M, pw).permute(0, 2, 3, 1).reshape(B * M, pw, S)
+            out = F.fold(T, output_size=(P.ix, P.iy), kernel_size=(Pkx, Pky),
+                         stride=(P.sx, P.sy), padding=(P.px, P.py))
+            res = DenseBlock(out.reshape(B, M, c0 * P.ix * P.iy))
         else:
             # if sp_block.repeat_dims[0]!=1 and sp_block.only_one_repeat:
-            #     block_2 = sp_block.block 
+            #     block_2 = sp_block.block
             # else:
             block_2 = sp_block.get_dense()
             res = DenseBlock(self.block @ block_2)
         matmul_time.update_op_time(time.time() - start_time)
         return res
-        
+
     def matmul_unequal_dims(self, sp_block):
         start_time = time.time()
         if isinstance(sp_block, DenseBlock):
-            a = self.block 
+            a = self.block
             b = sp_block.unsqueeze(-1).block
             res = (a @ b).squeeze(-1)
             res = DenseBlock(res)
@@ -480,8 +506,53 @@ Output Size: {self.ox, self.oy} \n'
             res = res.transpose(1,2) # batch_size, curr_size, sym_size
             res = DenseBlock(res)
         elif isinstance(sp_block, PatchesBlock):
-            d_block = DenseBlock(sp_block.get_dense())
-            res = self.matmul_equal_dims(d_block)
+            # Efficient KernelBlock @ PatchesBlock -> PatchesBlock (composition of two
+            # conv-like layers). KB (=self) maps P's output space -> KB's output space;
+            # P (=sp_block) maps P's input space -> P's output space (= KB's input space).
+            # The result maps P's input space -> KB's output space, with an enlarged
+            # receptive field of size (KB.kx-1)*P.sx + P.kx over P's input.
+            P = sp_block
+            KB = self
+            B = P.batch_size
+            K2 = KB.num_kernels          # result output channels
+            K1 = KB.num_channels         # == P.num_kernels (the "mid" channels)
+            c0 = P.num_channels          # result input channels
+            Pkx, Pky = P.kx, P.ky
+            Pox, Poy = P.ox, P.oy
+            kbx, kby = KB.kx, KB.ky
+            ppatch = c0 * Pkx * Pky
+
+            # Treat P's per-position patch weights as a batch dim, P.num_kernels (=K1) as
+            # channels, and (P.ox, P.oy) as the spatial image over mid-space.
+            M = P.block.reshape(B, K1, Pox, Poy, ppatch)
+            M = M.permute(0, 4, 1, 2, 3).reshape(B * ppatch, K1, Pox, Poy)
+            # Gather KB's receptive field over mid-space.
+            U = F.unfold(M, kernel_size=(kbx, kby), stride=(KB.sx, KB.sy), padding=(KB.px, KB.py))
+            # U: (B*ppatch, K1*kbx*kby, KB.ox*KB.oy)
+            out_spatial = U.shape[-1]
+            U = U.reshape(B, ppatch, K1, kbx, kby, out_spatial)
+            # Contract KB's kernel over the mid channels K1, keeping (k2, da, db).
+            H = torch.einsum('pckabo,mkab->pcmabo', U, KB.block)
+            # H: (B, ppatch, K2, kbx, kby, out_spatial)
+            H = H.permute(0, 2, 5, 1, 3, 4).reshape(B * K2 * out_spatial, ppatch, kbx * kby)
+            # Scatter-add each contribution into the enlarged result patch: outer index
+            # (da, db) is placed at stride P.sx inside the patch -> a fold operation.
+            RKX = (kbx - 1) * P.sx + Pkx
+            RKY = (kby - 1) * P.sy + Pky
+            fold_out = F.fold(H, output_size=(RKX, RKY), kernel_size=(Pkx, Pky), stride=(P.sx, P.sy))
+            # fold_out: (B*K2*out_spatial, c0, RKX, RKY)
+            block = fold_out.reshape(B, K2 * out_spatial, c0 * RKX * RKY)
+
+            new_sx = KB.sx * P.sx
+            new_sy = KB.sy * P.sy
+            new_px = KB.px * P.sx + P.px
+            new_py = KB.py * P.sy + P.py
+            new_total_shape = torch.concat([
+                torch.max(self.total_shape[:-2], sp_block.total_shape[:-2]),
+                self.total_shape[-2:-1],
+                sp_block.total_shape[-1:]])
+            res = PatchesBlock(block, new_total_shape, P.ix, P.iy, KB.ox, KB.oy,
+                               new_sx, new_sy, new_px, new_py, RKX, RKY, c0, K2)
         else:
             temp = self.convert_to_patches()
             res = temp.matmul_equal_dims(sp_block)
@@ -812,6 +883,54 @@ class PatchesBlock(SparseBlock):
             # patches = patches.repeat(batch_size, 1, 1, 1)
             patches = x_unf * patches
             res = PatchesBlock(patches, self.total_shape, self.ix, self.iy, self.ox, self.oy, self.sx, self.sy, self.px, self.py, self.kx, self.ky, self.num_channels, self.num_kernels)
+        elif isinstance(sp_block, PatchesBlock):
+            # Efficient PatchesBlock @ PatchesBlock -> PatchesBlock (composition of two
+            # conv-like layers, both with per-position patches). self (=Po, outer/left)
+            # maps mid-space -> out-space; sp_block (=Pi, inner/right) maps in-space ->
+            # mid-space (= Po's input space). The result maps in-space -> out-space with
+            # an enlarged receptive field (Po.kx-1)*Pi.sx + Pi.kx over the input.
+            # This is the same construction as KernelBlock @ PatchesBlock, except the
+            # outer "kernel" weights are position-dependent (read from Po.block).
+            Po = self
+            Pi = sp_block
+            B = Pi.batch_size
+            K2 = Po.num_kernels          # result output channels
+            Km = Po.num_channels         # == Pi.num_kernels (the "mid" channels)
+            c0 = Pi.num_channels         # result input channels
+            Pikx, Piky = Pi.kx, Pi.ky
+            Piox, Pioy = Pi.ox, Pi.oy
+            okx, oky = Po.kx, Po.ky
+            ppatch = c0 * Pikx * Piky
+
+            # mid-space feature map from inner patches; gather Po's receptive field.
+            M = Pi.block.reshape(B, Km, Piox, Pioy, ppatch)
+            M = M.permute(0, 4, 1, 2, 3).reshape(B * ppatch, Km, Piox, Pioy)
+            U = F.unfold(M, kernel_size=(okx, oky), stride=(Po.sx, Po.sy), padding=(Po.px, Po.py))
+            out_spatial = U.shape[-1]    # == Po.ox * Po.oy
+            U = U.reshape(B, ppatch, Km, okx, oky, out_spatial)
+
+            # per-position outer patch weights, aligned to the unfolded windows.
+            W = Po.block.reshape(B, K2, out_spatial, Km, okx, oky)
+            W = W.permute(0, 1, 3, 4, 5, 2)   # (B, K2, Km, okx, oky, out_spatial)
+
+            # contract over the mid channels Km per output position, keep (k2, da, db).
+            H = torch.einsum('ncmabo,nkmabo->nckabo', U, W)
+            H = H.permute(0, 2, 5, 1, 3, 4).reshape(B * K2 * out_spatial, ppatch, okx * oky)
+            RKX = (okx - 1) * Pi.sx + Pikx
+            RKY = (oky - 1) * Pi.sy + Piky
+            fold_out = F.fold(H, output_size=(RKX, RKY), kernel_size=(Pikx, Piky), stride=(Pi.sx, Pi.sy))
+            block = fold_out.reshape(B, K2 * out_spatial, c0 * RKX * RKY)
+
+            new_sx = Po.sx * Pi.sx
+            new_sy = Po.sy * Pi.sy
+            new_px = Po.px * Pi.sx + Pi.px
+            new_py = Po.py * Pi.sy + Pi.py
+            new_total_shape = torch.concat([
+                torch.max(self.total_shape[:-2], sp_block.total_shape[:-2]),
+                self.total_shape[-2:-1],
+                sp_block.total_shape[-1:]])
+            res = PatchesBlock(block, new_total_shape, Pi.ix, Pi.iy, Po.ox, Po.oy,
+                               new_sx, new_sy, new_px, new_py, RKX, RKY, c0, K2)
         else:
             print(type(sp_block))
             raise NotImplementedError
