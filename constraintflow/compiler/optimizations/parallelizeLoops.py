@@ -222,6 +222,32 @@ def _split(block_a, w1, block_b, w2, block_c):
     shared_preamble = [s for s in block_a_stmts
                        if not (isinstance(s, IrAssignment) and s.children[0].name not in zone2_seed)]
 
+    # ── Step 3b: promote zone1_init defs read by shared_preamble ─────────
+    # If shared_preamble reads a var that is only defined in zone1_init, that
+    # var must execute before threads start. We promote it (and its transitive
+    # zone1_init dependencies) into shared_preamble by adding to zone2_seed
+    # and rebuilding.  This prevents the Python scoping bug where an escape-var
+    # init ("symexp_1 = None") appears after a shared-preamble read of it.
+    zone1_init_defs = get_defs(zone1_init)
+    extra_to_promote = zone1_init_defs & get_reads(shared_preamble)
+    if extra_to_promote:
+        changed = True
+        while changed:
+            changed = False
+            for stmt in zone1_init:
+                if isinstance(stmt, IrAssignment):
+                    lhs = stmt.children[0].name
+                    if lhs in extra_to_promote:
+                        for r in get_reads([stmt]):
+                            if r in zone1_init_defs and r not in extra_to_promote:
+                                extra_to_promote.add(r)
+                                changed = True
+        zone2_seed.update(extra_to_promote)
+        zone1_init = [s for s in block_a_stmts
+                      if isinstance(s, IrAssignment) and s.children[0].name not in zone2_seed]
+        shared_preamble = [s for s in block_a_stmts
+                           if not (isinstance(s, IrAssignment) and s.children[0].name not in zone2_seed)]
+
     # ── Step 4: find escape vars ──────────────────────────────────────────
     w1_loop_stmts = []
     for blk in w1.loopBody:

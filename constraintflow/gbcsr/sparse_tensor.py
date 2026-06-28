@@ -440,7 +440,7 @@ Blocks Types: "
             else:
                 return sparse_block
         if isinstance(sparse_block, KernelBlock) or isinstance(sparse_block, PatchesBlock):
-            if len(sparse_block.total_shape)==4:
+            if len(sparse_block.total_shape) >= 3:
                 if (block_start_index[:-1] == start_index[:-1]).all() and (self.end_indices[block_id][:-1] == end_index[:-1]).all():
                     res = sparse_block.create_similar(sparse_block.block)
                     res.total_shape[-1] = end_index[-1] - start_index[-1]
