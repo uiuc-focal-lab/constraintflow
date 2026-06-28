@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 
 from constraintflow.compiler.compile import compile as _compile
 from constraintflow.verifier.provesound import provesound as _provesound
+from constraintflow.lib.globals import set_device
 
 app = typer.Typer(help="ConstraintFlow CLI for verification and compilation of DSL programs.")
 
@@ -141,10 +142,13 @@ def run(
     no_sparsity: bool = typer.Option(False, help="Disable sparsity optimizations"),
     output_path: str = typer.Option("output/", help="Path where compiled program is stored"),
     compile: bool = typer.Option(False, help="Run compilation before execution"),
+    device: str = typer.Option("cpu", help="Device to run on (cpu or cuda)"),
 ):
     """
     Run a compiled ConstraintFlow program.
     """
+    set_device(device)
+
     try:
         os.makedirs(output_path, exist_ok=True)
     except OSError as e:
@@ -153,12 +157,14 @@ def run(
 
     if compile:
         compile_code(program_file, output_path)
-        
+
     sys.path.insert(0, os.path.abspath(output_path))
     from main import run  # compiled code provides this
 
     network_file = get_network(network, network_format, dataset)
     X, y = get_dataset(batch_size, dataset, train=train)
+    X = X.to(device)
+    y = y.to(device)
 
     lb, ub = run(
         network_file,

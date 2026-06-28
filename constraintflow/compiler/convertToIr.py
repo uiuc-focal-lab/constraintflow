@@ -593,7 +593,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 if exprIr.irMetadata[-1].isConst:
                     exprIr = IrAddDimensionConst(exprIr, [IrMetadataElement([IrAst.batch_size, IrAst.curr_size], exprIr.irMetadata[-1].type, [1,1], False)])
                 if self.shape[list(self.shape.keys())[i]] == 'PolyExp':
-                    exprIr = IrConvertConstToPoly(exprIr)
+                    if exprIr.irMetadata[-1].type == 'Neuron':
+                        exprIr = IrConvertNeuronToPoly(exprIr)
+                    else:
+                        exprIr = IrConvertConstToPoly(exprIr)
                 elif self.shape[list(self.shape.keys())[i]] == 'SymExp':
                     exprIr = IrConvertConstToSym(exprIr)
                 
@@ -641,13 +644,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return new_ast_node
 
     def visitTransRetIf(self, ast_node):
-        condIr = self.visit(ast_node.cond)
-        leftIrs = self.visit(ast_node.left)
-        rightIrs = self.visit(ast_node.right)
-        
-        new_var = IrVar(self.get_var(), IrUnaryOp(condIr[0], 'any').irMetadata)
-        new_assignment = IrAssignment(new_var, IrUnaryOp(condIr[0], 'any'))
-        return condIr[1] + [new_assignment, IrIte(new_var, leftIrs, rightIrs)]
+        merged = self.merge_condition(ast_node)
+        return self.visitTransRetBasic(merged)
     
     def visitOpStmt(self, ast_node):
         original_store = copy.deepcopy(self.store)

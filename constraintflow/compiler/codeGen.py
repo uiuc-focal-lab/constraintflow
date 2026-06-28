@@ -484,6 +484,62 @@ class CodeGen(irVisitor.IRVisitor):
     def visitIrSymbolic(self, node):
         return node.name
     
+    def _emit_while_contents(self, while_block):
+        """Emit header stmts, break check, and body stmts of a WhileBlock."""
+        for stmt in while_block.children:
+            self.visit(stmt)
+        if while_block.inner_jump is not None:
+            cond = self.visit(while_block.inner_jump[0])
+            self.write('if(' + str(cond) + '):')
+            self.indent += 1
+            for stmt in while_block.inner_jump[1].children:
+                self.visit(stmt)
+            self.indent -= 1
+        if while_block.jump is not None:
+            body_block = while_block.jump[1]
+            for stmt in body_block.children:
+                self.visit(stmt)
+
+    def visitIrParallelBlock(self, node):
+        self.write('import threading')
+        for var in node.escape1 + node.escape2:
+            self.write(var + ' = None')
+
+        # Thread 1 (L-bound loop)
+        self.write('def _par_thread_1():')
+        self.indent += 1
+        for var in node.escape1:
+            self.write('nonlocal ' + var)
+        for stmt in node.zone1_init:
+            self.visit(stmt)
+        self.write('while(True):')
+        self.indent += 1
+        self._emit_while_contents(node.while1)
+        self.indent -= 1
+        for stmt in node.zone1_post:
+            self.visit(stmt)
+        self.indent -= 1
+
+        # Thread 2 (U-bound loop)
+        self.write('def _par_thread_2():')
+        self.indent += 1
+        for var in node.escape2:
+            self.write('nonlocal ' + var)
+        for stmt in node.zone2_init:
+            self.visit(stmt)
+        self.write('while(True):')
+        self.indent += 1
+        self._emit_while_contents(node.while2)
+        self.indent -= 1
+        for stmt in node.zone2_post:
+            self.visit(stmt)
+        self.indent -= 1
+
+        self.write('_t1 = threading.Thread(target=_par_thread_1)')
+        self.write('_t2 = threading.Thread(target=_par_thread_2)')
+        self.write('_t1.start(); _t2.start()')
+        self.write('_t1.join(); _t2.join()')
+
     def visitIrFlow(self, node):
         self.indent += 1
         self.write('flow = Flow(abs_elem, ' + str(node.transformer) + '(), network, print_intermediate_results, no_sparsity)')

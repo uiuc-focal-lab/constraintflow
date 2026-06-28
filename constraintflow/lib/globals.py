@@ -1,3 +1,14 @@
+import torch
+
+_DEVICE = torch.device('cpu')
+
+def get_device():
+    return _DEVICE
+
+def set_device(d):
+    global _DEVICE
+    _DEVICE = torch.device(d)
+
 class Flag:
     def __init__(self):
         self.flag = False

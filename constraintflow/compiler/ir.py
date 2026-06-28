@@ -1169,6 +1169,21 @@ class IrWhileBlock(IrBlock):
             self.loopBody = [self]
 
 
+class IrParallelBlock(IrAst):
+    """Two independent while-loop zones executed in parallel threads."""
+    def __init__(self, zone1_init, while1, zone1_post,
+                 zone2_init, while2, zone2_post,
+                 escape1, escape2):
+        super().__init__()
+        self.zone1_init = zone1_init   # list of IrAssignment (W1-exclusive inits from Block A)
+        self.while1     = while1       # IrWhileBlock
+        self.zone1_post = zone1_post   # list of IrAssignment (l_new computation from Block B)
+        self.zone2_init = zone2_init   # list of IrAssignment (W2-exclusive inits from Block B)
+        self.while2     = while2       # IrWhileBlock
+        self.zone2_post = zone2_post   # list of IrAssignment (u_new computation from Block C)
+        self.escape1    = escape1      # list of str — var names thread1 produces for caller
+        self.escape2    = escape2      # list of str — var names thread2 produces for caller
+
 class IrOpStmt(IrAst):
     def __init__(self, op, cfg):
         super().__init__()

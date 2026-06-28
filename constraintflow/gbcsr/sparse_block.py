@@ -4,6 +4,7 @@ import time
 import operator
 from constraintflow.gbcsr.op_helper import *
 from constraintflow.lib.globals import *
+from constraintflow.lib.globals import get_device
 
 def get_slice(start_index, end_index):
     dims = start_index.shape[0]
@@ -45,10 +46,10 @@ class SparseBlock:
     repeat_dims = []
     def __init__(self, block, total_shape, block_type='D'):
         if isinstance(block, bool) or (isinstance(block, torch.Tensor) and block.dtype == torch.bool):
-            self.block = block 
+            self.block = block
         else:
             if isinstance(block, torch.Tensor):
-                self.block = block.type(torch.float)
+                self.block = block.type(torch.float).to(get_device())
             else:
                 self.block = float(block)
         self.total_shape = total_shape
@@ -447,7 +448,7 @@ Output Size: {self.ox, self.oy} \n'
         new_px = (ix + 2*px - kx) % sx
         new_py = (iy + 2*py - ky) % sy
         curr_size = num_kernels*ox*oy
-        eye = torch.eye(num_kernels*ox*oy).unsqueeze(0).reshape(curr_size, num_kernels, ox, oy)
+        eye = torch.eye(num_kernels*ox*oy, device=self.block.device).unsqueeze(0).reshape(curr_size, num_kernels, ox, oy)
         res = F.conv_transpose2d(eye, kernel, stride=(sx, sy), padding=(px, py), output_padding=(new_px, new_py)).reshape(1, curr_size, -1)
         return res
     
@@ -1062,7 +1063,7 @@ class ConstBlock(SparseBlock):
         # assert total_shape.dtype in {torch.int8, torch.int16, torch.int32, torch.int64}
 
     def get_dense(self):
-        ret = torch.ones(*self.total_shape.tolist()) * self.block
+        ret = torch.ones(*self.total_shape.tolist(), device=get_device()) * self.block
         return ret
     
     def repeat(self, repeat_dims):
@@ -1174,7 +1175,7 @@ class ConstBlock(SparseBlock):
         return ConstBlock(self.block, end_index - start_index)
     
     def get_patches(self, batch_size, total_shape, ix, iy, ox, oy, sx, sy, px, py, kx, ky, num_channels, num_kernels):
-        block = torch.ones(batch_size, num_kernels*ox*oy, num_channels*kx*ky)*self.block
+        block = torch.ones(batch_size, num_kernels*ox*oy, num_channels*kx*ky, device=get_device())*self.block
         return PatchesBlock(block, total_shape, ix, iy, ox, oy, sx, sy, px, py, kx, ky, num_channels, num_kernels)
         
     def create_similar(self, block):
@@ -1359,8 +1360,8 @@ def sp_where_block(x: SparseBlock, y: SparseBlock, z: SparseBlock):
                         z_block = z.block
                         res = y.create_similar(block=where_block(x_block, y_block, z_block))
                 elif isinstance(y, ConstBlock):
-                    y_block = torch.ones(x.block.shape)*y.block 
-                    z_block = torch.ones(x.block.shape)*z.block 
+                    y_block = torch.ones(x.block.shape, device=x.block.device)*y.block
+                    z_block = torch.ones(x.block.shape, device=x.block.device)*z.block
                     res = x.create_similar(block=where_block(x.block, y_block, z_block))
                     # raise Exception('Check this case')
                 else:
