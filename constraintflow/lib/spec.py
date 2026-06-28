@@ -8,8 +8,10 @@ from constraintflow.gbcsr.sparse_tensor import *
 
 
 class ImageDataset:
-    mnist_mean = torch.tensor([0.1307]).reshape(-1, 1)
-    mnist_std = torch.tensor([0.3081]).reshape(-1, 1)
+    mnist_mean = torch.tensor([0.0]).reshape(-1, 1)
+    mnist_std = torch.tensor([1.0]).reshape(-1, 1)
+    # mnist_mean = torch.tensor([0.1307]).reshape(-1, 1)
+    # mnist_std = torch.tensor([0.3081]).reshape(-1, 1)
     cifar10_mean = torch.tensor([0.4914, 0.4822, 0.4465]).reshape(1, -1, 1, 1)
     cifar10_std = torch.tensor([0.2023, 0.1994, 0.2010]).reshape(1, -1, 1, 1)
     
