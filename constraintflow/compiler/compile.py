@@ -14,6 +14,7 @@ from constraintflow.compiler.optimizations import copyPropagation
 from constraintflow.compiler.optimizations import dce
 from constraintflow.compiler.optimizations import cse
 from constraintflow.compiler.optimizations import rewrite
+from constraintflow.compiler.optimizations import parallelizeLoops
 
 
 
@@ -61,6 +62,7 @@ def compile(inputfile, output_path):
     for opt in optimizations:
         opt(ir)
     representations.remove_phi(ir)
+    # parallelizeLoops.parallelize_loops(ir)
     codeGen.CodeGen(output_path).visit(ir)
 
     return True

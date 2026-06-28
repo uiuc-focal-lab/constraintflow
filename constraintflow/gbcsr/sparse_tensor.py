@@ -8,10 +8,17 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 from constraintflow.gbcsr.sparse_block import *
+from constraintflow.lib.globals import get_device
 from constraintflow.lib.globals import *
 
 from constraintflow.gbcsr.plot import *
 from constraintflow.gbcsr.op_helper import *
+
+# Map Python built-in types to torch dtypes; avoids float -> float64 (Python
+# float is 64-bit, but we want 32-bit throughout for performance parity).
+_TORCH_DTYPE = {float: torch.float32, bool: torch.bool, int: torch.int32}
+def _tdtype(t):
+    return _TORCH_DTYPE.get(t, t)
 
 
 
@@ -398,17 +405,17 @@ Blocks Types: "
         return self
 
     def get_dense(self):
-        res = torch.ones(list(self.total_size), dtype=self.type)*self.dense_const
+        res = torch.ones(list(self.total_size), dtype=_tdtype(self.type), device=get_device())*self.dense_const
         for i in range(self.num_blocks):
             s = get_slice(self.start_indices[i], self.end_indices[i])
             res[tuple(s)] = self.blocks[i].get_dense()
         return res
     
     def get_dense_custom_range(self, start_index, end_index):
-        if self.dense_const == 0.0 or self.dense_const == False:    
-            res = torch.zeros((end_index - start_index).to(int).tolist(), dtype=self.type)
+        if self.dense_const == 0.0 or self.dense_const == False:
+            res = torch.zeros((end_index - start_index).to(int).tolist(), dtype=_tdtype(self.type), device=get_device())
         else:
-            res = self.dense_const * torch.ones((end_index - start_index).to(int).tolist(), dtype=self.type)
+            res = self.dense_const * torch.ones((end_index - start_index).to(int).tolist(), dtype=_tdtype(self.type), device=get_device())
 
         res_block = [start_index, end_index]
         for i in range(self.num_blocks):

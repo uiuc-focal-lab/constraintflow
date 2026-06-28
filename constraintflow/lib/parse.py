@@ -7,6 +7,7 @@ import copy
 
 from onnx import numpy_helper
 from constraintflow.lib.network import Layer, LayerType, Network
+from constraintflow.lib.globals import get_device
 
 from collections import deque
 
@@ -65,7 +66,7 @@ def parse_onnx_layers(net, spec_weight, spec_bias, no_sparsity):
     layers = Network(input_name=net.graph.input[0].name, input_shape=input_shape, input_size=input_size, input_start=0, input_end=input_size, net_format='onnx', no_sparsity=no_sparsity)
     num_layers = len(net.graph.node)
     layers.num_layers = num_layers
-    model_name_to_val_dict = {init_vals.name: torch.tensor(numpy_helper.to_array(init_vals)) for init_vals in net.graph.initializer}
+    model_name_to_val_dict = {init_vals.name: torch.tensor(numpy_helper.to_array(init_vals)).to(get_device()) for init_vals in net.graph.initializer}
 
     layers.size = input_size
     shape = input_shape
@@ -97,7 +98,7 @@ def parse_onnx_layers(net, spec_weight, spec_bias, no_sparsity):
                     if 'bias' in nd_inps[i]:
                         b_key = nd_inps[i]
                 if b_key == None:
-                    layer = Layer(weight=model_name_to_val_dict[w_key], bias=torch.zeros(model_name_to_val_dict[w_key].shape[0]), type=LayerType.Conv2D, identifier=index, parents=parents[index])
+                    layer = Layer(weight=model_name_to_val_dict[w_key], bias=torch.zeros(model_name_to_val_dict[w_key].shape[0], device=get_device()), type=LayerType.Conv2D, identifier=index, parents=parents[index])
                 else:
                     layer = Layer(weight=model_name_to_val_dict[w_key], bias=model_name_to_val_dict[b_key], type=LayerType.Conv2D, identifier=index, parents=parents[index])
 

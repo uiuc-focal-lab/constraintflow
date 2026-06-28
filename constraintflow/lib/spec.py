@@ -19,10 +19,10 @@ class ImageDataset:
     def create_l(image, network_size, batch_size, eps = 0.01, dataset = 'mnist', no_sparsity=False):
         l = torch.clip(image - eps, min=0., max=1.)
         if dataset == 'mnist':
-            l = (l - ImageDataset.mnist_mean) / ImageDataset.mnist_std
+            l = (l - ImageDataset.mnist_mean.to(l.device)) / ImageDataset.mnist_std.to(l.device)
         else:
-            mean = ImageDataset.cifar10_mean.expand(l.shape)
-            std = ImageDataset.cifar10_std.expand(l.shape)
+            mean = ImageDataset.cifar10_mean.to(l.device).expand(l.shape)
+            std = ImageDataset.cifar10_std.to(l.device).expand(l.shape)
             l = (l - mean) / std
         l = l.reshape(batch_size,-1)
         l = create_sparse_init(l, float('-inf'), batch_size, network_size, no_sparsity)
@@ -31,9 +31,9 @@ class ImageDataset:
     def create_u(image, network_size, batch_size, eps = 0.01, dataset = 'mnist', no_sparsity=False):
         u = torch.clip(image + eps, min=0., max=1.)
         if dataset == 'mnist':
-            u = (u - ImageDataset.mnist_mean) / ImageDataset.mnist_std
+            u = (u - ImageDataset.mnist_mean.to(u.device)) / ImageDataset.mnist_std.to(u.device)
         else:
-            u = (u - ImageDataset.cifar10_mean) / ImageDataset.cifar10_std
+            u = (u - ImageDataset.cifar10_mean.to(u.device)) / ImageDataset.cifar10_std.to(u.device)
         u = u.reshape(batch_size, -1)
         u = create_sparse_init(u, float('inf'), batch_size, network_size, no_sparsity)
         return u
@@ -59,7 +59,7 @@ class ImageDataset:
         I = (~(y.unsqueeze(1) == torch.arange(num_classes).type_as(y).unsqueeze(0)))
         weight = (weight[I].view(X.size(0), num_classes - 1, num_classes))
 
-        bias = torch.zeros(num_classes - 1, dtype=torch.float32)
+        bias = torch.zeros(num_classes - 1, dtype=torch.float32, device=X.device)
         return weight, bias
     
 
