@@ -166,6 +166,8 @@ def run(
     X = X.to(device)
     y = y.to(device)
 
+    import time as _time
+    _t0 = _time.perf_counter()
     lb, ub = run(
         network_file,
         batch_size,
@@ -177,11 +179,13 @@ def run(
         print_intermediate_results=print_intermediate_results,
         no_sparsity=no_sparsity,
     )
+    _elapsed = _time.perf_counter() - _t0
 
     typer.echo(f"Lower bound: {lb}")
     typer.echo(f"Upper bound: {ub}")
     precision = get_precision(lb)
     typer.echo(f"Precision: {precision}")
+    typer.echo(f"Average verification time: {_elapsed:.6f}")
 
 
 def main():
