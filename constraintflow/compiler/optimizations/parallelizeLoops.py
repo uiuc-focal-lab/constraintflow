@@ -108,7 +108,8 @@ def _check_independent(w1, w2):
 def _split(block_a, w1, block_b, w2, block_c):
     """
     Returns:
-        shared_preamble  – Block A stmts both threads need
+        shared_preamble  – Block A stmts both threads need (emitted before IrParallelBlock)
+        shared_block_b   – Block B stmts needed by BOTH threads (emitted before IrParallelBlock)
         zone1_init       – Block A stmts only thread1 needs
         zone1_post       – Block B stmts that use W1's output (l_new computation)
         zone2_init       – Block B stmts that seed W2 (vertices_stop2, phi_trav_exp2)
@@ -116,6 +117,7 @@ def _split(block_a, w1, block_b, w2, block_c):
         escape1          – var names thread1 produces that are read after the join
         escape2          – var names thread2 produces that are read after the join
         return_stmts     – IrTransRetBasic nodes from Block C (kept in Block C)
+    None if parallelization is unsafe.
     """
 
     # ── Step 1: split Block C into zone2_post and return ──────────────────
@@ -152,6 +154,48 @@ def _split(block_a, w1, block_b, w2, block_c):
                   if not (isinstance(s, IrAssignment) and s.children[0].name in zone2_init_names)]
     zone2_init = [s for s in block_b_stmts
                   if isinstance(s, IrAssignment) and s.children[0].name in zone2_init_names]
+
+    # ── Step 2b: detect cross-thread vars and move to shared_block_b ──────
+    # Some Block B vars end up in zone1_post but are also needed by zone2_post
+    # (thread 2). These must be computed before threads start so both can read
+    # them as closed-over variables. If any of them depend on W1's output,
+    # parallelisation is unsafe and we bail out.
+    w1_defs = get_defs_in_while(w1)
+    zone2_post_reads = get_reads(zone2_post)
+    zone1_post_defs = get_defs(zone1_post)
+
+    cross_thread_names = zone1_post_defs & zone2_post_reads
+    if cross_thread_names:
+        # Propagate: pull in transitive Block B dependencies of cross_thread_names
+        changed = True
+        while changed:
+            changed = False
+            for stmt in reversed(zone1_post):
+                if isinstance(stmt, IrAssignment):
+                    if stmt.children[0].name in cross_thread_names:
+                        for s2 in zone1_post:
+                            if isinstance(s2, IrAssignment):
+                                n = s2.children[0].name
+                                if n in get_reads([stmt]) and n not in cross_thread_names:
+                                    cross_thread_names.add(n)
+                                    changed = True
+
+        # Safety: if any cross-thread var reads a W1-produced variable, bail
+        cross_thread_reads = set()
+        for stmt in zone1_post:
+            if isinstance(stmt, IrAssignment) and stmt.children[0].name in cross_thread_names:
+                cross_thread_reads.update(get_reads([stmt]))
+        if cross_thread_reads & w1_defs:
+            return None
+
+        shared_block_b = [s for s in zone1_post
+                          if isinstance(s, IrAssignment)
+                          and s.children[0].name in cross_thread_names]
+        zone1_post = [s for s in zone1_post
+                      if not (isinstance(s, IrAssignment)
+                              and s.children[0].name in cross_thread_names)]
+    else:
+        shared_block_b = []
 
     # ── Step 3: split Block A into shared_preamble and zone1_init ─────────
     # Build zone2_seed = everything needed by W2 / zone2_init / zone2_post
@@ -194,7 +238,7 @@ def _split(block_a, w1, block_b, w2, block_c):
     escape1 = sorted(thread1_defs & after_parallel_reads)
     escape2 = sorted(thread2_defs & after_parallel_reads)
 
-    return (shared_preamble, zone1_init, zone1_post,
+    return (shared_preamble, shared_block_b, zone1_init, zone1_post,
             zone2_init, zone2_post,
             escape1, escape2, return_stmts)
 
@@ -210,9 +254,13 @@ def _parallelize_cfg(cfg):
     if not _check_independent(w1, w2):
         return
 
-    (shared_preamble, zone1_init, zone1_post,
+    split_result = _split(block_a, w1, block_b, w2, block_c)
+    if split_result is None:
+        return  # cross-thread vars depend on W1's output — unsafe to parallelize
+
+    (shared_preamble, shared_block_b, zone1_init, zone1_post,
      zone2_init, zone2_post,
-     escape1, escape2, return_stmts) = _split(block_a, w1, block_b, w2, block_c)
+     escape1, escape2, return_stmts) = split_result
 
     # Guard: both loops must have at least one exclusive init var
     if not zone1_init or not zone2_init:
@@ -222,8 +270,10 @@ def _parallelize_cfg(cfg):
                           zone2_init, w2, zone2_post,
                           escape1, escape2)
 
-    # Modify Block A: shared preamble + IrParallelBlock, jump to Block C directly
-    block_a.children = shared_preamble + [par]
+    # Modify Block A: shared preamble + shared Block B vars + IrParallelBlock
+    # shared_block_b vars are needed by both threads; emitting them before the
+    # parallel block lets both thread closures read them without data races.
+    block_a.children = shared_preamble + shared_block_b + [par]
     block_a.inner_jump = None
     block_a.jump = [block_a.jump[0], block_c]
 
