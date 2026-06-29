@@ -222,14 +222,13 @@ def _split(block_a, w1, block_b, w2, block_c):
     shared_preamble = [s for s in block_a_stmts
                        if not (isinstance(s, IrAssignment) and s.children[0].name not in zone2_seed)]
 
-    # ── Step 3b: promote zone1_init defs read by shared_preamble ─────────
-    # If shared_preamble reads a var that is only defined in zone1_init, that
-    # var must execute before threads start. We promote it (and its transitive
-    # zone1_init dependencies) into shared_preamble by adding to zone2_seed
-    # and rebuilding.  This prevents the Python scoping bug where an escape-var
-    # init ("symexp_1 = None") appears after a shared-preamble read of it.
+    # ── Step 3b: promote zone1_init defs read before the parallel block ──
+    # Any var emitted before the parallel block (shared_preamble OR
+    # shared_block_b) must not read from zone1_init vars, because zone1_init
+    # will be inside a thread.  Extend the promotion check to cover both.
     zone1_init_defs = get_defs(zone1_init)
-    extra_to_promote = zone1_init_defs & get_reads(shared_preamble)
+    pre_parallel_reads = get_reads(shared_preamble) | get_reads(shared_block_b)
+    extra_to_promote = zone1_init_defs & pre_parallel_reads
     if extra_to_promote:
         changed = True
         while changed:
