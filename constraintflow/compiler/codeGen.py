@@ -535,10 +535,14 @@ class CodeGen(irVisitor.IRVisitor):
             self.visit(stmt)
         self.indent -= 1
 
+        self.write('_par_n_orig = torch.get_num_threads()')
+        self.write('_par_n_cores = torch.multiprocessing.cpu_count()')
+        self.write('torch.set_num_threads(max(1, min(_par_n_orig, _par_n_cores // 2)))')
         self.write('_t1 = threading.Thread(target=_par_thread_1)')
         self.write('_t2 = threading.Thread(target=_par_thread_2)')
         self.write('_t1.start(); _t2.start()')
         self.write('_t1.join(); _t2.join()')
+        self.write('torch.set_num_threads(_par_n_orig)')
 
     def visitIrFlow(self, node):
         self.indent += 1
