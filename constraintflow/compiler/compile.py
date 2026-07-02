@@ -1,4 +1,5 @@
 import antlr4 as antlr
+import os
 
 from constraintflow.ast_cflow import dslLexer
 from constraintflow.ast_cflow import dslParser
@@ -62,7 +63,8 @@ def compile(inputfile, output_path):
     for opt in optimizations:
         opt(ir)
     representations.remove_phi(ir)
-    # parallelizeLoops.parallelize_loops(ir)
+    if not os.environ.get('CF_NO_PARALLEL'):
+        parallelizeLoops.parallelize_loops(ir)
     codeGen.CodeGen(output_path).visit(ir)
 
     return True

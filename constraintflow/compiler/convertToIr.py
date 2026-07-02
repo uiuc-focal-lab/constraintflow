@@ -644,8 +644,13 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return new_ast_node
 
     def visitTransRetIf(self, ast_node):
-        merged = self.merge_condition(ast_node)
-        return self.visitTransRetBasic(merged)
+        condIr = self.visit(ast_node.cond)
+        leftIrs = self.visit(ast_node.left)
+        rightIrs = self.visit(ast_node.right)
+        
+        new_var = IrVar(self.get_var(), IrUnaryOp(condIr[0], 'any').irMetadata)
+        new_assignment = IrAssignment(new_var, IrUnaryOp(condIr[0], 'any'))
+        return condIr[1] + [new_assignment, IrIte(new_var, leftIrs, rightIrs)]
     
     def visitOpStmt(self, ast_node):
         original_store = copy.deepcopy(self.store)
