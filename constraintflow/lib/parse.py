@@ -224,7 +224,7 @@ def parse_onnx_layers(net, spec_weight, spec_bias, no_sparsity):
         layer.end = layers.size
         shape = layer.shape
 
-    if layers[-1].type != LayerType.Linear:
+    if True or layers[-1].type != LayerType.Linear:
         layer = Layer(weight=spec_weight, bias=spec_bias, type=LayerType.Linear, identifier=index+1, parents=[layers[-1].identifier])
         layer.last_layer = True
         layer.shape = [1, spec_weight.shape[-2], 1, 1]
