@@ -101,8 +101,9 @@ def provesound(
 
 
 def compile_code(
-    program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
-    output_path: str = typer.Option("output/", help="Output path for generated code"),
+    program_file: str,
+    output_path: str = "output/",
+    no_rewrite: bool = False,
 ):
     """
     Compile a ConstraintFlow program into Python.
@@ -114,7 +115,7 @@ def compile_code(
         raise typer.Exit(code=1)
 
     program = get_program(program_file)
-    res = _compile(program, output_path)
+    res = _compile(program, output_path, no_rewrite=no_rewrite)
     if res:
         typer.echo("Compilation successful ✅")
     else:
@@ -125,8 +126,9 @@ def compile_code(
 def compile(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
+    no_rewrite: bool = typer.Option(False, help="Skip domain-specific rewrite pass (ablation N-R)"),
 ):
-    compile_code(program_file, output_path)
+    compile_code(program_file, output_path, no_rewrite=no_rewrite)
 
 
 @app.command()
