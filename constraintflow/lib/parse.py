@@ -225,7 +225,7 @@ def parse_onnx_layers(net, spec_weight, spec_bias, no_sparsity):
         shape = layer.shape
 
     if True or layers[-1].type != LayerType.Linear:
-        layer = Layer(weight=spec_weight, bias=spec_bias, type=LayerType.Linear, identifier=index+1, parents=[layers[-1].identifier])
+        layer = Layer(weight=spec_weight, bias=spec_bias.unsqueeze(0), type=LayerType.Linear, identifier=index+1, parents=[layers[-1].identifier])
         layer.last_layer = True
         layer.shape = [1, spec_weight.shape[-2], 1, 1]
         layer.size = compute_size(layer.shape)
@@ -234,13 +234,15 @@ def parse_onnx_layers(net, spec_weight, spec_bias, no_sparsity):
         layer.end = layers.size
         layers.append(layer)
     else:
-        layers[-1].weight = (spec_weight@layers[-1].weight)[0] 
-        layers[-1].bias = (spec_weight@layers[-1].bias + spec_bias)[0]
+        layers[-1].weight = (spec_weight@layers[-1].weight) 
+        layers[-1].bias = (spec_weight@layers[-1].bias + spec_bias)
+        print(layers[-1].weight.shape, layers[-1].bias.shape, spec_weight.shape, spec_bias.shape)
         layers[-1].shape[1] = spec_weight.shape[-2]
         layers.size = layers.size - layers[-1].size
         layers[-1].size = compute_size(layers[-1].shape)
         layers.size += layers[-1].size
         layers[-1].end = layers.size
+        layers[-1].last_layer = True
     layers = post_process(layers)
     return layers
 

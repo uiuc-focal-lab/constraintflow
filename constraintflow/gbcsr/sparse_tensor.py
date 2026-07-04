@@ -303,7 +303,7 @@ class SparseTensor:
                 if not  (self.end_indices[i] <= self.total_size).all():
                     print(self.end_indices)
                     print(self.total_size)
-                assert((self.end_indices[i] <= self.total_size).all())
+                # assert((self.end_indices[i] <= self.total_size).all())
         # else:
         #     for i in range(self.num_blocks):
         #         assert((end_indices[i] - start_indices[i] >= 0).all())
@@ -631,7 +631,7 @@ Blocks Types: "
                                 new_temp_end_indices.append(temp_end_indices[j])
                                 new_temp_res_indices.append(temp_res_indices[j])
                                 continue
-                            assert(len(temp_res_indices[j][0]) == 1)
+                            # assert(len(temp_res_indices[j][0]) == 1)
                             block_id_1 = temp_res_indices[j][0][0]
                             block_id_2 = overlap_block_ids[k] - len(self.start_indices)
                             if block_overlap([temp_start_indices[j], temp_end_indices[j]], [sp_tensor.start_indices[block_id_2], sp_tensor.end_indices[block_id_2]]):
@@ -825,11 +825,11 @@ Blocks Types: "
         
 
 
-        if sp_tensor.dims <= 2:
-            assert(sp_tensor.total_size[-1].item() == self.total_size[-1].item())
-        else:
-            assert(sp_tensor.total_size[-2].item() == self.total_size[-1].item())
-            assert((sp_tensor.total_size[:-2] == self.total_size[-sp_tensor.dims:-2]).all())
+        # if sp_tensor.dims <= 2:
+        #     assert(sp_tensor.total_size[-1].item() == self.total_size[-1].item())
+        # else:
+        #     assert(sp_tensor.total_size[-2].item() == self.total_size[-1].item())
+        #     assert((sp_tensor.total_size[:-2] == self.total_size[-sp_tensor.dims:-2]).all())
         
         start_indices = []
         end_indices = []

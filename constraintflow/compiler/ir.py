@@ -683,6 +683,11 @@ class IrAccess(IrExpression):
 
             elif elem == 'bias':
                 self.irMetadata[-1].type = 'Float'
+                for i in range(len(self.irMetadata)):
+                    for j in range(len(self.irMetadata[i].shape)):
+                        if self.irMetadata[i].broadcast[j] != 1:
+                            self.irMetadata[i].shape[j] = mult_metadata(self.irMetadata[i].shape[j], self.irMetadata[i].broadcast[j])
+                            self.irMetadata[i].broadcast[j] = 1
 
             elif elem == 'layer':
                 self.irMetadata[-1].type = 'Int'
