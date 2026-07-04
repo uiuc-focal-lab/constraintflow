@@ -189,6 +189,9 @@ def run(
 
 
 def main():
+    if '-O' in sys.argv:
+        sys.argv.remove('-O')
+        os.execv(sys.executable, [sys.executable, '-O'] + sys.argv)
     app()
 
 

@@ -62,8 +62,14 @@ class Llist:
                         raise NotImplementedError
                 elif elem == 'bias' or elem == 'b':
                     block = DenseBlock(self.network[k].bias)
-                    for i in range(len(self.initial_shape)):
-                        block = block.unsqueeze(0)
+                    if not self.network[k].last_layer:
+                        for i in range(len(self.initial_shape)):
+                            block = block.unsqueeze(0)
+                        repeat_dims = [batch_size]
+                        for i in range(len(block.total_shape)-1):
+                            repeat_dims.append(1)
+                        repeat_dims = torch.tensor(repeat_dims)
+                        block = block.repeat(repeat_dims)
                     ret.append(block)
                     start_index = torch.tensor([0]*len(self.initial_shape) + [temp])
                     start_indices.append(start_index)

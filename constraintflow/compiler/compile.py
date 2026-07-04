@@ -63,8 +63,8 @@ def compile(inputfile, output_path):
     for opt in optimizations:
         opt(ir)
     representations.remove_phi(ir)
-    if not os.environ.get('CF_NO_PARALLEL'):
-        parallelizeLoops.parallelize_loops(ir)
+    # if not os.environ.get('CF_NO_PARALLEL'):
+    #     parallelizeLoops.parallelize_loops(ir)
     codeGen.CodeGen(output_path).visit(ir)
 
     return True

@@ -121,7 +121,7 @@ def all(x):
 def binary(x, y, op):
     start_time = time.time()
     # time.sleep(0.0025)
-    sanityCheck(x, y)
+    if __debug__: sanityCheck(x, y)
     if isinstance(x, SparseTensor):
         res = x.binary(y, op)
     elif isinstance(y, SparseTensor):
@@ -133,7 +133,7 @@ def binary(x, y, op):
 
 def cf_max(x, y):
     start_time = time.time()
-    sanityCheck(x, y)
+    if __debug__: sanityCheck(x, y)
     if isinstance(x, SparseTensor):
         if isinstance(y, SparseTensor):
             res = sparse_max(x, y)
@@ -145,7 +145,7 @@ def cf_max(x, y):
 
 def cf_min(x, y):
     start_time = time.time()
-    sanityCheck(x, y)
+    if __debug__: sanityCheck(x, y)
     if isinstance(x, SparseTensor):
         if isinstance(y, SparseTensor):
             res = sparse_min(x, y)
@@ -172,8 +172,9 @@ def const_to_sparse(c, total_size):
 def where(x, y, z):
     start_time = time.time()
     if isinstance(x, torch.Tensor) and isinstance(y, torch.Tensor) and isinstance(z, torch.Tensor):
-        checkShapes(x, y)
-        sanityCheck(y, z)
+        if __debug__:
+            checkShapes(x, y)
+            sanityCheck(y, z)
         res = torch.where(x, y, z)
     if isinstance(x, bool) and isinstance(y, float) and isinstance(z, float):
         if x:
@@ -224,8 +225,9 @@ def where(x, y, z):
         z1 = const_to_sparse(z, total_size)
     else:
         z1 = z
-    checkShapes(x1, y1)
-    sanityCheck(y1, z1)
+    if __debug__:
+        checkShapes(x1, y1)
+        sanityCheck(y1, z1)
 
     res = sp_where(x1, y1, z1)
     where_time.update_total_time(time.time() - start_time)
