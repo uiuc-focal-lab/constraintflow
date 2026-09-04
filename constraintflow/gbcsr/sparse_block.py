@@ -720,13 +720,21 @@ class DiagonalBlock(SparseBlock):
             b = sp_block.block
             res = DenseBlock(a * b)
         elif isinstance(sp_block, DiagonalBlock):
-            raise NotImplementedError
+            # diag(a) @ diag(b) = diag(a*b), so the product stays diagonal.
+            if self.diag_index == sp_block.diag_index:
+                new_total_shape = self.total_shape.clone()
+                new_total_shape[-1] = sp_block.total_shape[-1]
+                res = DiagonalBlock(self.block * sp_block.block, new_total_shape, self.diag_index)
+            else:
+                res = DenseBlock(self.get_dense() @ sp_block.get_dense())
         elif isinstance(sp_block, KernelBlock):
             block_2 = sp_block.convert_to_patches().block # batch_size, curr_size, num_channels * kx * ky
             block_1 = self.block.unsqueeze(self.diag_index)
             block = block_1 * block_2
             res = PatchesBlock(block, sp_block.total_shape, sp_block.ix, sp_block.iy, sp_block.ox, sp_block.oy, sp_block.sx, sp_block.sy, sp_block.px, sp_block.py, sp_block.kx, sp_block.ky, sp_block.num_channels, sp_block.num_kernels)
-        elif isinstance(sp_block, RepeatBlock) and (sp_block.repeat_dims==1).all():
+        elif isinstance(sp_block, RepeatBlock):
+            # get_dense() is an expand (a view), so a genuinely repeated operand
+            # costs nothing extra here.
             sp_block = DenseBlock(sp_block.get_dense())
             res = self.matmul_equal_dims(sp_block)
         else:
@@ -743,9 +751,20 @@ class DiagonalBlock(SparseBlock):
             res = a * b
             res = res.squeeze(-1)
             res = DenseBlock(res)
-        elif isinstance(sp_block, RepeatBlock) and (sp_block.repeat_dims==1).all():
+        elif isinstance(sp_block, RepeatBlock):
+            # A diagonal matmul degenerates to an elementwise product, so a
+            # genuinely repeated operand is fine here too -- get_dense() is an
+            # expand (a view), so this materialises nothing extra.
             sp_block = DenseBlock(sp_block.get_dense())
             res = self.matmul_unequal_dims(sp_block)
+        elif isinstance(sp_block, ConstBlock) and self.diag_index == len(self.total_shape)-1:
+            # Contracting the diagonal against a constant vector just scales the
+            # diagonal entries; a zero constant collapses to a ConstBlock.
+            new_total_shape = self.total_shape.clone()[:-1]
+            if sp_block.block == 0:
+                res = ConstBlock(0, new_total_shape)
+            else:
+                res = DenseBlock(self.block * sp_block.block)
         else:
             res = super().matmul_unequal_dims(sp_block)
         matmul_time.update_op_time(time.time() - start_time)
