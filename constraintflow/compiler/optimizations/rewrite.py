@@ -662,7 +662,15 @@ def rewrite_percolate_repeat_inside_binary(expr):
         if isinstance(expr.children[0], IrVar):
             child = child.defs.children[1]
         if isinstance(child, IrBinaryOp) and (child.op == '+' or child.op == '-'):
-            expr = IrBinaryOp(IrReduce(child.children[0]), IrReduce(child.children[1]), child.op)
+            # Recurse into the two new IrReduce nodes: an operand may itself be a
+            # sum (nested maps produce `reduce((a*x + b*y) + c)`), and without
+            # this only the outermost '+' gets peeled, so rewrite_expr_5 later
+            # sees an IrBinaryOp instead of an IrMult and the inner product is
+            # never formed.
+            lhs, lhs_assignments = rewrite_percolate_repeat_inside_binary(IrReduce(child.children[0]))
+            rhs, rhs_assignments = rewrite_percolate_repeat_inside_binary(IrReduce(child.children[1]))
+            expr = IrBinaryOp(lhs, rhs, child.op)
+            return expr, new_assignments + lhs_assignments + rhs_assignments
     return expr, []
     
 
