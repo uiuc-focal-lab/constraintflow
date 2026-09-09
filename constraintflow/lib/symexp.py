@@ -51,3 +51,38 @@ class SymExpSparse:
 
     def get_const(self):
         return self.const
+
+# ---------------------------------------------------------------- alpha params
+# An `alpha` in a ConstraintFlow spec is a concrete, optimizable Float tensor.
+# Shape comes from shape analysis ([batch_size, curr_size]), so it is per
+# (input, neuron) -- not shared across the batch the way neuron metadata is.
+_ALPHA_STORE = {}     # (site, occurrence) -> leaf tensor, requires_grad=True
+_ALPHA_CALLS = {}     # site -> occurrences seen in the current flow
+
+
+def reset_alpha():
+    """Called at the start of each flow so a site maps to the same tensor every run."""
+    _ALPHA_CALLS.clear()
+
+
+def alpha_parameters():
+    """The leaves, for torch.optim."""
+    return [_ALPHA_STORE[k] for k in sorted(_ALPHA_STORE)]
+
+
+def get_alpha(site, shape, init=None):
+    n = _ALPHA_CALLS.get(site, 0)
+    _ALPHA_CALLS[site] = n + 1
+    key = (site, n)
+    if key not in _ALPHA_STORE:
+        dims = [int(x) for x in shape.tolist()]
+        if init is None:
+            v = torch.rand(*dims)                                   # random init, in the sound range
+        else:
+            v = init.get_dense() if hasattr(init, 'get_dense') else torch.as_tensor(init)
+            v = v.detach().float().expand(*dims).clone()
+        _ALPHA_STORE[key] = v.requires_grad_(True)
+    val = _ALPHA_STORE[key].clamp(0.0, 1.0)                         # sound for every value in [0,1]
+    return SparseTensor([torch.zeros(len(val.shape), dtype=int)],
+                        [DenseBlock(val)], len(val.shape),
+                        torch.tensor(list(val.shape)))

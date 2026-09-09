@@ -217,6 +217,15 @@ class CodeGen(irVisitor.IRVisitor):
         shape += ']'
         return 'get_new_eps(abs_elem.network, torch.tensor(' + shape + '))' 
     
+    def visitIrAlpha(self, node):
+        shape = '['
+        for i in range(len(node.irMetadata)):
+            for j in range(len(node.irMetadata[i].shape)):
+                shape += self.visit(node.irMetadata[i].shape[j]) + ","
+        shape += ']'
+        init = self.visit(node.init) if node.init is not None else 'None'
+        return 'get_alpha(' + str(node.site) + ', torch.tensor(' + shape + '), ' + init + ')'
+
     def visitIrPhi(self, node):
         s = 'phi(['
         for i in range(len(node.children)):

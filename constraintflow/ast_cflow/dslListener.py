@@ -422,6 +422,15 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#alphaparam.
+    def enterAlphaparam(self, ctx:dslParser.AlphaparamContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#alphaparam.
+    def exitAlphaparam(self, ctx:dslParser.AlphaparamContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#binopExp.
     def enterBinopExp(self, ctx:dslParser.BinopExpContext):
         pass
