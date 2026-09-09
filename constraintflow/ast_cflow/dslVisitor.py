@@ -239,6 +239,11 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#alphaparam.
+    def visitAlphaparam(self, ctx:dslParser.AlphaparamContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#binopExp.
     def visitBinopExp(self, ctx:dslParser.BinopExpContext):
         return self.visitChildren(ctx)

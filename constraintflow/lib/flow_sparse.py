@@ -23,6 +23,8 @@ class Flow:
         self.no_sparsity = no_sparsity
 
     def flow(self):
+        from constraintflow.lib.symexp import reset_alpha
+        reset_alpha()
         begin_time = time.time()
         prev_size = self.model.input_size
         size = self.model.input_size

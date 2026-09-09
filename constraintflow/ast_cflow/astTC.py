@@ -378,6 +378,14 @@ class ASTTC(astVisitor.ASTVisitor):
 		node.type = "Noise"
 		return "Noise"
 
+	def visitAlpha(self, node: AST.AlphaNode):
+		if node.init is not None:
+			itype = self.visit(node.init)
+			if itype not in ("Float", "Int"):
+				raise TypeMismatchException("alpha(...) initialiser must be Float")
+		node.type = "Float"
+		return "Float"
+
 	def visitTernary(self, node: AST.TernaryNode):
 		ctype = self.visit(node.cond)
 		if(not self.isSubType(ctype, "Bool")):

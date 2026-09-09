@@ -410,6 +410,25 @@ class IrEpsilon(IrExpression):
         # self.update_parent_child([IrConst(num)])
         
     
+class IrAlpha(IrExpression):
+    """An optimizable parameter. Like IrEpsilon it takes its shape from shape
+    analysis, so it is materialised per (batch element, neuron); unlike IrEpsilon
+    it is a concrete Float tensor with requires_grad set, not a noise symbol."""
+    counter = 0
+    def __init__(self, num=None, site=None, init=None):
+        super().__init__()
+        if num is None:
+            num = IrAst.curr_size
+        self.num = num
+        self.init = init
+        if init is not None:
+            self.update_parent_child([init])
+        if site is None:
+            site = IrAlpha.counter
+            IrAlpha.counter += 1
+        self.site = site
+        self.irMetadata = [IrMetadataElement([IrAst.batch_size, num], 'Float', [1, 1], False)]
+
 class IrPhi(IrExpression):
     def __init__(self, original_name, vars, irMetadata):
         super().__init__()

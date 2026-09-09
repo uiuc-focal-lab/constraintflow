@@ -92,6 +92,7 @@ expr: FALSE					                        #false
     | FloatConst 				                    #float
     | VAR                     			            #varExp
     | EPSILON 					                    #epsilon
+    | ALPHA LPAREN expr RPAREN                       #alphaparam
     | CURR					                        #curr
     | PREV					                        #prev
     | PREV_0					                    #prev_0
@@ -252,6 +253,7 @@ TANH: 'Tanh' ;
 SHAPE: 'def Shape as' ;
 FUNC: 'func' ;
 EPSILON: 'eps' ;
+ALPHA: 'alpha' ;
 TRUE: 'true' ;
 FALSE: 'false' ;
 CURR: 'curr' ;

@@ -346,6 +346,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
         exprIr, exprSeqIr = self.visit(ast_node.expr)
         return IrAccess(exprIr, ast_node.metadata.name, None, True), exprSeqIr
     
+    def visitAlpha(self, ast_node):
+        initIr, seqIr = self.visit(ast_node.init)
+        return IrAlpha(site=ast_node.identifier, init=initIr), seqIr
+
     def visitFuncCall(self, ast_node):
         seqIr = []
         argIrs = []

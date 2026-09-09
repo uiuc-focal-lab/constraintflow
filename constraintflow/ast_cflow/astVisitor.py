@@ -39,6 +39,8 @@ class ASTVisitor:
 		# 	return self.visitPrev(node)
 		elif isinstance(node, AST.EpsilonNode):
 			return self.visitEpsilon(node)
+		elif isinstance(node, AST.AlphaNode):
+			return self.visitAlpha(node)
 		elif isinstance(node, AST.TernaryNode):
 			return self.visitTernary(node)
 		elif isinstance(node, AST.IfNode):

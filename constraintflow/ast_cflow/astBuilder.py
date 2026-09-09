@@ -180,6 +180,10 @@ class ASTBuilder(dslVisitor):
         self.epsilon_count += 1
         return AST.EpsilonNode(self.epsilon_count)
 
+    def visitAlphaparam(self, ctx:dslParser.AlphaparamContext):
+        self.alpha_count = getattr(self, 'alpha_count', 0) + 1
+        return AST.AlphaNode(self.alpha_count, self.visit(ctx.expr()))
+
     def visitNeg(self, ctx:dslParser.NegContext):
         expr = self.visit(ctx.expr())
         return AST.UnOpNode("-", expr)

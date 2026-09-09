@@ -229,6 +229,16 @@ def where(x, y, z):
         checkShapes(x1, y1)
         sanityCheck(y1, z1)
 
+    # Both branches block-less constants: sp_where has no block to select over and
+    # collapses to a single constant, silently discarding the mask. Materialise first.
+    if getattr(y1, 'num_blocks', 1) == 0 and getattr(z1, 'num_blocks', 1) == 0:
+        from constraintflow.gbcsr.sparse_block import DenseBlock
+        yd, zd = y1.get_dense(), z1.get_dense()
+        y1 = SparseTensor([torch.zeros(len(yd.shape), dtype=int)], [DenseBlock(yd)],
+                          len(yd.shape), torch.tensor(list(yd.shape)))
+        z1 = SparseTensor([torch.zeros(len(zd.shape), dtype=int)], [DenseBlock(zd)],
+                          len(zd.shape), torch.tensor(list(zd.shape)))
+
     res = sp_where(x1, y1, z1)
     where_time.update_total_time(time.time() - start_time)
     return res

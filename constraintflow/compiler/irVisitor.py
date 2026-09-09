@@ -13,6 +13,8 @@ class IRVisitor:
         
         elif isinstance(node, IR.IrEpsilon):
             return self.visitIrEpsilon(node)
+        elif isinstance(node, IR.IrAlpha):
+            return self.visitIrAlpha(node)
         
         elif isinstance(node, IR.IrPhi):
             return self.visitIrPhi(node)
