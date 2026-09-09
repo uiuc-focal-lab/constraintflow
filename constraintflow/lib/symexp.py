@@ -65,6 +65,19 @@ def reset_alpha():
     _ALPHA_CALLS.clear()
 
 
+def clamp_alpha():
+    """Project every alpha back onto [0,1]. Call after each optimizer step.
+
+    get_alpha() also clamps in the forward, which keeps every run sound, but a
+    leaf that drifts outside [0,1] then sees zero gradient through the clamp and
+    is stuck there. Projecting the parameter itself keeps it on the boundary
+    where gradient still flows. (auto_LiRPA does the same in clip_alpha().)
+    """
+    with torch.no_grad():
+        for t in _ALPHA_STORE.values():
+            t.clamp_(0.0, 1.0)
+
+
 def alpha_parameters():
     """The leaves, for torch.optim."""
     return [_ALPHA_STORE[k] for k in sorted(_ALPHA_STORE)]
