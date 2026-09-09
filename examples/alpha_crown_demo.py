@@ -1,7 +1,7 @@
 """alpha-CROWN from a ConstraintFlow spec, alpha as a first-class optimizable value."""
 import sys, os, torch
 OUT = sys.argv[1]; sys.path.insert(0, OUT)
-from constraintflow.lib.symexp import alpha_parameters
+from constraintflow.lib.symexp import alpha_parameters, clamp_alpha
 from constraintflow.cli import get_dataset
 import main
 
@@ -29,7 +29,7 @@ for it in range(ITERS):
     lb, ub = run()
     best = torch.maximum(best, lb.detach())
     (-lb.sum()).backward()
-    opt.step(); sched.step()
+    opt.step(); sched.step(); clamp_alpha()
     if it % 20 == 0 or it == ITERS-1:
         print(f'  it{it:2d} verified={int((lb>=0).all(dim=1).sum()):3d}/{BS} '
               f'sum(lb)={float(lb.sum()):10.2f}  best={int((best>=0).all(dim=1).sum())}')
