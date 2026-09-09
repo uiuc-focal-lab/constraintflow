@@ -238,6 +238,15 @@ def matchDims(lhsIr, rhsIr):
         rhsIr = IrAddDimensionConst(rhsIr, updated_irMetadata) 
         return lhsIr, rhsIr
 
+    # An alpha that has not yet been pinned down takes its rank and shape from
+    # the expression it is combined with.
+    if isinstance(lhsIr, IrAlpha) and not lhsIr.resolved and len(lhsIrMetadata) != len(rhsIrMetadata):
+        lhsIr.resolve_from(rhsIr)
+        lhsIrMetadata = lhsIr.irMetadata
+    elif isinstance(rhsIr, IrAlpha) and not rhsIr.resolved and len(lhsIrMetadata) != len(rhsIrMetadata):
+        rhsIr.resolve_from(lhsIr)
+        rhsIrMetadata = rhsIr.irMetadata
+
     # TODO: CHECK THIS ASSERT
     assert(len(lhsIrMetadata) == len(rhsIrMetadata))
 
@@ -427,7 +436,24 @@ class IrAlpha(IrExpression):
             site = IrAlpha.counter
             IrAlpha.counter += 1
         self.site = site
+        # Rank-polymorphic: alpha materialises at whatever shape the context needs.
+        # Default is the transformer's own [batch, curr]; inside a map/traverse
+        # resolve_from() promotes it to the full nesting depth, so a spec can ask
+        # for one alpha per (target, source) rather than one per neuron.
+        self.resolved = False
         self.irMetadata = [IrMetadataElement([IrAst.batch_size, num], 'Float', [1, 1], False)]
+
+    def resolve_from(self, other):
+        """Adopt other's nesting depth and fully materialised shape."""
+        md = copy_metadata(other.irMetadata)
+        for el in md:
+            for j in range(len(el.shape)):
+                el.shape[j] = mult_metadata(el.shape[j], el.broadcast[j])
+                el.broadcast[j] = 1
+            el.type = 'Float'
+            el.isConst = False
+        self.irMetadata = md
+        self.resolved = True
 
 class IrPhi(IrExpression):
     def __init__(self, original_name, vars, irMetadata):
