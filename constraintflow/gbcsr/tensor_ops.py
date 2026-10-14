@@ -250,7 +250,7 @@ def inner_prod(x, y):
                 if x.total_size[-1] != y.total_size[-1]:
                     print(x.total_size, y.total_size)
                     raise Exception('SHAPE MISMATCH')
-                if x.total_size[:-2] != y.total_size[:-1]:
+                if (x.total_size[:-2] != y.total_size[:-1]).any():
                     print(x.total_size, y.total_size)
                     raise Exception('SHAPE MISMATCH')
             else:

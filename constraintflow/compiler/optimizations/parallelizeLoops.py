@@ -270,11 +270,31 @@ def _split(block_a, w1, block_b, w2, block_c):
 
 # ── CFG transformation ────────────────────────────────────────────────────────
 
+def _count_top_level_loops(cfg):
+    """Number of top-level while-loops, i.e. blocks whose inner_jump enters one."""
+    count = 0
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        if isinstance(block, IrWhileBlock) or not isinstance(block, IrBlock):
+            continue
+        if block.inner_jump is not None and isinstance(block.inner_jump[1], IrWhileBlock):
+            count += 1
+    return count
+
+
 def _parallelize_cfg(cfg):
+    # The split below assumes exactly two loops, with Block C holding only
+    # post-processing and the return. With a third loop, Block C also seeds
+    # that loop, and moving those statements into thread 2 leaves its
+    # variables undefined after the join (GitHub issue #2).
+    if _count_top_level_loops(cfg) != 2:
+        return
     result = _find_pattern(cfg)
     if result is None:
         return
     block_a, w1, block_b, w2, block_c = result
+    if block_c.inner_jump is not None:
+        return
 
     if not _check_independent(w1, w2):
         return
