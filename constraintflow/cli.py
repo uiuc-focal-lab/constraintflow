@@ -191,9 +191,16 @@ def run(
 
 
 def main():
+    # Run with Python's -O by default: the runtime's __debug__ sanity checks and
+    # asserts are stricter than the operations themselves (e.g. they reject a
+    # [1, n] bias broadcast against a [batch, n] tensor), and all reported
+    # results were produced with them disabled. Pass --debug to keep them on.
     if '-O' in sys.argv:
         sys.argv.remove('-O')
-        os.execv(sys.executable, [sys.executable, '-O'] + sys.argv)
+    if '--debug' in sys.argv:
+        sys.argv.remove('--debug')
+    elif __debug__:
+        os.execv(sys.executable, [sys.executable, '-O', '-m', 'constraintflow.cli'] + sys.argv[1:])
     app()
 
 
