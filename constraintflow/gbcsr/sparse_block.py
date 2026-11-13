@@ -6,6 +6,7 @@ import copyreg
 import math
 #FEAT: weak references for the selection-weight cache.
 import weakref
+from typing import Optional
 from torch.utils.weak import WeakIdKeyDictionary
 from constraintflow.lib import s_shaped
 from constraintflow.lib.s_shaped import sigma_tangent, tanh_tangent
@@ -865,17 +866,18 @@ def _phase_lowering(weight, x_spatial, s, padding, output_padding):
 _selection_cache = {}
 
 
-def _channel_selection(weight):
+def _channel_selection(weight, taps=None):
     """(source channel, scale, taps): [kx, ky, out] sources and scales, and the taps with any nonzero; None for
-    any other weight."""
+    any other weight. taps (flat [a0, b0, a1, b1, ...]) names a selection weight known at compile time."""
     key = (weight.data_ptr(), weight._version, tuple(weight.shape), weight.dtype, weight.device)
     hit = _selection_cache.get(key)
     if hit is None or hit[0]() is None:
         nonzero = weight != 0
         sel = None
-        if weight.dim() == 4 and int(nonzero.sum(0).max()) <= 1:
+        #FIX FOR: the selection test and the taps list read the weight back to the host (3 D2H per weight per run).
+        if taps is not None or (weight.dim() == 4 and int(nonzero.sum(0).max()) <= 1):
             src = nonzero.to(torch.uint8).argmax(0)
-            used = nonzero.any(0).any(0).nonzero().tolist()
+            used = list(zip(taps[::2], taps[1::2])) if taps is not None else nonzero.any(0).any(0).nonzero().tolist()
             sel = (src.permute(1, 2, 0).contiguous(), weight.gather(0, src[None])[0].permute(1, 2, 0).contiguous(),
                    [tuple(t) for t in used])
         _selection_cache[key] = hit = (weakref.ref(weight), sel)
@@ -1073,11 +1075,12 @@ def _choose_lowering(key, x, lowerings):
 
 @torch.library.custom_op("cf::conv_transpose2d", mutates_args=())
 def _conv_transpose2d_op(x: torch.Tensor, weight: torch.Tensor, stride: list[int],
-                         padding: list[int], output_padding: list[int], may_select: bool) -> torch.Tensor:
+                         padding: list[int], output_padding: list[int], may_select: bool,
+                         selection_taps: Optional[list[int]] = None) -> torch.Tensor:
     #FEAT: selection weights get their own tuning key (a dense weight of the same shape must not reuse it).
     #FIX FOR: the selection check read the weight back to the host (one D2H per conv weight per batch); the
     # compiler passes may_select=False for weights it already knows are dense.
-    sel = _channel_selection(weight) if CONV_TRANSPOSE_TUNE and may_select else None
+    sel = _channel_selection(weight, selection_taps) if CONV_TRANSPOSE_TUNE and may_select else None
     key = (tuple(x.shape), tuple(x.stride()), tuple(weight.shape), x.dtype, x.device,
            tuple(stride), tuple(padding), tuple(output_padding), sel is not None)
     #FIX FOR: every call built all candidate lowerings in Python though the tuner needs them only once (N33: ~330 calls per image).
@@ -1097,7 +1100,7 @@ def _conv_transpose2d_op(x: torch.Tensor, weight: torch.Tensor, stride: list[int
 
 
 @_conv_transpose2d_op.register_fake
-def _(x, weight, stride, padding, output_padding, may_select):
+def _(x, weight, stride, padding, output_padding, may_select, selection_taps=None):
     size = [x.shape[0], weight.shape[1]]
     for d in range(2):
         size.append((x.shape[2 + d] - 1) * stride[d] - 2 * padding[d]
@@ -1107,7 +1110,7 @@ def _(x, weight, stride, padding, output_padding, may_select):
 
 #FIX FOR: cf::conv_transpose2d had no autograd formula, so conv-net bounds could not be differentiated.
 def _conv_transpose2d_setup_context(ctx, inputs, output):
-    x, weight, stride, padding, output_padding, _may_select = inputs
+    x, weight, stride, padding, output_padding, _may_select, _selection_taps = inputs
     ctx.save_for_backward(x, weight)
     ctx.conv_args = (stride, padding, output_padding)
 
@@ -1120,7 +1123,7 @@ def _conv_transpose2d_backward(ctx, grad):
     grad_x, grad_weight = _conv_transpose2d_backward_op(
         grad.contiguous(), x, weight, stride, padding, output_padding,
         [ctx.needs_input_grad[0], ctx.needs_input_grad[1]])
-    return (grad_x if ctx.needs_input_grad[0] else None), (grad_weight if ctx.needs_input_grad[1] else None), None, None, None, None
+    return (grad_x if ctx.needs_input_grad[0] else None), (grad_weight if ctx.needs_input_grad[1] else None), None, None, None, None, None
 
 
 _conv_transpose_bwd_choice = {}
@@ -1186,8 +1189,9 @@ _conv_transpose2d_op.register_autograd(_conv_transpose2d_backward,
                                        setup_context=_conv_transpose2d_setup_context)
 
 
-def conv_transpose2d(x, weight, stride=1, padding=0, output_padding=0, may_select=True):
-    return _conv_transpose2d_op(x, weight, _pair(stride), _pair(padding), _pair(output_padding), may_select)
+def conv_transpose2d(x, weight, stride=1, padding=0, output_padding=0, may_select=True, selection_taps=None):
+    return _conv_transpose2d_op(x, weight, _pair(stride), _pair(padding), _pair(output_padding), may_select,
+                                selection_taps)
 
 
 #FIX FOR: Inductor merged F.pad with the computation feeding it and returned wrong coefficients (ResNet50 row chunks).

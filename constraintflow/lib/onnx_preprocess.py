@@ -54,8 +54,10 @@ def fold_batch_norm(net, parameters):
         if any(p.shape != (weight.shape[0],) for p in (bias, gamma, beta, mean, var)):
             fail('parameter shapes do not match the Conv output channels')
         eps = attrs.get('epsilon', 1e-5)
-        if not math.isfinite(eps) or eps < 0 or not bool(torch.all(var + eps > 0)):
-            fail('invalid variance or epsilon')
+        if not math.isfinite(eps) or eps < 0:
+            fail('invalid epsilon')
+        #FIX FOR: bool() on the variance check read GPU weights back to the host (one D2H per BN layer per batch).
+        torch._assert_async(torch.all(var + eps > 0), f"Cannot fold BatchNormalization {node.name!r}: invalid variance")
         scale = gamma / torch.sqrt(var + eps)
         # Names keep 'weight'/'bias' in them: auto_LiRPA's glue parser finds Conv operands by substring.
         prefix = f'__folded_bn_{len(folded)}'

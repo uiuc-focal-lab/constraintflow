@@ -58,7 +58,7 @@ from constraintflow.compiler.compile import compile as _compile
 from constraintflow.compiler.optimizations import opt_flags
 from constraintflow.compiler.optimizations.stable_relu import warmup_stable_relu
 from constraintflow.verifier.provesound import provesound as _provesound
-from constraintflow.lib.spec import get_network_and_input_spec
+from constraintflow.lib.spec import get_network_and_input_spec, vnnlib_path
 
 app = typer.Typer(help="ConstraintFlow CLI for verification and compilation of DSL programs.")
 
@@ -232,8 +232,11 @@ def compile(
     output_path: str = typer.Option("output/", help="Output path for generated code"),
     fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- only affects a jit reuse compile (no-op on plain compile, which never runs tensor_to_block); unsound if the assertion doesn't hold."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
+    #FEAT: torch.compile without specialization (the generic build's Flow.flow), for the specialization ablation.
+    compile_flow: bool = typer.Option(False, "--compile-flow", help="Wrap Flow.flow in torch.compile (Inductor, fullgraph=False, the jit build's options) in the generated main.py; transformers.py is unchanged. Run with --inductor."),
 ):
     start_time = time.perf_counter()
+    globals.compile_flow.set_flag() if compile_flow else globals.compile_flow.reset_flag()
     globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
     globals.center_radius.set_flag() if center_radius else globals.center_radius.reset_flag()
     compile_code(program_file, output_path)
@@ -601,6 +604,9 @@ def run(
         xs, ys = X[lo : lo + batch_size], y[lo : lo + batch_size]
         if dataset_device is None:
             return xs, ys
+        #FIX FOR: VNN-LIB labels (spec indices) went to the GPU only to be read back by y.tolist() (1 H2D + 1 D2H per batch).
+        if vnnlib_path(dataset):
+            return xs.to(dataset_device), ys
         return xs.to(dataset_device), ys.to(dataset_device)
 
     perturb_rng = None
@@ -729,6 +735,9 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
     #FEAT: --profile-comm profiles each timed region.
     from constraintflow.lib.comm_profile import CommProfile
     from constraintflow.lib import cpu_memory
+    #FEAT: Dynamo compile counts per warmup and batch, read outside the timer (--inductor runs; lib/dynamo_stats.py).
+    from constraintflow.lib import dynamo_stats
+    dynamo = dynamo_stats if globals.inductor_mode.get_flag() else None
 
     def _write(f, record):
         f.write(_json.dumps(record) + "\n")
@@ -739,6 +748,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
             lo = num_images + j * batch_size
             if warmup_timeout:
                 faulthandler.dump_traceback_later(warmup_timeout, exit=True)
+            dyn_before = dynamo.snapshot() if dynamo else None
             warmup_start = time.perf_counter()
             warmup_stable_relu(run, network_file, batch_size, eps, *_batch(lo), dataset=dataset, train=train,
                 print_intermediate_results=False, no_sparsity=no_sparsity)
@@ -748,7 +758,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
             faulthandler.cancel_dump_traceback_later()
             typer.echo(f"Warmup run {j + 1}/{warmup}: {warmup_time:.6f} s")
             _write(out, {"kind": "warmup", "index": j, "images": [lo, lo + batch_size],
-                         "time_s": warmup_time})
+                         "time_s": warmup_time, **({"dynamo": dynamo.since(dyn_before)} if dynamo else {})})
             gc.collect()
 
         gc.collect()
@@ -769,6 +779,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
                     #FEAT: per-run CPU memory: resident set at the start, high-water mark during the run.
                     resident = cpu_memory.start()
 
+                dyn_before = dynamo.snapshot() if dynamo else None
                 if batch_timeout:
                     faulthandler.dump_traceback_later(batch_timeout, exit=True)
                 start_time = time.perf_counter()
@@ -785,7 +796,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
             _write(out, {"kind": "batch", "batch": i, "images": [lo, lo + batch_size],
                          comm.time_key: run_time, "peak_bytes": peak, "resident_bytes": resident,
                          "lower": lb.detach().cpu().tolist(), "upper": ub.detach().cpu().tolist(),
-                         **comm.metrics()})
+                         **comm.metrics(), **({"dynamo": dynamo.since(dyn_before)} if dynamo else {})})
             comm.save_trace(results_file, i)
             typer.echo(f"Run {i + 1}/{num_images // batch_size}: {run_time:.6f} s, "
                        f"Peak memory: {peak} bytes, Resident memory: {resident} bytes")

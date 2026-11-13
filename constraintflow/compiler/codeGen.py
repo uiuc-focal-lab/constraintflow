@@ -8,7 +8,7 @@ import re
 from . import irVisitor
 import copy
 from .ir import *
-from constraintflow.lib.globals import dummy_mode, reuse_mode, load_capture, capture_exists, inductor_mode, fused_flow, sroa
+from constraintflow.lib.globals import dummy_mode, reuse_mode, load_capture, capture_exists, inductor_mode, fused_flow, sroa, compile_flow
 from constraintflow.compiler.optimizations import flow_split
 from constraintflow.compiler.optimizations import flow_shapes
 from constraintflow.compiler.optimizations import subexp_inlining
@@ -25,21 +25,30 @@ _dense_weight_cache = {}
 
 
 #FIX FOR: see visitIrFConvTranspose2d; the weights come from parsing the network once on the CPU.
-def _dense_conv_weights(network_path):
-    """flow() parameter names (net_<i>_weight) of the network's 4-D weights that select no channels."""
+def _conv_weight_taps(network_path):
+    """flow() parameter names (net_<i>_weight) of the network's 4-D weights -> the taps a channel-selection
+    weight uses, or None for a dense weight."""
     if network_path is None:
-        return set()
+        return {}
     if network_path not in _dense_weight_cache:
         import onnx
         import torch
         from constraintflow.lib.parse import parse_onnx_layers
         from constraintflow.gbcsr.sparse_block import _channel_selection
         layers = parse_onnx_layers(onnx.load(network_path), torch.zeros(1, 1), torch.zeros(1), no_sparsity=True)
-        _dense_weight_cache[network_path] = {
-            f'net_{i}_weight' for i, layer in enumerate(layers)
-            if isinstance(getattr(layer, 'weight', None), torch.Tensor) and layer.weight.dim() == 4
-            and layer.weight.is_floating_point() and _channel_selection(layer.weight.cpu()) is None}
+        taps = {}
+        for i, layer in enumerate(layers):
+            if (isinstance(getattr(layer, 'weight', None), torch.Tensor) and layer.weight.dim() == 4
+                    and layer.weight.is_floating_point()):
+                sel = _channel_selection(layer.weight.cpu())
+                taps[f'net_{i}_weight'] = None if sel is None else sel[2]
+        _dense_weight_cache[network_path] = taps
     return _dense_weight_cache[network_path]
+
+
+def _dense_conv_weights(network_path):
+    """flow() parameter names (net_<i>_weight) of the network's 4-D weights that select no channels."""
+    return {name for name, taps in _conv_weight_taps(network_path).items() if taps is None}
 
 
 _runtime_checked = set()
@@ -153,6 +162,13 @@ class CodeGen(irVisitor.IRVisitor):
         self.write("from constraintflow.lib.symexp import *")
         self.write("from constraintflow.lib.globals import save_capture, inductor_mode")
         self.write_sibling_import('transformers')
+        #FEAT: --compile-flow wraps the plain build's Flow.flow in torch.compile with the jit build's
+        # Inductor options; transformers.py is unchanged.
+        if compile_flow.get_flag() and not reuse_mode.get_flag():
+            self.write("import torch")
+            if opt_flags.enabled('shared_lhs_mm'):
+                self.write("from constraintflow.compiler.optimizations.shared_lhs_mm import SharedLhsMM")
+            self.write("Flow.flow = torch.compile(Flow.flow, " + compile_decorator(False)[len('@torch.compile('):])
         self.write("\n")
         # self.write("torch.cuda.reset_peak_memory_stats()")
         #FEAT: input_box=(x_L, x_U) lets a caller (certified training) supply the input box directly.
@@ -1260,8 +1276,13 @@ class CodeGen(irVisitor.IRVisitor):
         #FIX FOR: conv_transpose2d checked every weight for channel selection on the GPU at run time (a D2H
         # per conv weight per batch); a network weight known to be dense at compile time skips the check.
         if globals_mod.network_path is not None:
+            taps = _conv_weight_taps(globals_mod.network_path)
             if _is_dense_weight(node.children[1], _dense_conv_weights(globals_mod.network_path)):
                 kwargs.append('may_select=False')
+            #FIX FOR: selection weights (MaxPool expansion) were checked on the host at run time (3 D2H per weight
+            # per batch); their taps are known at compile time.
+            elif isinstance(node.children[1], IrVar) and taps.get(node.children[1].name) is not None:
+                kwargs.append('selection_taps=' + repr([i for tap in taps[node.children[1].name] for i in tap]))
             elif weight not in _runtime_checked:
                 _runtime_checked.add(weight)
                 print(f'[convT] weight checked for channel selection at run time: {weight[:120]}')

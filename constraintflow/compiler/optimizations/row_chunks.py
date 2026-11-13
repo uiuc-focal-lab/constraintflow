@@ -67,6 +67,11 @@ def _cf_select(x, index, scale):
     return x.reshape(x.shape[0], -1)[:, index].view(x.shape[0], *scale.shape) * scale
 
 
+def _cf_channels(x, r0, r1, positions):
+    """Channels [r0 // positions, r1 // positions) of axis 1: the channel factor of rows split as channels x positions."""
+    return x[:, r0 // positions:r1 // positions]
+
+
 def _cf_tiled_rows(x, times, r0, r1):
     """Rows [r0, r1) of x.repeat([1, times, 1, ...]) without materializing the repeat."""
     period = x.shape[1]
@@ -178,6 +183,17 @@ UNARY_METHODS = {'neg', 'abs', 'float', 'contiguous', 'clone', 'clamp'}
 ROW_FIRST = {'conv_transpose2d', 'training_bcast_matmul', 'bcast_matmul', 'matmul', '_cf_select'}
 
 
+class _Replace(ast.NodeTransformer):
+    """Replace subexpressions (by ast.dump) with names."""
+
+    def __init__(self, names):
+        self.names = names
+
+    def visit(self, node):
+        name = self.names.get(ast.dump(node)) if isinstance(node, ast.expr) else None
+        return ast.Name(name, ast.Load()) if name else super().visit(node)
+
+
 class _ChunkBody(ast.NodeTransformer):
     """Rewrite one loop statement so it computes rows [_r0, _r1)."""
 
@@ -188,9 +204,11 @@ class _ChunkBody(ast.NodeTransformer):
         self.periods = []          # rows of each tiled source (positions per channel)
         self.whole_periods = []    # the chunk size must be a multiple of these
         self.failed = None
+        self.mixes_rows = False    # a product contracts the rows: the statement must run unchunked
+        self.channel_vars = {}     # name -> positions: [1, C, 1 or P, ...] factors sliced by channels
 
     def _is_row(self, node):
-        return bool(_names(node) & self.row_vars)
+        return bool(_names(node) & (self.row_vars | self.channel_vars.keys()))
 
     def _row_operand(self, node, result_ndim):
         """Replace a column-side operand that is nevertheless row-aligned by its chunk rows."""
@@ -212,10 +230,64 @@ class _ChunkBody(ast.NodeTransformer):
                 self.periods.append(self.probe.shape(node.func.value)[1])
                 return ast.Call(ast.Name('_cf_tiled_rows', ast.Load()),
                                 [node.func.value, reps[1], ast.Name('_r0', ast.Load()), ast.Name('_r1', ast.Load())], [])
+        chunked = self._channel_rows(node)
+        if chunked is not None:
+            return chunked
         name = f'_cf_hoist_{len(self.hoisted)}_{id(node)}'
         self.hoisted.append((name, node))
         return ast.Call(ast.Name('_cf_rows', ast.Load()),
                         [ast.Name(name, ast.Load()), ast.Name('_r0', ast.Load()), ast.Name('_r1', ast.Load())], [])
+
+    #FEAT: a row-aligned operand built from other layers whose rows are channels x positions (SkipPoly's first
+    # step: weight[c] times the patch at position p) runs per chunk with its [1, C, 1 or P, ...] channel factor
+    # sliced, instead of in full before the loop (VGG16: up to 87 GiB). The row-locality checks still apply.
+    def _channel_rows(self, node):
+        leaves = []
+
+        def find(n):
+            """Innermost [1, C, 1 or P, ...] subexpressions (the small factors, not the products)."""
+            found = len(leaves)
+            for c in ast.iter_child_nodes(n):
+                find(c)
+            if len(leaves) > found or isinstance(n, (ast.Constant, ast.List, ast.Tuple)) or not isinstance(n, ast.expr):
+                return
+            try:
+                shape = self.probe.shape(n)
+            except Exception:
+                shape = None
+            if shape is not None and len(shape) >= 3 and shape[0] == 1 and 1 < shape[1] < self.n_rows \
+                    and self.n_rows % shape[1] == 0 and shape[2] in (1, self.n_rows // shape[1]) and _names(n):
+                leaves.append((n, shape))
+
+        find(node)
+        # Only when the factors are much smaller than the operand (else hoisting it costs the same memory).
+        if not leaves or len({sh[1] for _, sh in leaves}) != 1 \
+                or 4 * sum(math.prod(sh) for _, sh in leaves) > math.prod(self.probe.shape(node)):
+            return None
+        positions = self.n_rows // leaves[0][1][1]
+        state = (self.failed, len(self.hoisted), len(self.periods), len(self.whole_periods), dict(self.channel_vars))
+        new, names = copy.deepcopy(node), {}
+        for n, _ in leaves:
+            names[ast.dump(n)] = names.get(ast.dump(n)) or f'_cf_ch_{len(self.hoisted)}_{id(n)}'
+            name = names[ast.dump(n)]
+            if name not in self.channel_vars:
+                self.hoisted.append((name, n))
+                self.channel_vars[name] = positions
+                with self.probe.mode:
+                    self.probe.env[name] = eval(compile(ast.fix_missing_locations(ast.Expression(n)), '<expr>', 'eval'),
+                                                self.probe.env)
+        new = _Replace({ast.dump(n): names[ast.dump(n)] for n, _ in leaves}).visit(new)
+        self.failed = None
+        new = self.visit(new)
+        if self.failed is not None or self._row_axis(node)[0] is None:
+            self.failed = state[0]
+            del self.hoisted[state[1]:], self.periods[state[2]:], self.whole_periods[state[3]:]
+            self.channel_vars = state[4]
+            return None
+        self.failed = state[0]
+        self.periods.append(positions)
+        self.whole_periods.append(positions)
+        return new
 
     def _row_span(self, node):
         """(first row axis, number of row axes, rank): rows on one axis of size N, or split as channels x
@@ -317,13 +389,19 @@ class _ChunkBody(ast.NodeTransformer):
         if name not in ROW_FIRST:
             return f'{name or ast.unparse(node)[:40]} on a row tensor'
         if not operands or not self._is_row(operands[0]) or any(self._is_row(o) for o in operands[1:]):
+            self.mixes_rows = True
             return f'{name} with the rows outside its first operand'
         d, ndim = self._row_axis(operands[0])
         if d is None or d >= ndim - 1:
+            self.mixes_rows = True
             return f'{name} contracting the row axis'
         return None
 
     def visit_Name(self, node):
+        if node.id in self.channel_vars:
+            return ast.Call(ast.Name('_cf_channels', ast.Load()),
+                            [ast.Name(node.id, ast.Load()), ast.Name('_r0', ast.Load()), ast.Name('_r1', ast.Load()),
+                             ast.Constant(self.channel_vars[node.id])], [])
         if node.id in self.sliced_vars:
             return ast.Call(ast.Name('_cf_rows', ast.Load()),
                             [ast.Name(node.id, ast.Load()), ast.Name('_r0', ast.Load()), ast.Name('_r1', ast.Load())], [])
@@ -354,6 +432,16 @@ class _ChunkBody(ast.NodeTransformer):
                     c = None if shape is None else d - (ndim - len(shape))
                     if shape is None or c >= 0 and shape[c] != 1:
                         self.failed = self.failed or 'operand aligned with the channels of split rows'
+                #FEAT: a sliced channel factor must sit on the channel axis of the split rows.
+                elif isinstance(item, ast.expr) and _names(item) & self.channel_vars.keys():
+                    try:
+                        shape = self.probe.shape(item) or ()
+                    except Exception:
+                        shape = ()
+                    c, positions = d - (ndim - len(shape)), self.channel_vars[min(_names(item) & self.channel_vars.keys())]
+                    if not (0 <= c < len(shape) and shape[c] * positions == self.n_rows and all(z == 1 for z in shape[:c])
+                            and (c + 1 >= len(shape) or shape[c + 1] in (1, positions))):
+                        self.failed = self.failed or 'channel factor not on the channel axis of split rows'
             for field, value in ast.iter_fields(node):
                 items = value if isinstance(value, list) else [value]
                 new = [self.visit(i) if isinstance(i, ast.AST) and self._is_row(i) else i for i in items]
@@ -541,6 +629,42 @@ class _SelectionConvs(ast.NodeTransformer):
                                                               ast.Name(scale, ast.Load())], [])
 
 
+class _RowMixing(ValueError):
+    """A loop statement whose product contracts the rows; .stmt is its index."""
+
+    def __init__(self, stmt, message=None):
+        super().__init__(message or f'statement {stmt} mixes rows')
+        self.stmt = stmt
+
+
+#FEAT: a statement that mixes rows (e.g. SkipPoly's next-layer weight times a same-width row matrix, VGG16
+# fc 4096 -> 4096) leaves the loop: it and its loop inputs run once, unchunked, and the loop slices its result.
+def _unchunk(stmts, probe, n_rows, loop, outside, users, budget, compile_bodies, selections):
+    """_chunk_body, moving row-mixing statements out of the loop while they fit the budget."""
+    defs = {stmts[i].targets[0].id: i for i in loop}
+    moved = []
+    while True:
+        try:
+            return _chunk_body(stmts, probe, n_rows, loop, outside, users, two_stage=compile_bodies,
+                               selections=selections), moved
+        except _RowMixing as e:
+            group, todo = set(), [e.stmt]
+            while todo:   # the statement and the loop statements it reads
+                i = todo.pop()
+                if i not in group:
+                    group.add(i)
+                    todo += [defs[n] for n in _names(stmts[i].value) & defs.keys()]
+            big = [i for i in sorted(group) if probe.stmt_bytes.get(i, 0) > budget]
+            if big:
+                raise ValueError(f'{e}; running it unchunked needs statement {big[0]} '
+                                 f'({probe.stmt_bytes[big[0]] / 2**30:.3g} GiB), over the budget') from None
+            loop -= group
+            outside |= group
+            moved += sorted(group)
+            for i in group:
+                defs.pop(stmts[i].targets[0].id)
+
+
 def _chunk_body(stmts, probe, n_rows, loop, outside, users, two_stage=False, selections=()):
     """Loop statements rewritten for rows [_r0, _r1), hoisted expressions, exported results, source periods."""
     row_vars = {stmts[i].targets[0].id for i in loop}
@@ -560,7 +684,8 @@ def _chunk_body(stmts, probe, n_rows, loop, outside, users, two_stage=False, sel
         else:   # built only from other layers and weights, but row-aligned: take its rows
             stmt.value = t._row_operand(stmt.value, len(probe.shapes[stmts[i].targets[0].id]))
         if t.failed:
-            raise ValueError(f'statement {i} ({stmts[i].targets[0].id}): {t.failed}')
+            msg = f'statement {i} ({stmts[i].targets[0].id}): {t.failed}'
+            raise _RowMixing(i, msg) if t.mixes_rows else ValueError(msg)
         hoisted += t.hoisted
         periods += t.periods
         whole_periods += t.whole_periods
@@ -622,7 +747,7 @@ class _BodyArgs(ast.NodeTransformer):
     def visit_Call(self, node):
         self.generic_visit(node)
         f = node.func
-        if isinstance(f, ast.Name) and f.id == '_cf_rows':
+        if isinstance(f, ast.Name) and f.id in ('_cf_rows', '_cf_channels'):
             return self._param(node)
         if isinstance(f, ast.Name) and f.id == '_cf_tiled_rows':
             # The per-position source stays inside the body (Inductor fuses it into its consumer);
@@ -737,12 +862,19 @@ def rewrite(source, module_globals, inputs, budget, report=print, compile_bodies
     unit_of = {i: ('s', i) for i in range(len(stmts))}
     units, module_defs = {}, []
     for c, (n_rows, loop, outside) in enumerate(comps):
+        (pre, body, exported, periods, whole_periods), moved = _unchunk(stmts, probe, n_rows, loop, outside, users,
+                                                                        budget, compile_bodies, selections)
+        if moved:
+            report(f'[row-chunks] traversal of {n_rows} rows: statements {moved} mix rows, run unchunked before the loop')
+        if not loop:
+            continue
         per_row = max(probe.stmt_bytes.get(i, 0) for i in loop) / n_rows
         target = max(1, int(budget / (3 * per_row)))
-        pre, body, exported, periods, whole_periods = _chunk_body(stmts, probe, n_rows, loop, outside, users,
-                                                    two_stage=compile_bodies, selections=selections)
         if compile_bodies:
-            chunk, mode = _fixed_chunk(n_rows, target, periods)
+            #FIX FOR: under a tight budget compiled bodies chose sub-channel chunks, which patches_to_dense refuses
+            #         (SkipPoly on VGG16: 167-row target, 196-position channels); take at least whole channels.
+            whole = math.lcm(*whole_periods) if whole_periods else 1
+            chunk, mode = _fixed_chunk(n_rows, max(target, whole), periods)
             if any(chunk % p for p in whole_periods):
                 raise ValueError(f'chunk of {chunk} rows splits a channel of patches_to_dense ({sorted(set(whole_periods))} positions)')
             defs_c, pre, header, post = _emit_compiled(c, n_rows, chunk, mode, probe, pre, body, exported,
@@ -836,7 +968,10 @@ def main():
     params = {i.name: torch.from_numpy(onnx.numpy_helper.to_array(i).copy()).cuda() for i in inits}
     x = torch.zeros(1, *shape, device='cuda')
     y = torch.zeros(1, dtype=torch.long, device='cuda')
-    network, abs_elem = main_mod.build(args.network, 1, 0.0, x, y, args.dataset, False, False, False,
+    #FIX FOR: VNN-LIB datasets parse a spec into X, which must be cli.py's [batch, 2 (lo, hi), ...] placeholder box.
+    from constraintflow.lib.spec import vnnlib_path
+    X = torch.zeros(1, 2, *shape, device='cuda') if vnnlib_path(args.dataset) else x
+    network, abs_elem = main_mod.build(args.network, 1, 0.0, X, y, args.dataset, False, False, False,
                                        initializers=params, input_box=(x, x))
     inputs = main_mod.explode_inputs(abs_elem, 1)
     transformers = sys.modules['transformers']

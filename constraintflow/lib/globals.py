@@ -95,6 +95,8 @@ dummy_mode = Flag()
 reuse_mode = Flag()
 dense_default_mode = Flag()
 inductor_mode = Flag()
+#FEAT: `compile --compile-flow`: a plain (non-jit) build runs Flow.flow under torch.compile.
+compile_flow = Flag()
 
 # Preserves the captures in memory instead of writing json files.
 in_memory_captures = Flag()

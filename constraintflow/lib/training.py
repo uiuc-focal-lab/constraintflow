@@ -58,6 +58,19 @@ def export_model(model, dummy_input, cache_dir):
                       dynamo=False, do_constant_folding=False, opset_version=13)
     model.train(was_training)
     params = dict(model.named_parameters())
+    #FIX FOR: the exporter stores equal parameters once and re-creates the rest with Identity nodes, so those live
+    #         parameters were never bound (parser KeyError; aliasing them would train the wrong parameter).
+    graph = onnx.load(path)
+    stored = {i.name: i for i in graph.graph.initializer}
+    copies = [n for n in graph.graph.node if n.op_type == 'Identity' and n.input[0] in stored and n.output[0] in params]
+    for n in copies:
+        init = onnx.TensorProto()
+        init.CopyFrom(stored[n.input[0]])
+        init.name = n.output[0]
+        graph.graph.initializer.append(init)
+        graph.graph.node.remove(n)
+    if copies:
+        onnx.save(graph, path)
     inits = [i for i in onnx.load(path).graph.initializer if i.data_type == onnx.TensorProto.FLOAT]
     unknown = [i.name for i in inits if i.name not in params or tuple(params[i.name].shape) != tuple(i.dims)]
     if unknown:
