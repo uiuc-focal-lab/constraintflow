@@ -1,8 +1,6 @@
 import operator
 import tempfile
 import unittest
-from unittest import mock
-from constraintflow.compiler.optimizations import opt_flags
 import torch
 import torch.nn.functional as F
 from constraintflow.compiler.ir import *
@@ -34,16 +32,6 @@ class BoxPatchReductionTest(unittest.TestCase):
                     if isinstance(s,IrAssignment):env[s.children[0].name]=eval(cg.visit(s.children[1]),env)
                     else:actual=eval(cg.visit(s.children[0]),env)
                 torch.testing.assert_close(actual,expected,rtol=1e-11,atol=1e-11)
-
-    @mock.patch.object(opt_flags, '_enabled', set(opt_flags.FLAGS) - {'box_patch_reductions'})
-    def test_patch_reductions_untouched_when_off(self):
-        v=lambda n:IrVar(n,[])
-        def gather(name):
-            return IrTorchRepeat(IrTorchTranspose(IrFUnfold(IrTorchView(v(name),[2,3,5,6]),[3,2],[1,0],[1,2]),1,2),[1,4,1])
-        def term(name,pos):return IrTorchSum(IrSimpleBinary(gather(name),IrTensorClamp(v('a'),0,pos),'mul'),-1)
-        expr=IrSimpleBinary(term('in_l_0',True),term('in_u_0',False),'add')
-        block=IrBlock([IrAssignment(v('r'),expr),IrTransRetBasic([v('r'),v('r')])])
-        self.assertEqual(run(block),0)
 
 class BoxReductionSafetyTest(unittest.TestCase):
     def test_distinct_gather_geometry_is_not_combined(self):

@@ -1,8 +1,6 @@
 import operator
 import tempfile
 import unittest
-from unittest import mock
-from constraintflow.compiler.optimizations import opt_flags
 from types import SimpleNamespace
 import torch
 import torch.nn.functional as F
@@ -32,17 +30,6 @@ class TransposeGridsTest(unittest.TestCase):
                 if isinstance(s,IrAssignment):env[s.children[0].name]=eval(cg.visit(s.children[1]),env)
                 else:actual=[eval(cg.visit(c),env) for c in s.children]
             for x,y in zip(actual,expected):torch.testing.assert_close(x,y)
-
-    @mock.patch.object(opt_flags, '_enabled', set(opt_flags.FLAGS) - {'transpose_grids'})
-    def test_transposes_are_not_grouped_when_off(self):
-        v=lambda n:IrVar(n,[])
-        nodes=[IrFConvTranspose2d(v(x),v(w),[2,1],[1,0],[1,0]) for x in ('x','y') for w in ('w','z')]
-        block=IrBlock([IrAssignment(v('r'+str(i)),e) for i,e in enumerate(nodes)]+[IrTransRetBasic([v('r'+str(i)) for i in range(4)])])
-        sized=Shapes();sized.inputs={n:{'shape':s,'dtype':'torch.float32'} for n,s in
-                                    [('x',[2,3,4,5]),('y',[2,3,4,5]),('w',[3,2,3,2]),('z',[3,2,3,2])]}
-        with tempfile.TemporaryDirectory() as d:
-            cg=CodeGen(d);cg.file.close()
-            self.assertEqual(run(block,cg.visit,sized,2),0)
 
     def test_dependent_convolution_is_not_hoisted(self):
         v=lambda n:IrVar(n,[])
@@ -75,14 +62,6 @@ class MatvecGridMemoryTest(unittest.TestCase):
             before=[cg.visit(n) for n in nodes]
             self.assertEqual(run(block,cg.visit,sized,1),0)
             self.assertEqual([cg.visit(s.children[1]) for s in block.children[:-1]],before)
-
-    @mock.patch.object(opt_flags, '_enabled', set(opt_flags.FLAGS) - {'grid_packed_bytes'})
-    def test_result_only_limit_when_off(self):
-        # main's check counts only the grid result, so this shape still packs.
-        block,sized,nodes=self.build(16384,65536)
-        with tempfile.TemporaryDirectory() as d:
-            cg=CodeGen(d);cg.file.close()
-            self.assertEqual(run(block,cg.visit,sized,1),2)
 
     def test_small_matvec_grid_still_matches(self):
         block,sized,nodes=self.build(7,13)

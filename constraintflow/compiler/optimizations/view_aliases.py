@@ -1,4 +1,4 @@
-#FEAT: new pass (jit --no-view-aliases disables it)
+# Optimization pass, always on in jit builds.
 """Inline storage-sharing views in functional SSA before memory planning.
 
 Keeping a base and its views as separate segment outputs keeps both live across

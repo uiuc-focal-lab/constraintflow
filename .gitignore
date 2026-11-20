@@ -56,7 +56,6 @@ optimization-results/
 !tests/test_flow_shape_modes.py
 !tests/test_view_aliases.py
 !tests/test_fused_matvec.py
-!tests/test_opt_flags.py
 
 !tests/test_stable_relu_ir.py
 

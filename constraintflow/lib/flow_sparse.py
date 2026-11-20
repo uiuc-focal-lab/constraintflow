@@ -111,7 +111,7 @@ class Flow:
 
         json_obj = {op.lower(): [] for op in JIT_OPS}
         json_obj.setdefault('affine_skip', [])
-        # Per-layer scalars the generated flow() bakes in as literals (--fused-flow).
+        # Per-layer scalars the generated flow() bakes in as literals (jit builds).
         flow_obj = []
 
         affine_total = 0  # DEBUG

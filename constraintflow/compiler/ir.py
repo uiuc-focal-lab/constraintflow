@@ -2008,7 +2008,7 @@ class IrOpStmt(IrAst):
         self.cfg = cfg
         self.layerwise_cfgs = layerwise_cfgs
         self.params = params if params is not None else DEFAULT_OP_PARAMS
-        # Under --fused-flow the specialized methods also thread the d_<key> state.
+        # In jit builds the specialized methods also thread the d_<key> state.
         self.layerwise_params = None
 
         # self.update_parent_child(inputIrs)

@@ -26,8 +26,9 @@ argv = sys.argv[1:]
 globals.dummy_mode.set_flag() if "--simulacrum" in argv else globals.dummy_mode.reset_flag()
 globals.reuse_mode.set_flag() if "--reuse" in argv else globals.reuse_mode.reset_flag()
 globals.dense_default_mode.set_flag() if "--dense" in argv else globals.dense_default_mode.reset_flag()
-globals.inductor_mode.set_flag() if "--inductor" in argv else globals.inductor_mode.reset_flag()
-globals.sroa.reset_flag() if "--no-sroa" in argv else globals.sroa.set_flag()
+_command = argv[0] if argv else ""
+globals.inductor_mode.set_flag() if _command in ("jit", "run") and "--no-inductor" not in argv else globals.inductor_mode.reset_flag()
+globals.sroa.set_flag()
 
 print(f'dummy_mode in cli: {globals.dummy_mode}')
 print(f'reuse_mode in cli: {globals.reuse_mode}')
@@ -43,7 +44,6 @@ import sys
 import torch
 import typer
 import time
-from typing import Optional
 import csv
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
@@ -55,7 +55,6 @@ from constraintflow.lib.globals import *
 from constraintflow.lib.globals import dummy_mode, reuse_mode
 import constraintflow.lib.globals 
 from constraintflow.compiler.compile import compile as _compile
-from constraintflow.compiler.optimizations import opt_flags
 from constraintflow.compiler.optimizations.stable_relu import warmup_stable_relu
 from constraintflow.verifier.provesound import provesound as _provesound
 from constraintflow.lib.spec import get_network_and_input_spec, vnnlib_path
@@ -261,14 +260,10 @@ def simulacrum_compile(
     no_sparsity: bool = typer.Option(False, help="Disable sparsity optimizations"),
     device: str = typer.Option("cpu", help="Device mode: cpu, gpu (CUDA), or gpumac (Apple MPS)"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
-    print_intermediate_results: bool = typer.Option(False, help="Print intermediate results during the simulacrum trace pass"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
     jit_dir: str = typer.Option("jit_captures", help="Common parent folder for all jit_* capture files"),
-    in_memory: bool = typer.Option(True, "--in-memory/--disk-captures", help="Keep jit captures in a process-local dict instead of writing/reading capture files on disk (jit only)."),
-    inductor: bool = typer.Option(False, help="Emit @torch.compile(backend='inductor') on the reuse build"),
-    compact_patches: bool = typer.Option(True, "--compact-patches", help="Use direct patch-to-dense gathering and switch representation when a composed patch is at least as large as the full input feature map. Set for both capture and reuse."),
-    fused_flow: bool = typer.Option(True, "--fused-flow/--no-fused-flow", help="Emit a layer-unrolled flow() into transformers.py instead of using the interpretive Flow.flow, replaying abs_elem.update from its simulacrum capture, and (under --inductor) compile the whole flow as one graph instead of one per op. Reuse compile only."),
-    fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst/--no-fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- unsound if the assertion doesn't hold. Both take effect on the simulacrum and reuse compile passes below. Functional --sroa also proves and removes matching sign-split convolution pairs across residual branches."),
+    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Compile flow() with torch.compile (Inductor). --no-inductor emits an eager flow(), as the row_chunks rewrite needs. `run` must be given the same choice."),
+    fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst/--no-fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- unsound if the assertion doesn't hold. Both take effect on the simulacrum and reuse compile passes below. The functional SROA pass also proves and removes matching sign-split convolution pairs across residual branches."),
     stable_relu: bool = typer.Option(False, "--stable-relu/--no-stable-relu", help="Skip stable pre-ReLU rows using interval bounds and fixed-shape compiled refinement kernels. Standard DeepPoly only; shared row selection across the batch; eager coordinator."),
     stable_relu_chunk: str = typer.Option("128", "--stable-relu-chunk", help="Fixed number of uncertain neurons per compiled refinement chunk; a comma list (e.g. 8,32,128,512) compiles one kernel per size and uses the smallest that fits."),
     #FEAT: --stable-relu-legacy keeps the generated-source rewrite runnable next to the IR pass.
@@ -276,33 +271,15 @@ def simulacrum_compile(
     traversal_stop_chunk: str = typer.Option("128", "--traversal-stop-chunk", help="Rows per compiled kernel for traversal-stop selection; a comma list (e.g. 8,16,32,64,128,256,512) compiles one kernel per size and uses the smallest that fits."),
     traversal_stop_per_example: bool = typer.Option(False, "--traversal-stop-per-example", help="Keep each example's own stop decision, as the program states. Default: a row refined for any example takes the refined values for every example (auto_LiRPA's sparse rule)."),
     stable_relu_legacy: bool = typer.Option(False, "--stable-relu-legacy", help="With --stable-relu, use the old rewrite of the generated transformers.py instead of the IR pass."),
-    sroa: bool = typer.Option(True, "--sroa/--no-sroa", help="Splice every layer into one flow() and scalar-replace the Jit* aggregates, so the compiled region is pure tensor code. Requires --fused-flow. Reuse compile only."),
-    early_reductions: bool = typer.Option(True, "--early-reductions/--no-early-reductions", help="Compute traversal sums as soon as their inputs exist, releasing large coefficients before later traversal steps. Requires functional --sroa; preserves the arithmetic tree."),
-    fuse_sign_convs: bool = typer.Option(True, "--fuse-sign-convs/--no-fuse-sign-convs", help="Replace positive/negative convolution pairs by one convolution only when their inputs, weights, views and settings provably match. Requires functional --sroa. Uses linearity and can change floating-point rounding."),
-    flow_segment_mb: float = typer.Option(0.0, "--flow-segment-mb", help="Split functional SSA flow into regions with approximately this many MB of named allocations. This is a compilation-region budget, not a bound on total GPU memory. Requires --sroa; Inductor automatically compiles each segment separately. 0 disables."),
-    product_grids: bool = typer.Option(True, "--product-grids/--no-product-grids", help="When same-shape inputs and same-shape weights are combined in every pairing (interval propagation's W+/W- times lower/upper), run one convolution over the inputs stacked on the batch and the weights stacked on output channels, or one GEMM over stacked vectors and a batch-broadcast matrix, and slice each product out. Requires functional --sroa."),
+    flow_segment_mb: float = typer.Option(8192.0, "--flow-segment-mb", help="Split the flow into regions with approximately this many MB of named allocations; Inductor compiles each region separately. This is a compilation-region budget, not a bound on total GPU memory. 0 keeps one region (needed by the row_chunks rewrite)."),
     cudagraphs: bool = typer.Option(False, "--cudagraphs/--no-cudagraphs", help="Compile flow() with mode='reduce-overhead' so a run replays one CUDA graph instead of launching each kernel. Cuts per-run launch overhead on small networks. Replays allocate from a private pool set up during warmup, so `run`'s per-run peak (max_memory_allocated) no longer counts flow intermediates. Requires --inductor."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
     inductor_layout_opt: bool = typer.Option(False, "--inductor-layout-opt/--no-inductor-layout-opt", help="Let Inductor move convolution operands to channels-last (its layout_optimization). Off by default: on these batch-heavy, few-channel convolutions cuDNN's channels-last kernels are several times slower. Requires --inductor."),
-    memory_budget_mb: float = typer.Option(-1.0, "--memory-budget-mb", help="When the flow's estimated peak tensor memory exceeds this many MB, reorder it group by group and recompute large values instead of keeping them live (mem_plan). Requires --sroa with --early-reductions. -1 (default) uses 70% of the CUDA device's memory; 0 disables."),
+    memory_budget_mb: float = typer.Option(-1.0, "--memory-budget-mb", help="When the flow's estimated peak tensor memory exceeds this many MB, reorder it group by group and recompute large values instead of keeping them live (mem_plan). -1 (default) uses 70% of the CUDA device's memory; 0 disables."),
     #FEAT: --dtype on jit, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
     #FEAT: certified-training build (constraintflow/lib/training.py).
     training: bool = typer.Option(False, "--training", help="Build for certified training: importable as a package, NaN-free division gradients, margin spec folded into the last Linear."),
-    #FEAT: DeepPoly-efficient optimizations, on by default (optimizations/opt_flags.py).
-    dpe_opts: bool = typer.Option(True, "--dpe-opts/--no-dpe-opts", help="Default for every optimization below; --no-dpe-opts turns them all off, and --<name> then turns one back on."),
-    sroa_functional: Optional[bool] = typer.Option(None, "--sroa-functional/--no-sroa-functional", help="Decide SROA purity from the emitted program for torch too, so more flows get the functional-only passes."),
-    box_patch_reductions: Optional[bool] = typer.Option(None, "--box-patch-reductions/--no-box-patch-reductions", help="Center/radius fusion for patch sums and affine constants."),
-    patch_factor: Optional[bool] = typer.Option(None, "--patch-factor/--no-patch-factor", help="Factor row-scaled patches: A @ (diag(s) @ W) -> (A @ diag(s)) @ W."),
-    conv_chunks: Optional[bool] = typer.Option(None, "--conv-chunks/--no-conv-chunks", help="Recombine output-channel chunks after patch factoring."),
-    conv_sum: Optional[bool] = typer.Option(None, "--conv-sum/--no-conv-sum", help="C(x,W) + C(y,W) -> C(x+y,W) after patch factoring."),
-    transpose_grids: Optional[bool] = typer.Option(None, "--transpose-grids/--no-transpose-grids", help="Product grids over conv_transpose2d."),
-    grid_packed_bytes: Optional[bool] = typer.Option(None, "--grid-packed-bytes/--no-grid-packed-bytes", help="Count packed grid inputs against the grid memory limit."),
-    view_aliases: Optional[bool] = typer.Option(None, "--view-aliases/--no-view-aliases", help="Inline storage-sharing views before memory planning."),
-    expression_limits: Optional[bool] = typer.Option(None, "--expression-limits/--no-expression-limits", help="Split expressions deeper than 64 into temporaries."),
-    fused_matvec: Optional[bool] = typer.Option(None, "--fused-matvec/--no-fused-matvec", help="Lower pointwise-produced matvecs to row reductions."),
-    #FEAT: Inductor post-grad pass merging matmuls that share a left operand.
-    shared_lhs_mm: Optional[bool] = typer.Option(None, "--shared-lhs-mm/--no-shared-lhs-mm", help="Merge mm(x, W), mm(x, b) sharing x into one mm(x, [W | b]) (Inductor post-grad pass)."),
 ):
     """
     Compile a ConstraintFlow program through the whole simulacrum+reuse pipeline
@@ -315,43 +292,24 @@ def simulacrum_compile(
         if (Path(program_file).name not in supported or not canonical.is_file()
                 or Path(program_file).read_bytes() != canonical.read_bytes()):
             raise typer.BadParameter('--stable-relu requires the standard deeppoly_priority_add program')
-        if target != 'torch' or not sroa or not fused_flow or training or cudagraphs:
-            raise typer.BadParameter('--stable-relu requires torch, SROA, fused flow, and no training/cudagraphs')
+        if target != 'torch' or training or cudagraphs:
+            raise typer.BadParameter('--stable-relu requires torch and no training/cudagraphs')
     start_time = time.perf_counter()
-    choices = {'sroa_functional': sroa_functional, 'box_patch_reductions': box_patch_reductions,
-               'patch_factor': patch_factor, 'conv_chunks': conv_chunks, 'conv_sum': conv_sum,
-               'transpose_grids': transpose_grids, 'grid_packed_bytes': grid_packed_bytes,
-               'view_aliases': view_aliases, 'expression_limits': expression_limits,
-               'fused_matvec': fused_matvec, 'shared_lhs_mm': shared_lhs_mm}
-    opt_flags.set_enabled([n for n, v in choices.items() if (dpe_opts if v is None else v)])
-    typer.echo('[opt-flags] off: ' + (', '.join(n for n in opt_flags.FLAGS if not opt_flags.enabled(n)) or 'none'))
     if target not in ('torch', 'jax'):
         raise typer.BadParameter('--target must be torch or jax')
-    if target == 'jax' and (not sroa or not fused_flow):
-        raise typer.BadParameter('--target jax requires --sroa and --fused-flow')
     if target == 'jax' and inductor:
         raise typer.BadParameter('--inductor applies to --target torch; JAX uses jax.jit')
     if target == 'jax' and device == 'gpumac':
         raise typer.BadParameter('--target jax supports cpu and gpu devices')
     globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
-    globals.compact_patches.set_flag() if compact_patches else globals.compact_patches.reset_flag()
-    globals.fused_flow.set_flag() if fused_flow else globals.fused_flow.reset_flag()
-    globals.sroa.set_flag() if sroa else globals.sroa.reset_flag()
+    globals.compact_patches.set_flag()
+    globals.fused_flow.set_flag()
+    globals.sroa.set_flag()
     globals.center_radius.set_flag() if center_radius else globals.center_radius.reset_flag()  # simulacrum and reuse passes alike
-    if sroa and not fused_flow:
-        typer.echo("Error: --sroa requires --fused-flow.")
-        raise typer.Exit(code=1)
-    if (early_reductions or flow_segment_mb > 0) and not sroa:
-        raise typer.BadParameter('--early-reductions and --flow-segment-mb require --sroa')
-    if fuse_sign_convs and not sroa:
-        raise typer.BadParameter('--fuse-sign-convs requires --sroa')
     if cudagraphs and not inductor:
         raise typer.BadParameter('--cudagraphs requires --inductor')
     if flow_segment_mb < 0:
         raise typer.BadParameter('--flow-segment-mb must be nonnegative')
-    if fused_flow and print_intermediate_results:
-        typer.echo("Error: --fused-flow drops the per-layer densification, so --print-intermediate-results does not apply.")
-        raise typer.Exit(code=1)
     try:
         os.makedirs(output_path, exist_ok=True)
     except OSError as e:
@@ -365,7 +323,7 @@ def simulacrum_compile(
         network = os.path.join(bench_configs.REPO_ROOT, network)
 
     globals.set_jit_root(jit_dir)
-    globals.in_memory_captures.set_flag() if in_memory else globals.in_memory_captures.reset_flag()
+    globals.in_memory_captures.set_flag()
     globals.dense_default_mode.set_flag() if dense else globals.dense_default_mode.reset_flag()
 
     valid_devices = {"cpu", "gpu", "gpumac"}
@@ -382,10 +340,7 @@ def simulacrum_compile(
 
     is_cuda = device_mode.get_device() == "cuda"
 
-    if in_memory:
-        globals.jit_store_clear()
-    else:
-        clear_jit_captures()
+    globals.jit_store_clear()
 
     globals.training.set_flag() if training else globals.training.reset_flag()
     # Simulacrum.
@@ -409,14 +364,13 @@ def simulacrum_compile(
         y,
         dataset=dataset,
         train=train,
-        print_intermediate_results=print_intermediate_results,
+        print_intermediate_results=False,
         no_sparsity=no_sparsity,
     )
 
     if not globals.capture_exists("jit_layers/layers.json"):
-        where = "the in-memory store" if in_memory else f"'{globals.jit_path('jit_layers', 'layers.json')}'"
         typer.echo(
-            f"Error: simulacrum pass did not produce a trace in {where}. "
+            "Error: simulacrum pass did not produce a trace in the in-memory store. "
             "Cannot proceed to the reuse compile."
         )
         raise typer.Exit(code=1)
@@ -426,13 +380,13 @@ def simulacrum_compile(
     globals.reuse_mode.set_flag()
     if inductor:
         globals.inductor_mode.set_flag()
-    globals.early_reductions.set_flag() if early_reductions else globals.early_reductions.reset_flag()
-    globals.fuse_sign_convs.set_flag() if fuse_sign_convs else globals.fuse_sign_convs.reset_flag()
+    globals.early_reductions.set_flag()
+    globals.fuse_sign_convs.set_flag()
     globals.cudagraphs.set_flag() if cudagraphs else globals.cudagraphs.reset_flag()
     globals.inductor_layout_opt.set_flag() if inductor_layout_opt else globals.inductor_layout_opt.reset_flag()
-    globals.product_grids.set_flag() if product_grids else globals.product_grids.reset_flag()
+    globals.product_grids.set_flag()
     globals.flow_segment_mb.set_value(flow_segment_mb)
-    globals.memory_budget_mb.set_value(memory_budget_mb if early_reductions else 0.0)
+    globals.memory_budget_mb.set_value(memory_budget_mb)
     globals.set_network_path(network_file)
     #FEAT: a comma list of stable-ReLU block sizes; one value keeps a single fixed block.
     stable_relu_chunk = [int(c) for c in stable_relu_chunk.split(',')]
@@ -459,9 +413,7 @@ def simulacrum_compile(
         globals.set_network_path(None)
         globals.stable_relu_config = None
         globals.traversal_stop_config = (128, True)
-        opt_flags.reset()
-        if in_memory:
-            globals.jit_store_clear()
+        globals.jit_store_clear()
 
     if stable_relu and stable_relu_legacy:
         from constraintflow.compiler.optimizations.stable_relu import optimize_program
@@ -498,7 +450,7 @@ def run(
     simulacrum: bool = typer.Option(False, help="Run Simulacrum (dummy blocks)"),
     reuse: bool = typer.Option(False, help="Reuse the stored indices that were stored by running dummy blocks"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
-    inductor: bool = typer.Option(False, help="Use PyTorch Inductor for JIT compilation"),
+    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Run with PyTorch Inductor; must match how the program was built (jit --inductor/--no-inductor; the generic `compile` build runs with --no-inductor unless built with --compile-flow)."),
     jit_dir: str = typer.Option("jit_captures", help="Common parent folder for all jit_* capture files"),
     warmup: int = typer.Option(0, help="Number of warmup runs on different data before the timed run"),
     repeat: int = typer.Option(1, "--repeat", help="Number of timed runs, each reported separately. Independent of --warmup: the warmup runs (if any) still happen once, before the first timed run."),

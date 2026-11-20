@@ -1,4 +1,4 @@
-#FEAT: new pass (jit --no-patch-factor disables it)
+# Optimization pass, always on in jit builds.
 """Factor row-scaled convolution patches before composing them.
 
 A @ (diag(s) @ W) = (A @ diag(s)) @ W.  The captured implementation

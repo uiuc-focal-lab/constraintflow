@@ -308,7 +308,7 @@ def _profile_one_config(program_file: str, program_path: str, config_id: str, ne
     """Run one (program, network config) through Normal vs JIT compile+run `repeat` times and
     return one row per phase (Compile, Run) with raw time/memory measurements, for CSV export.
     """
-    jit_extra = ["--in-memory"] if in_memory else []
+    jit_extra = []  # jit always keeps captures in memory
     normal_out, jit_out = _kernel_paths(program_path, network_path, batch_size, config_id) \
         if use_cache else (None, None)
     run_args = [
@@ -450,7 +450,7 @@ def _print_profile_table(rows: list[dict], device: str, repeat: int) -> None:
 
 def _run_profile_mode(program_files: str, network: str, dataset: str, device: str, repeat: int,
                        in_memory: bool = False, use_cache: bool = False) -> None:
-    jit_extra = ["--in-memory"] if in_memory else []
+    jit_extra = []  # jit always keeps captures in memory
     epss = [0]
     batch_sizes = [10]
     rows = []
@@ -541,7 +541,7 @@ def test(
     # `test` still compiles in place on purpose: it compares a fresh normal compile
     # against a fresh jit compile.
     _init_logging(f"test_{dataset}_{device}")
-    jit_extra = ["--in-memory"] if in_memory else []
+    jit_extra = []  # jit always keeps captures in memory
 
     for program_file in program_files.split(","):
         _set_log_context(os.path.splitext(program_file)[0])

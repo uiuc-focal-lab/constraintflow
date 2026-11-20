@@ -5,7 +5,7 @@ import torch
 from constraintflow.compiler.ir import *
 from constraintflow.compiler.optimizations import uses, fuse_affine_subst, subexp_inlining
 #FEAT: per-change toggles for the DeepPoly-efficient passes
-from constraintflow.compiler.optimizations import opt_flags
+from constraintflow.compiler.optimizations import tree_walk
 from constraintflow.compiler.optimizations.subexp_inlining import get_vars_expr_occurrences
 from constraintflow.gbcsr.sparse_tensor import get_operator_func
 from constraintflow.lib.globals import load_capture, capture_exists, program_add_rule
@@ -1790,7 +1790,7 @@ def _collect_ir_tree_nodes(obj, nodes):
     while pending:
         obj = pending.pop()
         #FIX FOR: most of the walk was visiting numbers and strings in metadata lists.
-        if type(obj) in opt_flags.ATOMS or id(obj) in visited:
+        if type(obj) in tree_walk.ATOMS or id(obj) in visited:
             continue
         visited.add(id(obj))
         if isinstance(obj, IrAst):
@@ -1801,7 +1801,7 @@ def _collect_ir_tree_nodes(obj, nodes):
         elif isinstance(obj, (list, tuple, set)):
             pending.extend(obj)
         elif hasattr(obj, '__dict__'):
-            pending.extend(v for k, v in vars(obj).items() if k not in opt_flags.TREE_SKIP)
+            pending.extend(v for k, v in vars(obj).items() if k not in tree_walk.TREE_SKIP)
 
 
 def _rename_vars(obj, rename):

@@ -101,7 +101,8 @@ def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraph
     shutil.rmtree(tmp, ignore_errors=True)
     cmd = [sys.executable, '-m', 'constraintflow.cli', 'jit', os.path.join(CF_ROOT, 'examples', 'compiler_examples', PROGRAMS[method]),
            '--network', os.path.abspath(onnx_path), '--dataset', dataset, '--batch-size', str(batch_size), '--eps', '0.01',
-           '--device', 'gpu', '--output-path', os.path.abspath(tmp) + '/', '--inductor', '--training'] + (['--cudagraphs'] if cudagraphs else []) + list(jit_flags)
+           '--device', 'gpu', '--output-path', os.path.abspath(tmp) + '/', '--inductor', '--training',
+           '--flow-segment-mb', '0'] + (['--cudagraphs'] if cudagraphs else []) + list(jit_flags)  # one flow region
     #FEAT: DeepPoly programs get --fuse-affine-subst, as in the verification harness.
     #FIX FOR: custom_stops/deeppoly_* programs missed the flag (the test was on the path, not the file name).
     if os.path.basename(PROGRAMS[method]).startswith('deeppoly'):

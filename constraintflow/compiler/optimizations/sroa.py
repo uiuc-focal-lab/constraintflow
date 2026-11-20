@@ -14,7 +14,7 @@ from constraintflow.compiler.ir import *
 from constraintflow.compiler.optimizations import subexp_inlining
 from constraintflow.compiler.optimizations import tensor_to_block
 #FEAT: per-change toggles for the DeepPoly-efficient passes
-from constraintflow.compiler.optimizations import opt_flags
+from constraintflow.compiler.optimizations import tree_walk
 from constraintflow.lib import entry_capture
 from constraintflow.lib.globals import load_capture
 
@@ -148,7 +148,7 @@ def _walk_tree(obj, out):
     while pending:
         obj = pending.pop()
         #FIX FOR: most of the walk was visiting numbers and strings in metadata lists.
-        if type(obj) in opt_flags.ATOMS or id(obj) in seen:
+        if type(obj) in tree_walk.ATOMS or id(obj) in seen:
             continue
         seen.add(id(obj))
         if isinstance(obj, IrAst):
@@ -156,7 +156,7 @@ def _walk_tree(obj, out):
         if isinstance(obj, (list, tuple, set)):
             pending.extend(obj)
         elif hasattr(obj, '__dict__'):
-            pending.extend(v for k, v in vars(obj).items() if k not in opt_flags.TREE_SKIP)
+            pending.extend(v for k, v in vars(obj).items() if k not in tree_walk.TREE_SKIP)
 
 
 def _reads(stmt):
@@ -728,12 +728,10 @@ class _Scalarizer:
 
         results = [self.densify(self.eval(child)) for child in ret.children[:2]]
         self.out.append(IrTransRetBasic([self.to_ir(d) for d in results]))
-        #FEAT: sroa_functional decides purity from the emitted program for torch too
-        # Input aggregate mutations still require the copy/alias checks above.
-        # Payload and geometry rebindings have now vanished; only retained view
-        # writes make the emitted tensor program impure, for either backend.
-        if opt_flags.enabled('sroa_functional'):
-            self.functional = self.view_writes == 0
+        # Purity is decided from the emitted program. Input aggregate mutations still
+        # require the copy/alias checks above. Payload and geometry rebindings have now
+        # vanished; only retained view writes make the emitted tensor program impure.
+        self.functional = self.view_writes == 0
         block.update_parent_child(self.out)
         self.ir.flow_layer_bounds = bounds + [len(self.out)]
         self.ir.flow_params = self.params

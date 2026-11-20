@@ -17,7 +17,6 @@ from constraintflow.lib.globals import early_reductions, flow_segment_mb, memory
 from constraintflow.compiler.optimizations import conv_partials, pad_inputs, region_reuse, mem_plan
 from constraintflow.compiler.optimizations import product_grids as product_grids_pass
 #FEAT: per-change toggles for the DeepPoly-efficient passes
-from constraintflow.compiler.optimizations import opt_flags
 from constraintflow.gbcsr.sparse_block import RUNTIME_HELPERS, TRAINING_HELPERS
 from constraintflow.lib import globals as globals_mod
 
@@ -67,12 +66,12 @@ RUN_PARAMS = ("network_file, batch_size, eps, dataset_X, dataset_y, dataset, tra
               "no_sparsity, initializers=None, input_box=None")
 
 def fused_build():
-    """True only on the reuse pass of a --fused-flow build, where flow() is emitted."""
+    """True only on the reuse pass of a jit build, where flow() is emitted."""
     return reuse_mode.get_flag() and fused_flow.get_flag()
 
 
 def sroa_build():
-    """True only on the reuse pass of an --sroa build."""
+    """True only on the reuse pass of a jit build (SROA on)."""
     return fused_build() and sroa.get_flag()
 
 
@@ -91,9 +90,8 @@ def compile_decorator(fullgraph):
         # large CROWN programs that transient ran out of memory (N32 batch 16). Heuristic configs ran as fast.
         options['triton.autotune_pointwise'] = False
         passes.append("'pre_grad_custom_pass': PRE_GRAD_CSE")
-    #FEAT: merge matmuls sharing a left operand (optimizations/shared_lhs_mm.py).
-    if opt_flags.enabled('shared_lhs_mm'):
-        passes.append("'post_grad_custom_post_pass': SharedLhsMM()")
+    # merge matmuls sharing a left operand (optimizations/shared_lhs_mm.py)
+    passes.append("'post_grad_custom_post_pass': SharedLhsMM()")
     opts = ''
     if options or passes:
         opts = ', options={' + ', '.join([repr(k) + ': ' + repr(v) for k, v in options.items()] + passes) + '}'
@@ -166,8 +164,7 @@ class CodeGen(irVisitor.IRVisitor):
         # Inductor options; transformers.py is unchanged.
         if compile_flow.get_flag() and not reuse_mode.get_flag():
             self.write("import torch")
-            if opt_flags.enabled('shared_lhs_mm'):
-                self.write("from constraintflow.compiler.optimizations.shared_lhs_mm import SharedLhsMM")
+            self.write("from constraintflow.compiler.optimizations.shared_lhs_mm import SharedLhsMM")
             self.write("Flow.flow = torch.compile(Flow.flow, " + compile_decorator(False)[len('@torch.compile('):])
         self.write("\n")
         # self.write("torch.cuda.reset_peak_memory_stats()")
@@ -207,7 +204,7 @@ class CodeGen(irVisitor.IRVisitor):
         # treats as a hard error, so that method must compile with
         # fullgraph=False instead.
         self._method_has_view_write = False
-        # Sticky across all methods: decides flow()'s fullgraph in a --fused-flow build.
+        # Sticky across all methods: decides flow()'s fullgraph in a jit build.
         self._any_view_write = False
         # (op, layer_index) in emission order, for the generated flow().
         self.layer_calls = []
@@ -357,8 +354,8 @@ class CodeGen(irVisitor.IRVisitor):
         meta = getattr(node, 'flow_param_meta', None)
         if not meta:
             return None
-        #FEAT: expression_limits splits deep expressions into temporaries
-        if getattr(node, 'flow_functional', False) and opt_flags.enabled('expression_limits'):
+        # split deep expressions into temporaries
+        if getattr(node, 'flow_functional', False):
             from constraintflow.compiler.optimizations import expression_limits
             split = expression_limits.run(node.flow_block, layers=getattr(node, 'flow_layers', None))
             if split:
@@ -395,28 +392,25 @@ class CodeGen(irVisitor.IRVisitor):
     def emit_sroa_flow(self, node):
         """Emit explode_inputs() and the scalarized flow()."""
         from constraintflow.lib.globals import center_radius
-        #FEAT: box_patch_reductions reruns center/radius fusion on the final flow
-        if (center_radius.get_flag() and getattr(node, 'flow_functional', False)
-                and opt_flags.enabled('box_patch_reductions')):
+        # rerun center/radius fusion on the final flow
+        if center_radius.get_flag() and getattr(node, 'flow_functional', False):
             from constraintflow.compiler.optimizations import box_concretize
             count = box_concretize.run(node.flow_block)
             print('[box-reductions] {} sign-split reductions fused'.format(count))
         sized = self._probe_sizes(node)
-        #FEAT: patch_factor factors row-scaled patches; conv_chunks and conv_sum
-        # clean up after it and only run when it factored something
-        if sized and getattr(node, 'flow_functional', False) and opt_flags.enabled('patch_factor'):
+        # factor row-scaled patches; conv_chunks and conv_sum clean up after it
+        # and only run when it factored something
+        if sized and getattr(node, 'flow_functional', False):
             from constraintflow.compiler.optimizations import patch_factor, conv_sum, conv_chunks
             count = patch_factor.run(node.flow_block, self.visit, sized,
                                      getattr(node, 'flow_batch_size', 1))
             print('[patch-factor] {} patch compositions factored'.format(count))
-            if count and opt_flags.enabled('conv_chunks'):
+            if count:
                 chunks = conv_chunks.run(node.flow_block, self.visit, sized,
                                          getattr(node, 'flow_batch_size', 1))
                 print('[conv-chunks] {} output-channel chunks recombined'.format(chunks))
-            if count and opt_flags.enabled('conv_sum'):
                 merged = conv_sum.run(node.flow_block)
                 print('[conv-sum] {} shared-weight convolutions combined'.format(merged))
-            if count:
                 sized = self._probe_sizes(node)
         if product_grids.get_flag() and sized and getattr(node, 'flow_functional', False):
             count = product_grids_pass.run(node.flow_block, self.visit, sized,
@@ -440,15 +434,15 @@ class CodeGen(irVisitor.IRVisitor):
             barriers.update(pads)
             print('[pad-inputs] {} pad inputs materialized'.format(len(pads)))
             sized = self._probe_sizes(node)
-        #FEAT: view_aliases inlines storage-sharing views before memory planning
-        if sized and getattr(node, 'flow_functional', False) and opt_flags.enabled('view_aliases'):
+        # inline storage-sharing views before memory planning
+        if sized and getattr(node, 'flow_functional', False):
             from constraintflow.compiler.optimizations import view_aliases
             count = view_aliases.run(node.flow_block, sized)
             print('[view-aliases] {} storage-sharing aliases inlined'.format(count))
             if count:
                 sized = self._probe_sizes(node)
-        #FEAT: fused_matvec lowers pointwise-produced matvecs to row reductions
-        if opt_flags.enabled('fused_matvec') and sized and getattr(node, 'flow_functional', False):
+        # lower pointwise-produced matvecs to row reductions
+        if sized and getattr(node, 'flow_functional', False):
             from constraintflow.compiler.optimizations import fused_matvec
             count = fused_matvec.run(node.flow_block, self.visit, sized,
                                      getattr(node, 'flow_batch_size', 1))
@@ -710,8 +704,7 @@ class CodeGen(irVisitor.IRVisitor):
             #FEAT: pre-autograd CSE pass named in training builds' compile decorator.
             if training.get_flag():
                 self.write('from constraintflow.lib.pre_grad_cse import PRE_GRAD_CSE')
-            if opt_flags.enabled('shared_lhs_mm'):
-                self.write('from constraintflow.compiler.optimizations.shared_lhs_mm import SharedLhsMM')
+            self.write('from constraintflow.compiler.optimizations.shared_lhs_mm import SharedLhsMM')
             # self.write('from constraintflow.lib.symexp import get_new_eps')
             # self.write('from constraintflow.gbcsr.op_helper import binary_to_identity_unary')
 
@@ -737,7 +730,7 @@ class CodeGen(irVisitor.IRVisitor):
 
             for j, opStmtIr in enumerate(transformerIr):
                 param_list = ', '.join(opStmtIr.params)
-                # Under --fused-flow the specialized methods take the threaded state too.
+                # In jit builds the specialized methods take the threaded state too.
                 layerwise_list = ', '.join(opStmtIr.layerwise_params or opStmtIr.params)
                 if opStmtIr.layerwise_cfgs is None:
                     self.write('def ' + opStmtIr.op + '(self, ' + param_list + ', layer_index = None):')
@@ -769,7 +762,7 @@ class CodeGen(irVisitor.IRVisitor):
                         self.write("raise RuntimeError(f'no specialized kernel for " + opStmtIr.op + " at layer {layer_index}')")
                     else:
                         # Fused builds drive the specialized methods from flow(), not from here.
-                        self.write("raise RuntimeError('" + opStmtIr.op + ": this is a --fused-flow build; call flow() instead')")
+                        self.write("raise RuntimeError('" + opStmtIr.op + ": this is a jit build; call flow() instead')")
                     self.indent -= 1
                     self.write('')
 

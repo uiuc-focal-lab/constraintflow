@@ -58,7 +58,7 @@ optimizations_rewrite = [
 
 
 def sroa_build():
-    """True only on the reuse pass of an --sroa build."""
+    """True only on the reuse pass of a jit build (SROA on)."""
     return reuse_mode.get_flag() and fused_flow.get_flag() and sroa.get_flag()
 
 
@@ -75,7 +75,7 @@ def compile(inputfile, output_path, target='torch'):
     if target not in ('torch', 'jax'):
         raise ValueError(f'Unknown code generation target: {target}')
     if target == 'jax' and not sroa_build():
-        raise ValueError('JAX emission requires the reuse pass with --sroa and --fused-flow')
+        raise ValueError('JAX emission requires the jit reuse pass')
     _reset_compiler_state()
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
     tokens = antlr.CommonTokenStream(lexer)

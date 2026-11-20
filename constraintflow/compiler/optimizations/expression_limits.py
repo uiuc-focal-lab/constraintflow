@@ -1,4 +1,4 @@
-#FEAT: new pass (jit --no-expression-limits disables it)
+# Optimization pass, always on in jit builds.
 """Bound Python expression nesting by exposing ordered SSA temporaries.
 
 No operator is changed or reassociated. The pass applies to functional tensor

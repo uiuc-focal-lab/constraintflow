@@ -24,19 +24,16 @@ from constraintflow.compiler.ir import (
 )
 from constraintflow.compiler.optimizations import subexp_inlining
 #FEAT: per-change toggles for the DeepPoly-efficient passes
-from constraintflow.compiler.optimizations import opt_flags
 from constraintflow.gbcsr.sparse_block import RUNTIME_HELPERS
 
 MAX_GRID_BYTES = 512 * 1024 ** 2
 MAX_GRID_BATCH = 32768
 
 
-#FEAT: meta_device for transpose_grids
-def _meta_env(sized, batch_size, meta_device=True):
+def _meta_env(sized, batch_size):
     env = {'torch': torch, 'F': F, 'operator': operator, 'batch_size': batch_size, **RUNTIME_HELPERS}
-    #FEAT: tensors created inside probed expressions land on the meta device
-    if meta_device:
-        env['device_mode'] = SimpleNamespace(get_device=lambda: 'meta')
+    # tensors created inside probed expressions land on the meta device
+    env['device_mode'] = SimpleNamespace(get_device=lambda: 'meta')
     records = list(sized.inputs.items()) + [(r['name'], r) for r in sized.values()]
     for name, r in records:
         if name and 'shape' in r:
@@ -54,20 +51,14 @@ def run(block, render, sized, batch_size):
         elif not isinstance(stmt, IrTransRetBasic):
             return 0
         occupied.update(v.name for v in subexp_inlining.get_vars_expr_occurrences(stmt.children))
-    #FEAT: transpose_grids also groups conv_transpose2d and evaluates
-    # operand shapes on the meta device (needed for factored patch kernels)
-    transposes = opt_flags.enabled('transpose_grids')
-    env = _meta_env(sized, batch_size, meta_device=transposes)
-    kinds = (IrFConv2d, IrFConvTranspose2d, IrTorchMatmul) if transposes else (IrFConv2d, IrTorchMatmul)
-    nested = ('conv2d(', 'conv_transpose2d(', 'matmul(') if transposes else ('conv2d(', 'matmul(')
+    # conv_transpose2d is grouped too; operand shapes are evaluated on the meta device
+    env = _meta_env(sized, batch_size)
+    kinds = (IrFConv2d, IrFConvTranspose2d, IrTorchMatmul)
+    nested = ('conv2d(', 'conv_transpose2d(', 'matmul(')
 
     def meta(text):
         try:
-            #FEAT: transpose_grids
-            if transposes:
-                with torch.device('meta'):
-                    value = eval(text, dict(env))
-            else:
+            with torch.device('meta'):
                 value = eval(text, dict(env))
         except Exception:
             return None
@@ -171,21 +162,16 @@ def run(block, render, sized, batch_size):
             continue
         b, c = xm[0].shape[0], wm[0].shape[1 if transpose or not conv else 0]
         #FIX FOR: grid limit ignored packed inputs; N35/N36 tried a 16 GiB GEMM operand
-        # --no-grid-packed-bytes restores the old result-only check.
         # Packing is real storage even when the grid result is tiny. In
         # particular, a GEMV grid can concatenate multi-GiB coefficient
         # matrices into a huge GEMM operand while producing only a few KiB.
         # Count the actual packed matrix (one broadcast batch), not its
         # logically expanded batches. Include singleton operands
         # conservatively: pointwise producers may need materialization too.
-        if opt_flags.enabled('grid_packed_bytes'):
-            packed_x = sum(t.numel() * t.element_size() for t in xm)
-            packed_w = sum((t.numel() if conv else t[0].numel()) * t.element_size()
-                           for t in wm)
-            result_bytes = out.numel() * len(xs) * len(ws) * out.element_size()
-        else:
-            packed_x = packed_w = 0
-            result_bytes = out.numel() * len(xs) * len(ws) * 4
+        packed_x = sum(t.numel() * t.element_size() for t in xm)
+        packed_w = sum((t.numel() if conv else t[0].numel()) * t.element_size()
+                       for t in wm)
+        result_bytes = out.numel() * len(xs) * len(ws) * out.element_size()
         if (len(xs) * b > MAX_GRID_BATCH * (4 if transpose else 1)
                 or packed_x + packed_w + result_bytes > MAX_GRID_BYTES):
             continue

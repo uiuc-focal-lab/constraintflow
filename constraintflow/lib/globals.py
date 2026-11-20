@@ -113,10 +113,10 @@ program_add_rule = Flag()
 # Turn patches box into dense 
 compact_patches = Flag()
 
-# --fused-flow (jit): emit a layer-unrolled flow() into transformers.py
+# jit builds: emit a layer-unrolled flow() into transformers.py
 fused_flow = Flag()
 
-# --sroa (jit): splice every layer into one flow() and scalar-replace the
+# jit builds: splice every layer into one flow() and scalar-replace the
 # Jit* aggregates. Requires reuse_mode + fused_flow.
 sroa = Flag(True)
 

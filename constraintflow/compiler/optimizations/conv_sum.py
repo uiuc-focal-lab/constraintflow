@@ -1,4 +1,4 @@
-#FEAT: new pass (jit --no-conv-sum disables it)
+# Optimization pass, always on in jit builds.
 """Share a fixed transpose convolution across a sum of compatible inputs.
 
 C(x,W) + C(y,W) = C(x+y,W). Only absorb single-use convolution results,

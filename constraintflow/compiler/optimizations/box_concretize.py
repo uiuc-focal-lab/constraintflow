@@ -25,19 +25,18 @@ from constraintflow.compiler.ir import (
 )
 from constraintflow.compiler.optimizations import subexp_inlining
 #FEAT: per-change toggles for the DeepPoly-efficient passes
-from constraintflow.compiler.optimizations import opt_flags
 from constraintflow.compiler.optimizations.sign_convs import _WRAPPERS, _rebuild
 from constraintflow.compiler.optimizations.sign_reductions import _op
 
 # Input-layer bound parameters: (role, block) with role 'l' or 'u'.
 _BOX = re.compile(r'^in_(?:(l|u)|(L|U)_const)_(\d+)$')
-#FEAT: box_patch_reductions also peels unfold gathers
+# unfold gathers are peeled too
 _BOX_VIEWS = dict(_WRAPPERS)
 _BOX_VIEWS[IrFUnfold] = ('kernel_size', 'padding', 'stride')
 
 
 def _views():
-    return _BOX_VIEWS if opt_flags.enabled('box_patch_reductions') else _WRAPPERS
+    return _BOX_VIEWS
 
 
 def run(block):
@@ -90,8 +89,8 @@ def run(block):
     def candidate(expr):
         # matmul(view(clamp(A, 0)), column view of a box tensor)
         reduction, output = peel(expr, single=True)
-        #FEAT: box_patch_reductions fuses patch-sum and affine-constant reductions
-        if isinstance(reduction, IrTorchSum) and opt_flags.enabled('box_patch_reductions'):
+        # patch-sum and affine-constant reductions
+        if isinstance(reduction, IrTorchSum):
             product = resolve(reduction.children[0], single=True)
             if not _op(product, 'mul'):
                 return None
@@ -123,12 +122,9 @@ def run(block):
     def compatible(a, b):
         ra, ca, sa, oa, roa, va = a
         rb, cb, sb, ob, rob, vb = b
-        #FEAT: box_patch_reductions also requires matching vector gather geometry
-        av = bv = []
-        if opt_flags.enabled('box_patch_reductions'):
-            _, av = peel(va)
-            _, bv = peel(vb)
-        #FEAT: box_patch_reductions (reduction kinds must match)
+        # vector gather geometry and reduction kinds must match
+        _, av = peel(va)
+        _, bv = peel(vb)
         return (type(ra) is type(rb)
                 and (not isinstance(ra, IrTorchSum) or ra.dim == rb.dim)
                 and ca.min_true != cb.min_true and roa[1] == rob[1] and roa[0] != rob[0]
