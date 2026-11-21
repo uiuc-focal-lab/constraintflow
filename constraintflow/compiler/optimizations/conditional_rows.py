@@ -20,14 +20,14 @@ def refine_rows(stop, defaults, kernel, args, chunk_size, union=False):
     then the smallest that covers the rest. union=True gives every example the
     refined values of a selected row (auto_LiRPA's sparse rule).
     """
-    from constraintflow.compiler.optimizations.stable_relu import _warming_stable_relu
+    from constraintflow.compiler.optimizations.row_refinement import is_warming
     indices = torch.nonzero(~stop.all(dim=0), as_tuple=False).flatten()
     n = stop.shape[1]
     if n == 0:
         return defaults
-    #FEAT: several block sizes (capped at the row count), as --stable-relu-chunk.
+    # several block sizes, capped at the row count
     sizes = tuple(sorted({min(c, n) for c in ((chunk_size,) if isinstance(chunk_size, int) else chunk_size)}))
-    if _warming_stable_relu.get() and (indices.numel() == 0 or len(sizes) > 1):
+    if is_warming() and (indices.numel() == 0 or len(sizes) > 1):
         for size in sizes:
             kernel(torch.arange(size, device=stop.device), *args)
     outputs = list(defaults)
@@ -258,7 +258,7 @@ def plan(node, probe):
 
 
 def emit(cg, node):
-    if (cg.target != 'torch' or not getattr(node, 'flow_functional', False)
+    if (not getattr(node, 'flow_functional', False)
             or not getattr(node, 'flow_invariant_stops', False) or cudagraphs.get_flag()):
         return False
     if not any(isinstance(e, IrTorchWhere) for s in node.flow_block.children for e in walk(s)):
@@ -275,7 +275,7 @@ def emit(cg, node):
                 call.function = 'refine_rows_union'
     emit_regions(cg, node, *planned, chunk_size, inductor_mode.get_flag(),
         'from constraintflow.compiler.optimizations.conditional_rows import refine_rows, refine_rows_union\n'
-        'from constraintflow.compiler.optimizations.stable_relu import selected_patches_to_dense',
+        'from constraintflow.compiler.optimizations.row_refinement import selected_patches_to_dense',
         release_dense=True)
     return True
 

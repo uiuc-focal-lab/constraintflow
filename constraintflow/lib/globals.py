@@ -1,17 +1,7 @@
-import os
 import json
-
-# Common parent folder under which every jit_* capture directory is created
-jit_root = "jit_captures"
-
-def set_jit_root(path):
-    global jit_root
-    jit_root = path
 
 # For fuse-affine.
 network_path = None
-# Compile-local stable ReLU configuration; None disables the final IR pass.
-stable_relu_config = None
 # Traversal-stop row scheduling: (chunk sizes, refine selected rows for the whole batch).
 traversal_stop_config = (128, True)
 
@@ -19,17 +9,7 @@ def set_network_path(path):
     global network_path
     network_path = path
 
-def jit_path(*parts):
-    """Resolve a jit capture path under jit_root.
-
-    Accepts either a bare directory name ("jit_binary") or an already-joined
-    relative capture path ("jit_binary/binary_0_1.json"); both are placed under
-    the common parent folder.
-    """
-    return os.path.join(jit_root, *parts)
-
-
-# jit-memory
+# jit captures, kept in memory for the duration of one build
 CAPTURE_ABI = 3
 _jit_store = {}
 # Host-only network coordinates for capture-time traversal validation.
@@ -39,31 +19,19 @@ def jit_store_clear():
     _jit_store.clear()
 
 def save_capture(rel_path, obj):
-    """Persist a jit capture under its relative path (dir/file.json)."""
-    if in_memory_captures:
-        _jit_store[rel_path] = json.dumps({"capture_abi": CAPTURE_ABI, "data": obj})
-        return
-    path = jit_path(rel_path)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'w') as f:
-        json.dump({"capture_abi": CAPTURE_ABI, "data": obj}, f)
+    """Store a jit capture under its relative path (dir/file.json)."""
+    _jit_store[rel_path] = json.dumps({"capture_abi": CAPTURE_ABI, "data": obj})
 
 def load_capture(rel_path):
     """Load a jit capture previously written with save_capture."""
-    if in_memory_captures:
-        record = json.loads(_jit_store[rel_path])
-    else:
-        with open(jit_path(rel_path), 'r') as f:
-            record = json.load(f)
+    record = json.loads(_jit_store[rel_path])
     if not isinstance(record, dict) or record.get('capture_abi') != CAPTURE_ABI:
         raise ValueError(f"Incompatible JIT capture {rel_path}; rebuild captures with this compiler.")
     return record['data']
 
 
 def capture_exists(rel_path):
-    if in_memory_captures:
-        return rel_path in _jit_store
-    return os.path.exists(jit_path(rel_path))
+    return rel_path in _jit_store
 
 
 class Flag:
@@ -97,9 +65,6 @@ dense_default_mode = Flag()
 inductor_mode = Flag()
 #FEAT: `compile --compile-flow`: a plain (non-jit) build runs Flow.flow under torch.compile.
 compile_flow = Flag()
-
-# Preserves the captures in memory instead of writing json files.
-in_memory_captures = Flag()
 
 
 fuse_affine_subst = Flag()
@@ -178,13 +143,6 @@ cudagraphs = Flag()
 
 #FEAT: certified-training build: importable as a package, safe divisions, margin spec folded into the last Linear.
 training = Flag()
-
-# Leave Inductor's conv layout optimization (channels-last operands) on; off by default.
-inductor_layout_opt = Flag()
-
-# UNFAIR LOADING
-# Load ONNX initializers with parse.load_onnx_direct instead of onnx.load.
-# direct_onnx_load = Flag()
 
 # Evaluate all-pairs convolution and broadcast mat-vec grids (IBP's W+/W- times l/u) as one operation.
 product_grids = Flag()

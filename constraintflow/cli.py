@@ -23,8 +23,8 @@ import constraintflow.lib.globals as globals
 os.environ.setdefault("TORCHINDUCTOR_VEC_ISA_OK", "1")
 
 argv = sys.argv[1:]
-globals.dummy_mode.set_flag() if "--simulacrum" in argv else globals.dummy_mode.reset_flag()
-globals.reuse_mode.set_flag() if "--reuse" in argv else globals.reuse_mode.reset_flag()
+globals.dummy_mode.reset_flag()
+globals.reuse_mode.reset_flag()
 globals.dense_default_mode.set_flag() if "--dense" in argv else globals.dense_default_mode.reset_flag()
 _command = argv[0] if argv else ""
 globals.inductor_mode.set_flag() if _command in ("jit", "run") and "--no-inductor" not in argv else globals.inductor_mode.reset_flag()
@@ -55,19 +55,11 @@ from constraintflow.lib.globals import *
 from constraintflow.lib.globals import dummy_mode, reuse_mode
 import constraintflow.lib.globals 
 from constraintflow.compiler.compile import compile as _compile
-from constraintflow.compiler.optimizations.stable_relu import warmup_stable_relu
+from constraintflow.compiler.optimizations.row_refinement import warmup_row_kernels
 from constraintflow.verifier.provesound import provesound as _provesound
 from constraintflow.lib.spec import get_network_and_input_spec, vnnlib_path
 
 app = typer.Typer(help="ConstraintFlow CLI for verification and compilation of DSL programs.")
-
-def clear_jit_captures():
-    # Every jit_* capture directory lives under the common parent folder
-    # (globals.jit_root), so clearing that one folder wipes all captures.
-    root = globals.jit_root
-    if os.path.isdir(root):
-        shutil.rmtree(root)
-
 
 # --------------------------
 # Utility Functions
@@ -80,27 +72,6 @@ def get_network(network: str, network_format: str, dataset: str) -> str:
     if dataset not in ["mnist", "cifar"]:
         return network
     return network
-
-
-def _perturbed_network_copy(onnx_path: str, std: float, out_dir: str, tag: str, rng) -> str:
-    """Write a copy of `onnx_path` with iid Gaussian noise (given std) added to every
-    initializer tensor, and return its path. Shapes/dtypes are unchanged, so it loads
-    through the same compiled kernel as the original -- see the recompile smoke test in
-    scratchpad/recompile_check.py, which found no recompilation from a value-only change."""
-    import onnx
-    from onnx import numpy_helper
-    model = onnx.load(onnx_path)
-    for init in model.graph.initializer:
-        arr = numpy_helper.to_array(init).copy()
-        arr = arr + std * rng.standard_normal(arr.shape).astype(arr.dtype)
-        init.CopyFrom(numpy_helper.from_array(arr, name=init.name))
-    out_path = os.path.join(out_dir, f"{_stem(onnx_path)}_{tag}.onnx")
-    onnx.save(model, out_path)
-    return out_path
-
-
-def _stem(path: str) -> str:
-    return os.path.splitext(os.path.basename(path))[0]
 
 
 def _configure_cuda_cpu_threads() -> None:
@@ -205,7 +176,6 @@ def provesound(
 def compile_code(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
-    target: str = 'torch',
 ):
     """
     Compile a ConstraintFlow program into Python.
@@ -218,7 +188,7 @@ def compile_code(
 
 
     program = get_program(program_file)
-    res = _compile(program, output_path, target=target)
+    res = _compile(program, output_path)
     if res:
         typer.echo("Compilation successful ✅")
     else:
@@ -250,7 +220,6 @@ def compile(
 @app.command(name="jit")
 def simulacrum_compile(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
-    target: str = typer.Option('torch', help="Reuse code generation target: torch or jax (jax.jit)."),
     network: str = typer.Option("mnist_relu_3_50", help="Network name"),
     network_format: str = typer.Option("onnx", help="Network format"),
     dataset: str = typer.Option("mnist", help="Dataset (mnist or cifar)"),
@@ -261,20 +230,14 @@ def simulacrum_compile(
     device: str = typer.Option("cpu", help="Device mode: cpu, gpu (CUDA), or gpumac (Apple MPS)"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
-    jit_dir: str = typer.Option("jit_captures", help="Common parent folder for all jit_* capture files"),
     inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Compile flow() with torch.compile (Inductor). --no-inductor emits an eager flow(), as the row_chunks rewrite needs. `run` must be given the same choice."),
     fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst/--no-fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- unsound if the assertion doesn't hold. Both take effect on the simulacrum and reuse compile passes below. The functional SROA pass also proves and removes matching sign-split convolution pairs across residual branches."),
-    stable_relu: bool = typer.Option(False, "--stable-relu/--no-stable-relu", help="Skip stable pre-ReLU rows using interval bounds and fixed-shape compiled refinement kernels. Standard DeepPoly only; shared row selection across the batch; eager coordinator."),
-    stable_relu_chunk: str = typer.Option("128", "--stable-relu-chunk", help="Fixed number of uncertain neurons per compiled refinement chunk; a comma list (e.g. 8,32,128,512) compiles one kernel per size and uses the smallest that fits."),
-    #FEAT: --stable-relu-legacy keeps the generated-source rewrite runnable next to the IR pass.
     #FEAT: block sizes and batch rule for rows selected by row-invariant traversal stops.
     traversal_stop_chunk: str = typer.Option("128", "--traversal-stop-chunk", help="Rows per compiled kernel for traversal-stop selection; a comma list (e.g. 8,16,32,64,128,256,512) compiles one kernel per size and uses the smallest that fits."),
     traversal_stop_per_example: bool = typer.Option(False, "--traversal-stop-per-example", help="Keep each example's own stop decision, as the program states. Default: a row refined for any example takes the refined values for every example (auto_LiRPA's sparse rule)."),
-    stable_relu_legacy: bool = typer.Option(False, "--stable-relu-legacy", help="With --stable-relu, use the old rewrite of the generated transformers.py instead of the IR pass."),
     flow_segment_mb: float = typer.Option(8192.0, "--flow-segment-mb", help="Split the flow into regions with approximately this many MB of named allocations; Inductor compiles each region separately. This is a compilation-region budget, not a bound on total GPU memory. 0 keeps one region (needed by the row_chunks rewrite)."),
     cudagraphs: bool = typer.Option(False, "--cudagraphs/--no-cudagraphs", help="Compile flow() with mode='reduce-overhead' so a run replays one CUDA graph instead of launching each kernel. Cuts per-run launch overhead on small networks. Replays allocate from a private pool set up during warmup, so `run`'s per-run peak (max_memory_allocated) no longer counts flow intermediates. Requires --inductor."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
-    inductor_layout_opt: bool = typer.Option(False, "--inductor-layout-opt/--no-inductor-layout-opt", help="Let Inductor move convolution operands to channels-last (its layout_optimization). Off by default: on these batch-heavy, few-channel convolutions cuDNN's channels-last kernels are several times slower. Requires --inductor."),
     memory_budget_mb: float = typer.Option(-1.0, "--memory-budget-mb", help="When the flow's estimated peak tensor memory exceeds this many MB, reorder it group by group and recompute large values instead of keeping them live (mem_plan). -1 (default) uses 70% of the CUDA device's memory; 0 disables."),
     #FEAT: --dtype on jit, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
@@ -285,22 +248,7 @@ def simulacrum_compile(
     Compile a ConstraintFlow program through the whole simulacrum+reuse pipeline
     in one shot.
     """
-    if stable_relu:
-        from pathlib import Path
-        supported = ('deeppoly_priority_add.cf', 'deeppoly_priority_add_lower.cf')
-        canonical = Path(__file__).resolve().parents[1] / 'examples' / 'compiler_examples' / Path(program_file).name
-        if (Path(program_file).name not in supported or not canonical.is_file()
-                or Path(program_file).read_bytes() != canonical.read_bytes()):
-            raise typer.BadParameter('--stable-relu requires the standard deeppoly_priority_add program')
-        if target != 'torch' or training or cudagraphs:
-            raise typer.BadParameter('--stable-relu requires torch and no training/cudagraphs')
     start_time = time.perf_counter()
-    if target not in ('torch', 'jax'):
-        raise typer.BadParameter('--target must be torch or jax')
-    if target == 'jax' and inductor:
-        raise typer.BadParameter('--inductor applies to --target torch; JAX uses jax.jit')
-    if target == 'jax' and device == 'gpumac':
-        raise typer.BadParameter('--target jax supports cpu and gpu devices')
     globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
     globals.compact_patches.set_flag()
     globals.fused_flow.set_flag()
@@ -322,8 +270,6 @@ def simulacrum_compile(
         from bench import configs as bench_configs
         network = os.path.join(bench_configs.REPO_ROOT, network)
 
-    globals.set_jit_root(jit_dir)
-    globals.in_memory_captures.set_flag()
     globals.dense_default_mode.set_flag() if dense else globals.dense_default_mode.reset_flag()
 
     valid_devices = {"cpu", "gpu", "gpumac"}
@@ -383,19 +329,14 @@ def simulacrum_compile(
     globals.early_reductions.set_flag()
     globals.fuse_sign_convs.set_flag()
     globals.cudagraphs.set_flag() if cudagraphs else globals.cudagraphs.reset_flag()
-    globals.inductor_layout_opt.set_flag() if inductor_layout_opt else globals.inductor_layout_opt.reset_flag()
     globals.product_grids.set_flag()
     globals.flow_segment_mb.set_value(flow_segment_mb)
     globals.memory_budget_mb.set_value(memory_budget_mb)
     globals.set_network_path(network_file)
-    #FEAT: a comma list of stable-ReLU block sizes; one value keeps a single fixed block.
-    stable_relu_chunk = [int(c) for c in stable_relu_chunk.split(',')]
-    stable_relu_chunk = stable_relu_chunk[0] if len(stable_relu_chunk) == 1 else tuple(stable_relu_chunk)
-    globals.stable_relu_config = (stable_relu_chunk, inductor) if stable_relu and not stable_relu_legacy else None
     stop_chunk = [int(c) for c in traversal_stop_chunk.split(',')]
     globals.traversal_stop_config = (stop_chunk[0] if len(stop_chunk) == 1 else tuple(stop_chunk), not traversal_stop_per_example)
     try:
-        compile_code(program_file, output_path, target=target)
+        compile_code(program_file, output_path)
     finally:
         globals.reuse_mode.reset_flag()
         globals.inductor_mode.reset_flag()
@@ -405,20 +346,13 @@ def simulacrum_compile(
         globals.fuse_sign_convs.reset_flag()
         globals.cudagraphs.reset_flag()
         globals.training.reset_flag()
-        globals.inductor_layout_opt.reset_flag()
         globals.product_grids.reset_flag()
         globals.center_radius.set_flag()   # back to the default
         globals.flow_segment_mb.set_value(0.0)
         globals.memory_budget_mb.reset()
         globals.set_network_path(None)
-        globals.stable_relu_config = None
         globals.traversal_stop_config = (128, True)
         globals.jit_store_clear()
-
-    if stable_relu and stable_relu_legacy:
-        from constraintflow.compiler.optimizations.stable_relu import optimize_program
-        optimize_program(output_path, network_file, X, y, dataset, eps,
-                         chunk_size=stable_relu_chunk, compile_kernels=inductor)
 
     typer.echo("Simulacrum+reuse compile complete ✅")
     typer.echo(f"Optimized code written to: {os.path.abspath(output_path)}")
@@ -446,21 +380,12 @@ def run(
     device: str = typer.Option("cpu", help="Device mode: cpu, gpu (CUDA), or gpumac (Apple MPS)"),
     output_path: str = typer.Option("output/", help="Path where compiled program is stored"),
     compile: bool = typer.Option(False, help="Run compilation before execution"),
-    opt: bool = typer.Option(False, help="Static shape analysis and direct computation over blocks."),
-    simulacrum: bool = typer.Option(False, help="Run Simulacrum (dummy blocks)"),
-    reuse: bool = typer.Option(False, help="Reuse the stored indices that were stored by running dummy blocks"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
     inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Run with PyTorch Inductor; must match how the program was built (jit --inductor/--no-inductor; the generic `compile` build runs with --no-inductor unless built with --compile-flow)."),
-    jit_dir: str = typer.Option("jit_captures", help="Common parent folder for all jit_* capture files"),
     warmup: int = typer.Option(0, help="Number of warmup runs on different data before the timed run"),
     repeat: int = typer.Option(1, "--repeat", help="Number of timed runs, each reported separately. Independent of --warmup: the warmup runs (if any) still happen once, before the first timed run."),
     num_images: int = typer.Option(0, "--num-images", help="Verify this many test images, batch-size at a time, one timed run per batch (batch i = images [i*batch_size, (i+1)*batch_size)); warmup j uses the images right after them. Requires --results-file; replaces --repeat. 0 (default): the --repeat protocol, every timed run on the first batch."),
     results_file: str = typer.Option(None, "--results-file", help="With --num-images: write one JSON line per warmup and per timed batch (time, peak/resident memory, bounds) here, outside the timer."),
-    use_cache: bool = typer.Option(False, "--use-cache", help="Point --output-path at the shared kernel_cache entry (see bench/configs.py:kernel_dir), keyed by network/dataset/certifier/batch-size/inductor. Hard errors if that cache entry is missing."),
-    perturb_eps: float = typer.Option(0.0, "--perturb-eps", help="Std of iid Gaussian noise added to the network's weights independently before each warmup and each timed run, to test whether weight values (not just shapes) affect measured runtime. 0 (default) disables perturbation and every run uses the unmodified network."),
-    perturb_seed: int = typer.Option(0, "--perturb-seed", help="Seed for --perturb-eps's noise, for reproducible sweeps."),
-    # UNFAIR LOADING
-    # direct_onnx_load: bool = typer.Option(False, "--direct-onnx-load/--no-direct-onnx-load", help="Load the network without onnx.load: memory-map the file, parse only the graph (weights stripped from the protobuf), and upload each weight from the mapped file through a pinned staging buffer that PyTorch's caching host allocator keeps between runs. Weights are still read and uploaded on every run. Off: onnx.load + numpy copies + pageable upload, as the baselines do."),
     #FEAT: --dtype on run, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
     #FEAT: --profile-comm records CPU-GPU communication per timed batch (lib/comm_profile.py).
@@ -473,20 +398,6 @@ def run(
     """
     Run a compiled ConstraintFlow program.
     """
-    if use_cache:
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        from bench import configs as bench_configs
-
-        if network.endswith(".onnx"):
-            onnx_path = network if os.path.isfile(network) else os.path.join(bench_configs.REPO_ROOT, network)
-        else:
-            onnx_path = bench_configs.network_path(dataset, network)
-        network = onnx_path
-        output_path = bench_configs.require_kernel(
-            bench_configs.kernel_dir("jit", program_file, onnx_path, batch_size, inductor),
-            f"python3 bench/build_kernels.py --tool jit --network {onnx_path} --batch-size {batch_size} --device {device}",
-        )
-
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
     from bench import configs as bench_configs
     onnx_path = network if os.path.isfile(network) else os.path.join(bench_configs.REPO_ROOT, network)
@@ -498,11 +409,6 @@ def run(
         typer.echo(f"Error creating folder '{output_path}': {e}")
         raise typer.Exit(code=1)
 
-    globals.set_jit_root(jit_dir)
-
-    if simulacrum:
-        clear_jit_captures()
-    
     if compile:
         compile_code(program_file, output_path)
 
@@ -517,8 +423,6 @@ def run(
         typer.echo("Error: device='gpumac' requested but MPS is not available.")
         raise typer.Exit(code=1)
     device_mode.set_mode(device)
-    # UNFAIR LOADING
-    # globals.direct_onnx_load.set_flag() if direct_onnx_load else globals.direct_onnx_load.reset_flag()
     if device == "gpu":
         _configure_cuda_cpu_threads()
 
@@ -531,9 +435,6 @@ def run(
             raise typer.Exit(code=1)
         if not results_file:
             typer.echo("Error: --num-images requires --results-file.")
-            raise typer.Exit(code=1)
-        if perturb_eps > 0:
-            typer.echo("Error: --perturb-eps is only supported with the --repeat protocol.")
             raise typer.Exit(code=1)
     elif profile_comm:
         typer.echo("Error: --profile-comm requires --num-images.")
@@ -561,21 +462,6 @@ def run(
             return xs.to(dataset_device), ys
         return xs.to(dataset_device), ys.to(dataset_device)
 
-    perturb_rng = None
-    perturb_dir = None
-    if perturb_eps > 0:
-        import numpy as np
-        import tempfile
-        perturb_rng = np.random.default_rng(perturb_seed)
-        perturb_dir = tempfile.mkdtemp(prefix="cf_perturb_")
-
-    def _network_for(tag: str) -> str:
-        """The network path to hand `run()` for one warmup/repeat call: a fresh perturbed
-        copy per call when --perturb-eps is set, else the unmodified network every time."""
-        if perturb_eps <= 0:
-            return network_file
-        return _perturbed_network_copy(network_file, perturb_eps, perturb_dir, tag, perturb_rng)
-
     is_cuda = device_mode.get_device() == "cuda"
     print(f"WARMMMMMM")
     torch._dynamo.reset()
@@ -587,10 +473,9 @@ def run(
         return
 
     for i in range(warmup):
-        warmup_network = _network_for(f"warmup{i}")
         warmup_start = time.perf_counter()
-        warmup_stable_relu(run,
-            warmup_network,
+        warmup_row_kernels(run,
+            network_file,
             batch_size,
             eps,
             *_batch((i + 1) * batch_size),
@@ -627,7 +512,6 @@ def run(
     repeat_peaks = []
     print("REPEAT")
     for i in range(repeat):
-        repeat_network = _network_for(f"repeat{i}")
         resident = 0
         if is_cuda:
             torch.cuda.synchronize()
@@ -636,7 +520,7 @@ def run(
 
         start_time = time.perf_counter()
         lb, ub = run(
-            repeat_network,
+            network_file,
             batch_size,
             eps,
             *_batch(0),
@@ -702,7 +586,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
                 faulthandler.dump_traceback_later(warmup_timeout, exit=True)
             dyn_before = dynamo.snapshot() if dynamo else None
             warmup_start = time.perf_counter()
-            warmup_stable_relu(run, network_file, batch_size, eps, *_batch(lo), dataset=dataset, train=train,
+            warmup_row_kernels(run, network_file, batch_size, eps, *_batch(lo), dataset=dataset, train=train,
                 print_intermediate_results=False, no_sparsity=no_sparsity)
             if is_cuda:
                 torch.cuda.synchronize()

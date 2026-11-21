@@ -41,6 +41,3 @@ constraintflow = ["**/*.txt", "**/*.yml", "**/*.json"]  # include assets if need
 
 [project.scripts]
 constraintflow = "constraintflow.cli:main"
-
-[project.optional-dependencies]
-jax = ["jax>=0.4.30"]

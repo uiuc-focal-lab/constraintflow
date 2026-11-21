@@ -197,9 +197,7 @@ def render_dense(cg, statements):
     return result
 
 
-def emit_regions(cg, node, regions, calls, chunk_size, compile_kernels,
-                 runtime_import='from constraintflow.compiler.optimizations.stable_relu import refine_stable, selected_patches_to_dense',
-                 release_dense=False):
+def emit_regions(cg, node, regions, calls, chunk_size, compile_kernels, runtime_import, release_dense=False):
     """Emit fixed-shape row regions and an eager coordinator (algorithm agnostic)."""
     # Build a dense diagnostic module from the same final IR, without source matching.
     dense = ('def flow(' + ', '.join(n for n, _ in node.flow_params) + ', batch_size):\n'

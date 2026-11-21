@@ -4,14 +4,10 @@ import onnx
 import numpy as np
 import torch.nn as nn
 import copy
-# UNFAIR LOADING
-# import mmap
 import os
 
 from onnx import numpy_helper
 from constraintflow.lib.globals import device_mode
-# UNFAIR LOADING
-# from constraintflow.lib.globals import direct_onnx_load
 from constraintflow.lib.network import Layer, LayerType, Network
 #FEAT: inference BatchNormalization is folded into its Conv at load time.
 from constraintflow.lib.onnx_preprocess import expand_maxpool, fold_batch_norm
@@ -71,129 +67,6 @@ def _initializer_tensors(net, net_name=None):
     }
 
 
-# UNFAIR LOADING: zero-copy ONNX loader. Disabled: IVAN and auto_LiRPA load with onnx.load, so this would make cf-gpu's timed loading cheaper than theirs.
-# _RAW_DTYPES = {
-#     onnx.TensorProto.FLOAT: torch.float32,
-#     onnx.TensorProto.DOUBLE: torch.float64,
-#     onnx.TensorProto.FLOAT16: torch.float16,
-#     onnx.TensorProto.INT64: torch.int64,
-#     onnx.TensorProto.INT32: torch.int32,
-#     onnx.TensorProto.INT8: torch.int8,
-#     onnx.TensorProto.UINT8: torch.uint8,
-# }
-#
-#
-# def _varint(buf, pos):
-#     result = shift = 0
-#     while True:
-#         b = buf[pos]
-#         pos += 1
-#         result |= (b & 0x7f) << shift
-#         if b < 0x80:
-#             return result, pos
-#         shift += 7
-#
-#
-# def _encode_varint(n):
-#     out = bytearray()
-#     while n >= 0x80:
-#         out.append((n & 0x7f) | 0x80)
-#         n >>= 7
-#     out.append(n)
-#     return bytes(out)
-#
-#
-# def _fields(buf, pos, end):
-#     while pos < end:
-#         start = pos
-#         key, pos = _varint(buf, pos)
-#         wire = key & 7
-#         if wire == 0:
-#             _, nxt = _varint(buf, pos)
-#         elif wire == 1:
-#             nxt = pos + 8
-#         elif wire == 2:
-#             size, pos = _varint(buf, pos)
-#             nxt = pos + size
-#         elif wire == 5:
-#             nxt = pos + 4
-#         else:
-#             raise ValueError(f"Unsupported protobuf wire type {wire}")
-#         yield key >> 3, start, pos, nxt
-#         pos = nxt
-#
-#
-# def _submessage(field, payload):
-#     return _encode_varint(field << 3 | 2) + _encode_varint(len(payload)) + payload
-#
-#
-# def _strip_raw_data(buf):
-#     # ModelProto.graph = 7, GraphProto.initializer = 5, TensorProto.raw_data = 9
-#     model, spans = [], []
-#     for field, start, body, end in _fields(buf, 0, len(buf)):
-#         if field != 7:
-#             model.append(buf[start:end])
-#             continue
-#         graph = []
-#         for gfield, gstart, gbody, gend in _fields(buf, body, end):
-#             if gfield != 5:
-#                 graph.append(buf[gstart:gend])
-#                 continue
-#             tensor, span = [], None
-#             for tfield, tstart, tbody, tend in _fields(buf, gbody, gend):
-#                 if tfield == 9:
-#                     span = (tbody, tend)
-#                 else:
-#                     tensor.append(buf[tstart:tend])
-#             spans.append(span)
-#             graph.append(_submessage(5, b''.join(tensor)))
-#         model.append(_submessage(7, b''.join(graph)))
-#     return onnx.ModelProto.FromString(b''.join(model)), spans
-#
-#
-# def _map_file(path):
-#     with open(path, 'rb') as f:
-#         return mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_COPY)
-#
-#
-# def load_onnx_direct(net_name, device):
-#     """onnx.load + initializer tensors without copying raw_data through protobuf and numpy.
-#
-#     Returns (model, tensors on `device`, numpy values); None when the file needs onnx.load."""
-#     buf = _map_file(net_name)
-#     model, spans = _strip_raw_data(buf)
-#     tensors, values, staged = {}, {}, []
-#     for init, span in zip(model.graph.initializer, spans):
-#         if init.data_location == onnx.TensorProto.EXTERNAL:
-#             return None
-#         dtype = _RAW_DTYPES.get(init.data_type)
-#         if span is not None and (dtype is None or span[1] == span[0]):
-#             init.raw_data = buf[span[0]:span[1]]
-#             span = None
-#         if span is None:
-#             array = numpy_helper.to_array(init)
-#             values[init.name] = array
-#             tensors[init.name] = torch.tensor(array, device=device)
-#             continue
-#         dims = tuple(init.dims)
-#         host = torch.frombuffer(buf, dtype=dtype, count=math.prod(dims), offset=span[0]).view(dims)
-#         values[init.name] = host.numpy()
-#         if device == 'cpu':
-#             tensors[init.name] = host.clone()
-#         else:
-#             staged.append((init.name, host))
-#     if staged:
-#         # One pinned staging buffer (reused by the caching host allocator), async DMA per tensor.
-#         offsets, total = [], 0
-#         for _, host in staged:
-#             offsets.append(total)
-#             total += -(-host.nbytes // 256) * 256
-#         pinned = torch.empty(total, dtype=torch.uint8, pin_memory=True)
-#         for (name, host), offset in zip(staged, offsets):
-#             piece = pinned[offset:offset + host.nbytes].view(host.dtype).view(host.shape)
-#             piece.copy_(host)
-#             tensors[name] = piece.to(device, non_blocking=True)
-#     return model, tensors, values
 
 
 def compute_size(shape):
@@ -218,11 +91,6 @@ def get_net(net_name, spec_weight, spec_bias, no_sparsity, initializers=None, fo
         net_onnx = onnx.load(net_name)
         model_name_to_val_dict = _initializer_tensors(net_onnx, net_name)
         values = None
-        # UNFAIR LOADING
-        # device = device_mode.get_device() if device_mode.get_device() == "cuda" else "cpu"
-        # loaded = load_onnx_direct(net_name, device) if direct_onnx_load.get_flag() else None
-        # if loaded is not None:
-        #     net_onnx, model_name_to_val_dict, values = loaded
         # net type: constraintflow.lib.network.Network (inherits list)
         # net element type: constraintflow.lib.network.Layer
         if initializers is not None:

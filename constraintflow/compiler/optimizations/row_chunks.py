@@ -25,17 +25,22 @@ import argparse
 import ast
 import copy
 import heapq
+import itertools
 import math
 import os
 import sys
 
 import torch
 
+# Hoisted names must be unique across every loop of one rewrite; a counter keeps them deterministic.
+_NAME_IDS = itertools.count()
+
 ROWS_HELPER = '''
 from constraintflow.gbcsr.sparse_block import selection_gather_map as _cf_selection_map, realized_pad as _cf_pad
 from constraintflow.lib.pre_grad_cse import PRE_GRAD_CSE  # loop bodies use it; normal builds don't import it
 import os as _cf_os
 import time as _cf_time
+
 _CF_PROGRESS = _cf_os.environ.get('CF_ROW_CHUNKS_PROGRESS', '0') not in ('', '0')
 _cf_last = [None]
 
@@ -233,7 +238,7 @@ class _ChunkBody(ast.NodeTransformer):
         chunked = self._channel_rows(node)
         if chunked is not None:
             return chunked
-        name = f'_cf_hoist_{len(self.hoisted)}_{id(node)}'
+        name = f'_cf_hoist_{len(self.hoisted)}_{next(_NAME_IDS)}'
         self.hoisted.append((name, node))
         return ast.Call(ast.Name('_cf_rows', ast.Load()),
                         [ast.Name(name, ast.Load()), ast.Name('_r0', ast.Load()), ast.Name('_r1', ast.Load())], [])
@@ -268,7 +273,7 @@ class _ChunkBody(ast.NodeTransformer):
         state = (self.failed, len(self.hoisted), len(self.periods), len(self.whole_periods), dict(self.channel_vars))
         new, names = copy.deepcopy(node), {}
         for n, _ in leaves:
-            names[ast.dump(n)] = names.get(ast.dump(n)) or f'_cf_ch_{len(self.hoisted)}_{id(n)}'
+            names[ast.dump(n)] = names.get(ast.dump(n)) or f'_cf_ch_{len(self.hoisted)}_{next(_NAME_IDS)}'
             name = names[ast.dump(n)]
             if name not in self.channel_vars:
                 self.hoisted.append((name, n))

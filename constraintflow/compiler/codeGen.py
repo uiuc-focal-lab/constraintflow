@@ -13,7 +13,7 @@ from constraintflow.compiler.optimizations import flow_split
 from constraintflow.compiler.optimizations import flow_shapes
 from constraintflow.compiler.optimizations import subexp_inlining
 from constraintflow.compiler.optimizations import early_reductions as early_reductions_pass
-from constraintflow.lib.globals import early_reductions, flow_segment_mb, memory_budget_mb, MEMORY_BUDGET_FRACTION, device_mode, cudagraphs, product_grids, inductor_layout_opt, training
+from constraintflow.lib.globals import early_reductions, flow_segment_mb, memory_budget_mb, MEMORY_BUDGET_FRACTION, device_mode, cudagraphs, product_grids, training
 from constraintflow.compiler.optimizations import conv_partials, pad_inputs, region_reuse, mem_plan
 from constraintflow.compiler.optimizations import product_grids as product_grids_pass
 #FEAT: per-change toggles for the DeepPoly-efficient passes
@@ -79,10 +79,9 @@ def compile_decorator(fullgraph):
     options = {}
     if cudagraphs.get_flag():
         options['triton.cudagraphs'] = True  # what mode="reduce-overhead" sets
-    if not inductor_layout_opt.get_flag():
-        # Inductor would move conv operands to channels-last, where cuDNN picks much
-        # slower kernels for these batch-heavy, few-channel convolutions.
-        options['layout_optimization'] = False
+    # Inductor would move conv operands to channels-last, where cuDNN picks much
+    # slower kernels for these batch-heavy, few-channel convolutions.
+    options['layout_optimization'] = False
     passes = []  # graph-pass objects, emitted as code (the generated module imports them), not repr'd literals
     #FEAT: training builds CSE the Dynamo graph before AOTAutograd (see lib/pre_grad_cse.py).
     if training.get_flag():
@@ -135,8 +134,7 @@ _BATCH_SIZE_RE = re.compile(r'\bbatch_size\b')
 
 
 class CodeGen(irVisitor.IRVisitor):
-    def __init__(self,folder, target='torch'):
-        self.target = target
+    def __init__(self,folder):
         self.folder = folder 
         if self.folder.endswith('/'):
             self.folder = self.folder[:-1]
@@ -429,7 +427,7 @@ class CodeGen(irVisitor.IRVisitor):
             print('[conv-partials] {} partial results exposed'.format(count))
             sized = self._probe_sizes(node)
         barriers = set()
-        if (inductor_mode.get_flag() or self.target == 'jax') and getattr(node, 'flow_functional', False):
+        if inductor_mode.get_flag() and getattr(node, 'flow_functional', False):
             pads = set(pad_inputs.run(node.flow_block))
             barriers.update(pads)
             print('[pad-inputs] {} pad inputs materialized'.format(len(pads)))
@@ -463,23 +461,14 @@ class CodeGen(irVisitor.IRVisitor):
                 sized = self._probe_sizes(node, record_temporaries=True)
         self._flow_sizes = sized or {}
         self._flow_metrics = {
-            'target': self.target,
             'statements': len(node.flow_block.children),
             'estimated_peak_tensor_bytes': flow_shapes.peak_live_bytes(node.flow_block.children, sized) if sized else None,
             'workspace_included': False,
         }
-        # Stable selection consumes final SSA, after memory planning and before
+        # Row selection consumes final SSA, after memory planning and before
         # segmentation can hide dependencies behind emitted region calls.
-        from constraintflow.lib import globals as runtime_globals
-        if runtime_globals.stable_relu_config is not None:
-            from constraintflow.compiler.optimizations import stable_relu_ir
-            return stable_relu_ir.emit(self, node, *runtime_globals.stable_relu_config)
         from constraintflow.compiler.optimizations import conditional_rows
         if conditional_rows.emit(self, node):
-            return
-        if self.target == 'jax':
-            from .jaxCodeGen import emit_flow
-            emit_flow(self, node, sized, barriers)
             return
         if flow_segment_mb.get_value() > 0:
             segments = flow_split.split(
@@ -542,8 +531,6 @@ class CodeGen(irVisitor.IRVisitor):
             if not self.file.closed:
                 self.file.flush()
             metrics['generated_source_bytes'] = sum(os.path.getsize(p) for p in (self.main_file, self.transformers_file))
-            if self.target == 'jax':
-                metrics['generated_source_bytes'] += os.path.getsize(os.path.join(self.folder, 'jax_flow.py'))
             with open(os.path.join(self.folder, 'compile_metrics.json'), 'w') as f:
                 json.dump(metrics, f, indent=2)
         if hasattr(self, '_stable_dense_source'):
@@ -1975,9 +1962,8 @@ class CodeGen(irVisitor.IRVisitor):
         if sroa_build():
             self.write('res = flow(*explode_inputs(abs_elem, batch_size))')
             self.write('res = apply_spec_offset(network, res)')
-            if self.target == 'torch':
-                self.write('if not inductor_mode.get_flag():')
-                self.write('    print("Peak memory usage:", torch.cuda.max_memory_allocated() / 1024**2, "MB")')
+            self.write('if not inductor_mode.get_flag():')
+            self.write('    print("Peak memory usage:", torch.cuda.max_memory_allocated() / 1024**2, "MB")')
             self.write('return res')
             self.indent -= 1
             return

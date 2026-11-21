@@ -12,10 +12,26 @@ import torch
 from constraintflow.ast_cflow import astcf as A, astBuilder, dslLexer, dslParser, astTC
 from constraintflow.compiler.traversal_stop import transform
 from constraintflow.compiler.optimizations.conditional_rows import refine_rows, plan, row_separable
-from constraintflow.compiler.optimizations.stable_relu import warmup_stable_relu
+from constraintflow.compiler.optimizations.row_refinement import warmup_row_kernels
+from constraintflow.compiler.codeGen import CodeGen
 from constraintflow.compiler.ir import IrBlock, IrTorchWhere, IrTorchMatmul, IrSimpleBinary, IrTorchSum, IrTransRetBasic
-from constraintflow.compiler.optimizations.stable_relu_ir import assign, var
-from test_stable_relu_ir import Probe
+from constraintflow.compiler.optimizations.row_regions import assign, var
+
+
+class Probe:
+    """Evaluates IR expressions in a test environment for row-separability proofs."""
+    def __init__(self, env):
+        import operator
+        self.env = dict(env, torch=torch, operator=operator)
+        self.cg = CodeGen.__new__(CodeGen)
+        self.cg.const_pool = {}
+
+    def value(self, expr, **extra):
+        return eval(self.cg.visit(expr), dict(self.env, **extra))
+
+    def shape(self, expr):
+        value = self.value(expr)
+        return tuple(value.shape) if isinstance(value, torch.Tensor) else None
 
 PROGRAM = Path(__file__).resolve().parents[1] / 'examples/compiler_examples/deeppoly_traversal_stop.cf'
 
@@ -105,14 +121,14 @@ class RowRuntimeTest(unittest.TestCase):
             self.assertEqual(seen,expected)
             torch.testing.assert_close(got[0][0,:needed],values[0][0,:needed])
         seen=[]
-        warmup_stable_relu(refine_rows,torch.ones(1,50,dtype=torch.bool),(torch.zeros(1,50),),kernel,(),(8,32,128))
+        warmup_row_kernels(refine_rows,torch.ones(1,50,dtype=torch.bool),(torch.zeros(1,50),),kernel,(),(8,32,128))
         self.assertEqual(seen,[8,32,50])
 
     def test_warmup_executes_skipped_kernel_and_discards_result(self):
         defaults=(torch.tensor([[1.,2.,3.]]),);seen=[]
         def kernel(idx):
             seen.append(idx.clone());return (torch.full((1,len(idx)),float('nan')),)
-        got=warmup_stable_relu(refine_rows,torch.ones(1,3,dtype=torch.bool),defaults,kernel,(),128)
+        got=warmup_row_kernels(refine_rows,torch.ones(1,3,dtype=torch.bool),defaults,kernel,(),128)
         self.assertEqual(len(seen),1)
         self.assertTrue(torch.equal(got[0],defaults[0]))
 
