@@ -16,11 +16,12 @@ from constraintflow.lib.globals import inductor_mode, cudagraphs
 def refine_rows(stop, defaults, kernel, args, chunk_size, union=False):
     """Evaluate false branches for the union of needed rows, preserving each mask.
 
-    A tuple of chunk sizes compiles one kernel per size: full blocks of the largest,
-    then the smallest that covers the rest. union=True gives every example the
-    refined values of a selected row (auto_LiRPA's sparse rule).
+    A tuple of chunk sizes compiles one kernel per size, used as block_plan splits
+    the rows: packed on the CPU; on the GPU (where more launches cost more than the
+    padded rows: BoxPoly N16 1.20x, N33 1.24x slower packed) one covering block for the rest. union=True gives every example the refined values of a selected row
+    (auto_LiRPA's sparse rule).
     """
-    from constraintflow.compiler.optimizations.row_refinement import is_warming
+    from constraintflow.compiler.optimizations.row_refinement import is_warming, block_plan
     indices = torch.nonzero(~stop.all(dim=0), as_tuple=False).flatten()
     n = stop.shape[1]
     if n == 0:
@@ -32,9 +33,7 @@ def refine_rows(stop, defaults, kernel, args, chunk_size, union=False):
             kernel(torch.arange(size, device=stop.device), *args)
     outputs = list(defaults)
     offset = 0
-    while offset < indices.numel():
-        left = indices.numel() - offset
-        size = sizes[-1] if left >= sizes[-1] else next(c for c in sizes if c >= left)
+    for size in block_plan(indices.numel(), sizes, pack=stop.device.type == 'cpu'):
         idx = indices[offset:offset + size]
         count = idx.numel()
         first, offset = offset == 0, offset + count

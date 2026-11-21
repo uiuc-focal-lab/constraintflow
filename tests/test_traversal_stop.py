@@ -111,9 +111,9 @@ class RowRuntimeTest(unittest.TestCase):
         torch.testing.assert_close(refine_rows(stop,defaults,kernel,(),4)[0],torch.tensor([[0.,7.,0.],[0.,0.,0.]]))
         torch.testing.assert_close(refine_rows(stop,defaults,kernel,(),4,union=True)[0],torch.tensor([[0.,7.,0.],[0.,7.,0.]]))
 
-    def test_several_chunk_sizes_pick_smallest_cover_and_warm_every_size(self):
+    def test_several_chunk_sizes_pack_blocks_and_warm_every_size(self):
         values=(torch.arange(300.)[None],)
-        for needed,expected in [(1,[8]),(44,[64]),(129,[128,8]),(300,[128,128,64])]:
+        for needed,expected in [(1,[8]),(44,[32,16]),(129,[128,8]),(300,[128,128,32,16])]:
             stop=torch.ones(1,300,dtype=torch.bool); stop[0,:needed]=False; seen=[]
             def kernel(idx):
                 seen.append(len(idx));return tuple(x.index_select(1,idx) for x in values)
@@ -123,6 +123,17 @@ class RowRuntimeTest(unittest.TestCase):
         seen=[]
         warmup_row_kernels(refine_rows,torch.ones(1,50,dtype=torch.bool),(torch.zeros(1,50),),kernel,(),(8,32,128))
         self.assertEqual(seen,[8,32,50])
+
+    @unittest.skipUnless(torch.cuda.is_available(),'needs CUDA')
+    def test_gpu_rows_cover_the_rest_with_one_block(self):
+        values=(torch.arange(300.,device='cuda')[None],)
+        for needed,expected in [(1,[8]),(44,[64]),(129,[128,8]),(300,[128,128,64])]:
+            stop=torch.ones(1,300,dtype=torch.bool,device='cuda'); stop[0,:needed]=False; seen=[]
+            def kernel(idx):
+                seen.append(len(idx));return tuple(x.index_select(1,idx) for x in values)
+            got=refine_rows(stop,(torch.zeros(1,300,device='cuda'),),kernel,(),(8,16,32,64,128))
+            self.assertEqual(seen,expected)
+            torch.testing.assert_close(got[0][0,:needed],values[0][0,:needed])
 
     def test_warmup_executes_skipped_kernel_and_discards_result(self):
         defaults=(torch.tensor([[1.,2.,3.]]),);seen=[]
