@@ -1,134 +1,139 @@
-# ConstraintFlow
+# ConstraintFlow-GPU
 
-**ConstraintFlow** is a domain-specific language (DSL) and toolchain for specifying, verifying, and compiling neural network certifiers. It bridges the gap between high-level formal specifications and efficient tensor-based runtimes, enabling precise and verifiable DNN analysis.
+**ConstraintFlow** is a domain-specific language for writing neural network certifiers (DeepPoly, CROWN, IBP,
+DeepZ, ...) as short, declarative `.cf` programs. This repository compiles those programs into fast GPU code:
+`jit` specializes a certifier to one network and batch size, removes all interpretation overhead, and compiles
+the resulting tensor program with PyTorch Inductor.
 
----
+The certifiers used in our experiments are in [`examples/compiler_examples/`](examples/compiler_examples).
 
-## 📚 Features
+## Installation
 
-ConstraintFlow allows you to:
-
-* **Specify** certifiers declaratively using `.cf` files.
-* **Verify** certifiers automatically for soundness.
-* **Compile** high-level specifications into optimized tensor-based code.
-* **Execute** compiled certifiers on neural network models.
-
----
-
-## 🚀 Quick Start
-
-### Installation
-
-Pip installation ([Pypi](https://pypi.org/project/constraintflow/0.1.1/))
+Python 3.10 or newer and an NVIDIA GPU with CUDA. The pinned versions are the ones our results were measured
+with (PyTorch 2.10.0, CUDA 12.8).
 
 ```bash
-pip install constraintflow==0.1.1
-```
-
-Or install from source
-
-Clone the repository and install in editable mode:
-
-```bash
-git clone https://github.com/your-username/constraintflow.git
-cd constraintflow
+git clone https://github.com/ADAPT-uiuc/constraintflow-gpu.git
+cd constraintflow-gpu
 pip install -e .
 ```
 
-Several fixes (fix PyTorch version to prevent it to require a higher CUDA version; solve `pkg_resources` problem with z3):
+## Quick start
+
+Download a network (or use any ONNX file), then build and run a certifier:
 
 ```bash
-pip install -e . -c requirements.txt
-pip uninstall z3_solver
-pip install z3_solver
+python reproduce/download.py --nets nets --only N1
+
+# Build DeepPoly for this network, batch size 100 (writes the generated code to output/)
+constraintflow jit examples/compiler_examples/deeppoly_priority_add.cf \
+    --network nets/mnist/mnist_relu_3_50.onnx --dataset mnist --eps 0.004 --batch-size 100 \
+    --device gpu --fuse-affine-subst --output-path output/
+
+# Certify the first 1000 MNIST test images
+constraintflow run examples/compiler_examples/deeppoly_priority_add.cf \
+    --network nets/mnist/mnist_relu_3_50.onnx --dataset mnist --eps 0.004 --batch-size 100 \
+    --device gpu --num-images 1000 --results-file results.jsonl --output-path output/
 ```
 
-### Prepare Models
+`run` warms up once (the first run compiles the program), then times one run per batch of 100 images.
+`results.jsonl` has one line per batch with its time, peak GPU memory and the lower and upper bounds of every
+margin `f_y - f_j`; an image is verified when all its margin lower bounds are positive.
 
-Create a directory for neural networks:
+Datasets are read from the working directory: MNIST, CIFAR-10 and CIFAR-100 are downloaded there by torchvision
+on first use; TinyImageNet is read from `./tinyimagenet` (`python reproduce/download.py --tinyimagenet`).
+
+## Commands
+
+| Command | What it does |
+|---|---|
+| `jit` | Builds a certifier specialized to one network, dataset and batch size (the fast path). |
+| `run` | Runs a built program on test images and reports time, memory and bounds. |
+| `compile` | Builds the general, unspecialized interpreter of a program, as the original ConstraintFlow does. Run it with `run --no-inductor`, or with `run --compile` to compile and run in one step. |
+| `provesound` | Checks a certifier's soundness automatically. |
+
+Run `constraintflow <command> --help` for every option. The ones you are most likely to need:
+
+**`jit`**
+
+- `--network`, `--dataset`, `--eps`, `--batch-size`, `--device gpu`: the network and the property being
+  certified. `--dataset` is `mnist`, `cifar`, `cifar100`, `tinyimagenet`, `vnnlib:<benchmark folder>` (VNN-COMP
+  format: `instances.csv`, `onnx/`, `vnnlib/`), or `box-<input shape>-<outputs>-<spec rows>`.
+- `--fuse-affine-subst`: skips redundant work at Linear/Conv layers. It is correct only for programs whose
+  Affine rule gives identical lower and upper expressions, which holds for the DeepPoly/CROWN programs here, so
+  it is off by default. Our DeepPoly-family results use it.
+- `--center-radius` / `--no-center-radius`: how bounds over a box are concretized, as `c·mid + |c|·rad` (the
+  default; more precise in fp32) or as ConstraintFlow's original sign split `c⁺·u + c⁻·l`.
+- `--traversal-stop-chunk`: block sizes for programs whose traversals stop early per neuron (e.g.
+  `deeppoly_traversal_stop.cf`); a comma list such as `8,16,32,64,128,256,512` compiles one kernel per size.
+  By default a neuron refined for any image of the batch is refined for every image, as auto_LiRPA's sparse
+  mode does; `--traversal-stop-per-example` keeps each image's own decision instead.
+- `--flow-segment-mb` (default 8192): splits the generated program into regions that Inductor compiles
+  separately. Smaller regions can lower peak memory; 0 keeps one region.
+- `--no-inductor`: emits eager PyTorch code instead of compiling it. `run` must be given the same choice.
+- `--verbose`: prints what each compiler pass did.
+
+**`run`**
+
+- `--num-images N --results-file F`: certify the first `N` test images, one timed run per batch.
+- `--warmup` (default 1), `--repeat`: untimed warmup runs, and the number of timed runs on the first batch
+  when `--num-images` is not given.
+- `--batch-timeout`, `--warmup-timeout`: stop if one batch or one warmup takes longer than this many seconds.
+- `--dtype float64`: computes everything in fp64 (pass it to `jit` too), to check fp32 bounds.
+- `--profile-comm`: profiles each timed batch and records CPU–GPU synchronizations and copies.
+
+Set `CF_DISABLE_TF32=1` to keep cuDNN and matmuls in full fp32 instead of PyTorch's default TF32 convolutions.
+
+## Very large networks
+
+For networks whose back-substitution does not fit in GPU memory (ResNet50, VGG16), the `row_chunks` rewrite
+processes the rows of each large back-substitution in chunks that fit a memory budget:
 
 ```bash
-mkdir nets/
+constraintflow jit <program> --network <onnx> ... --no-inductor --flow-segment-mb 0 --output-path build/
+python -m constraintflow.compiler.optimizations.row_chunks build/ --network <onnx> --dataset <dataset> \
+    --budget-gb 40 --compile-bodies
+constraintflow run <program> --network <onnx> ... --no-inductor --output-path build/
 ```
 
-Download pretrained DNNs from [ERAN](https://github.com/eth-sri/eran) and place them inside `nets/`.
+## Certified training
 
+`constraintflow.lib.training.TrainingBounds` gives differentiable margin bounds of a PyTorch model, like
+auto_LiRPA's `BoundedModule`, using compiled ConstraintFlow programs (`IBP`, `CROWN-IBP`, `CROWN`, `zid`, ...):
 
----
+```python
+from constraintflow.lib.training import TrainingBounds
 
-### CLI Usage
-
-To run the JIT optimization, first use the jit command and then use the run command. 
-
-#### `JIT Optimization`
-
-##### `Both Passes in One Go (JIT)`
-Both passes can be run in one go using the jit command (in-memory keeps the simulacrum metadata in the memory instead of saving it in json files):
-```bash
-constraintflow jit example.cf --in-memory [OPTIONS]
+bounds = TrainingBounds(model, dummy_input, "mnist", ["CROWN-IBP"], [batch_size], cache_dir="cf_cache")
+for x, y in loader:
+    bounds.begin_step()
+    lower, upper = bounds.compute_bounds("CROWN-IBP", (x - eps).clamp(0, 1), (x + eps).clamp(0, 1), y)
+    loss = robust_loss(lower)  # lower bounds of f_y - f_j, differentiable in the model's parameters
 ```
 
-**Options:**
+Each method and batch size is compiled once and cached in `cache_dir`.
 
-| Flag                            | Description                                                                         | Default           |
-| -------------------------------- | -------------------------------------------------------------------------------------- | ----------------- |
-| `--network`                     | Network name                                                                        | `mnist_relu_3_50` |
-| `--network-format`              | Format of the network file                                                          | `onnx`            |
-| `--dataset`                     | Dataset to use (`mnist` or `cifar`)                                                 | `mnist`           |
-| `--batch-size`                  | Batch size                                                                          | 1                 |
-| `--eps`                         | Epsilon                                                                             | 0                 |
-| `--train`                       | Trace on training dataset                                                          | False             |
-| `--no-sparsity`                 | Disable sparsity optimizations                                                      | False             |
-| `--device`                      | Device mode: `cpu`, `gpu` (CUDA), or `gpumac` (Apple MPS)                           | `cpu`             |
-| `--output-path`                 | Output path for generated code                                                     | `output/`         |
-| `--print-intermediate-results`  | Print intermediate results during the simulacrum trace pass                        | False             |
-| `--jit-dir`                     | Common parent folder for all `jit_*` capture files                                 | `jit_captures`    |
-| `--in-memory`                   | Keep jit captures in a process-local dict instead of on disk                        | False             |
-| `--inductor`                    | Emit `@torch.compile(backend='inductor')` on the reuse build                        | False             |
-| `--fused-flow` / `--no-fused-flow` | Emit a single `flow()` instead of a layered flow           | True              |
-| `--fuse-affine-subst` / `--no-fuse-affine-subst` | Pass to optimize redundant Affine calculations (only sound for deeppoly/crown)  | False       |
-| `--sroa` / `--no-sroa`          | Scalar-replace the Jit* aggregates into pure tensor code (requires `--fused-flow`)  | True              |
-| `--memory-budget-mb`            | Over this estimated peak, reorder/recompute the flow and offload idle values to host memory (`-1`: 70% of GPU memory, `0`: off) | `-1`              |
+## Reproducing our results
 
+[`reproduce/`](reproduce) downloads every network we used and reruns our cf-gpu measurements with the exact
+settings of each experiment. See [`reproduce/README.md`](reproduce/README.md).
 
+## How the compiler works
 
+[`constraintflow/compiler/optimizations/README.md`](constraintflow/compiler/optimizations/README.md) describes
+the two-pass `jit` build and every optimization pass.
 
-#### `run`
+## Tests
 
 ```bash
-constraintflow run example.cf [OPTIONS]
+python -m unittest discover -s tests -p 'test_*.py'
 ```
 
-**Options:**
+Some tests need a CUDA GPU and are skipped without one.
 
-| Flag                           | Description                                 | Default           |
-| ------------------------------ | ------------------------------------------- | ----------------- |
-| `--network`                    | Network name                                | `mnist_relu_3_50` |
-| `--network-format`             | Format of the network file                  | `onnx`            |
-| `--dataset`                    | Dataset to use (`mnist` or `cifar`)         | `mnist`           |
-| `--batch-size`                 | Batch size                                  | 1                 |
-| `--eps`                        | Epsilon                                     | 0.01              |
-| `--train`                      | Use training dataset                        | False             |
-| `--print-intermediate-results` | Print intermediate results during execution | False             |
-| `--no-sparsity`                | Disable sparsity optimizations              | False             |
-| `--output-path`                | Path where compiled program is stored       | `output/`         |
-| `--compile`                    | Compile the program before running          | False             |
-| `--warmup`                      | Number of warmup runs on different data before the timed run               | 0                 |
-| `--repeat`                      | Number of timed runs, each reported separately                             | 1                 |
-| `--simulacrum`                  | Run Simulacrum (dummy blocks)                                               | False             |
-| `--reuse`                       | Reuse stored indices from a prior dummy-blocks run                         | False             |
+## Citation
 
-
-
-## 📄 Citations
-
-If you use ConstraintFlow in your research, please cite the following papers:
-
-<p>
-    <a href="https://arxiv.org/abs/2501.01234"><img src="https://img.shields.io/badge/Paper-arXiv-blue"></a>
-    <a href="https://dl.acm.org/doi/10.1145/OOPSLA2025"><img src="https://img.shields.io/badge/Paper-OOPSLA2025-blue"></a>
-    <a href="https://example.com/dsl-paper"><img src="https://img.shields.io/badge/Paper-SAS2024-blue"></a>
-</p>
+If you use ConstraintFlow in your research, please cite:
 
 ```bibtex
 @InProceedings{constraintflow,
@@ -154,81 +159,6 @@ If you use ConstraintFlow in your research, please cite the following papers:
 }
 ```
 
----
+## License
 
-## 🛠 Development
-
-### Requirements
-
-* Python 3.9+
-* `antlr4-python3-runtime==4.9.2`
-
-### Running Locally
-
-Install the requirements:
-
-```bash
-pip install -r requirements.txt
-```
-
-You can then run, compile, or verify any `.cf` file using the CLI.
-
----
-
-## 📄 License
-
-MIT License. See [LICENSE](LICENSE) for details.
-
-## JAX target after JIT optimization
-
-`jit --target jax` uses the existing Torch simulacrum capture and shared compiler
-passes, then emits JAX from the final functional tensor IR. Torch remains the
-default target. Install the optional CPU dependency with `python -m pip install -e '.[jax]'`;
-for GPU execution, install a JAX build appropriate for your CUDA
-environment using the [JAX installation guide](https://docs.jax.dev/en/latest/installation.html).
-
-```bash
-python -m constraintflow.cli jit examples/compiler_examples/deeppoly.cf \
-  --network /absolute/path/to/network.onnx --dataset mnist --batch-size 1 \
-  --eps 0.01 --device cpu --target jax --output-path output/jax
-
-python -m constraintflow.cli run examples/compiler_examples/deeppoly.cf \
-  --network /absolute/path/to/network.onnx --dataset mnist --batch-size 1 \
-  --eps 0.01 --device cpu --output-path output/jax
-```
-
-Use `--device gpu` for CUDA capture/preparation and a CUDA-enabled JAX runtime.
-Do not combine `--target jax` with `--inductor`, `--no-sroa`, or
-`--no-fused-flow`. Unsupported residual aggregate mutations, storage-stride
-operations, and unspecialized control flow fail during emission.
-
-The output contains:
-
-- `jax_flow.py`: pure JAX tensor code with `jax.jit`; this kernel accepts JAX
-  arrays directly, including weights as runtime inputs. Shape-dependent
-  `batch_size` arguments are static. Kernels specialize to the captured network
-  geometry and batch size.
-- `transformers.py`: the input extractor and a Torch/JAX boundary adapter.
-- `main.py`: the existing network and input preparation interface. It returns
-  Torch bounds using DLPack and waits for JAX completion before returning, so
-  the existing `run` command can execute the artifact.
-
-The shared passes include block optimization, inlining, sign-convolution and
-sign-reduction simplification, early reductions, convolution partials, padding
-preparation, and memory planning according to their existing flags.
-`--flow-segment-mb` splits the optimized flow and JIT-compiles regions separately;
-equivalent regions reuse generated functions. `--memory-budget-mb` still drives
-the shared reorder/recompute planner, using Torch shape-probe estimates. Those
-estimates are not an XLA memory guarantee. The Torch CUDA stream host-offload
-driver is not emitted for JAX, and Torch CUDA peak-memory counters do not measure
-JAX allocations. JAX chooses allocation and fusion within each region.
-
-Numerical comparisons use float32 tolerances: XLA and Torch may reorder
-floating-point arithmetic. Matmul and convolution request JAX's highest
-precision. Explicit 64-bit bridge inputs require `JAX_ENABLE_X64=1`.
-
-Run CPU regression tests, including synthetic ONNX models (no dataset downloads):
-
-```bash
-JAX_PLATFORMS=cpu python -m unittest discover -s tests -p 'test_jax*.py' -v
-```
+MIT License. See [LICENSE](LICENSE).

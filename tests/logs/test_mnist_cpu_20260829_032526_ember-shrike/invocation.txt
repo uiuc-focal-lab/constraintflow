@@ -1,4 +1,0 @@
-# run id: 20260829_032526_ember-shrike
-# terminal command: /home/db50/cf-harness/constraintflow-gpu/cfg/bin/python3 tests/simulacrum_test.py test deeppoly_priority.cf nets/mnist/mnist_relu_3_50.onnx --dataset mnist --device cpu
-# cwd: /home/db50/cf-harness/constraintflow-gpu
-# started: 2026-08-29T03:25:26

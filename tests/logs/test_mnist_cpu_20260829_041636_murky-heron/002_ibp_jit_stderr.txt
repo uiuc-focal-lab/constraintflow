@@ -1,7 +1,0 @@
-# run id: 20260829_041636_murky-heron
-# terminal command: /home/db50/cf-harness/constraintflow-gpu/cfg/bin/python3 tests/simulacrum_test.py test ibp.cf nets/mnist/tiny_sigmoid.onnx --dataset mnist --device cpu
-# subprocess command: /home/db50/cf-harness/constraintflow-gpu/cfg/bin/python3 constraintflow/cli.py jit examples/compiler_examples/ibp.cf --network nets/mnist/tiny_sigmoid.onnx --dataset mnist --device cpu --eps 0.005 --batch-size 100
-# cwd: /home/db50/cf-harness/constraintflow-gpu
-# exit code: 0
-# ----------------------------------------------------------------------
-

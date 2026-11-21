@@ -20,7 +20,6 @@ from constraintflow.gbcsr.plot import *
 from constraintflow.gbcsr.op_helper import *
 import json
 import os
-import pdb
 import operator
 # dummy_mode = dummy_mode.get_flag()
 
