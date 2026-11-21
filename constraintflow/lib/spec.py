@@ -16,13 +16,9 @@ ACAS_INPUT_SHAPE = (1, 1, 5)
 #FEAT: other box-input specs (VNN-LIB benchmarks): dataset 'box-<input shape, x-separated>-<outputs>-<spec rows>', e.g. 'box-4-2-2'.
 #FEAT: 'vnnlib:<benchmark folder>' datasets: VNN-COMP specs, each batch's parsed inside the timed run.
 def vnnlib_specs():
-    """bench/vnnlib_specs.py of the harness repo this checkout sits in (spec list, input shape, parser)."""
-    import os, sys
-    repo = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    if repo not in sys.path:
-        sys.path.append(repo)  # appended: the repo root holds constraintflow/, auto_LiRPA/ checkouts
-    from bench import vnnlib_specs
-    return vnnlib_specs
+    """The VNN-LIB benchmark reader (spec list, input shape, parser)."""
+    from constraintflow.lib import vnnlib
+    return vnnlib
 
 
 def read_vnnlib_batch(folder, y, X):

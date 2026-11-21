@@ -68,6 +68,12 @@ app = typer.Typer(help="ConstraintFlow CLI for verification and compilation of D
 def get_program(program_file: str) -> str:
     return program_file
 
+def _require_network(network: str) -> None:
+    if not os.path.isfile(network):
+        typer.echo(f"Error: --network must be the path to an ONNX file; '{network}' does not exist.")
+        raise typer.Exit(code=1)
+
+
 def get_network(network: str, network_format: str, dataset: str) -> str:
     if dataset not in ["mnist", "cifar"]:
         return network
@@ -220,7 +226,7 @@ def compile(
 @app.command(name="jit")
 def simulacrum_compile(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
-    network: str = typer.Option("mnist_relu_3_50", help="Network name"),
+    network: str = typer.Option(..., help="Path to the ONNX network"),
     network_format: str = typer.Option("onnx", help="Network format"),
     dataset: str = typer.Option("mnist", help="Dataset (mnist or cifar)"),
     batch_size: int = typer.Option(1, help="Batch size"),
@@ -264,11 +270,7 @@ def simulacrum_compile(
         typer.echo(f"Error creating folder '{output_path}': {e}")
         raise typer.Exit(code=1)
 
-    #FIX FOR: jit imported cf-harness's bench package even when --network is an existing file, so it failed outside the harness checkout (worktrees, certified training).
-    if not os.path.isfile(network):
-        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        from bench import configs as bench_configs
-        network = os.path.join(bench_configs.REPO_ROOT, network)
+    _require_network(network)
 
     globals.dense_default_mode.set_flag() if dense else globals.dense_default_mode.reset_flag()
 
@@ -369,7 +371,7 @@ def simulacrum_compile(
 @app.command()
 def run(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
-    network: str = typer.Option("mnist_relu_3_50", help="Network name"),
+    network: str = typer.Option(..., help="Path to the ONNX network"),
     network_format: str = typer.Option("onnx", help="Network format"),
     dataset: str = typer.Option("mnist", help="Dataset (mnist or cifar)"),
     batch_size: int = typer.Option(1, help="Batch size"),
@@ -398,10 +400,7 @@ def run(
     """
     Run a compiled ConstraintFlow program.
     """
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    from bench import configs as bench_configs
-    onnx_path = network if os.path.isfile(network) else os.path.join(bench_configs.REPO_ROOT, network)
-    network = onnx_path
+    _require_network(network)
 
     try:
         os.makedirs(output_path, exist_ok=True)
