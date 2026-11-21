@@ -1,0 +1,36 @@
+diff --git a/generate_properties.py b/generate_properties.py
+index 3e9b797..c7249dc 100644
+--- a/generate_properties.py
++++ b/generate_properties.py
+@@ -180,6 +180,9 @@ def make_spec(spec_index, onnx_filename, image_index, image_filename, spec_path)
+ 
+     perturb_pixels = set(random.sample(range(150528), num_pixels))
+ 
++    #FEAT: Linf ball on the whole image with one eps; the sample above still runs so the seed picks the benchmark's images.
++    num_pixels, perturb_eps, perturb_pixels = num_inputs, LINF_EPS, range(num_inputs)
++
+     print(f"perturbing {num_pixels} pixels by {perturb_eps}")
+ 
+     with open(spec_path, 'w', encoding='utf-8') as f:
+@@ -265,8 +268,11 @@ def get_image_paths(image_dir):
+ def main():
+     """main entry point"""
+ 
+-    assert len(sys.argv) == 2, "expected 1 arg: <seed>"
++    #FEAT: optional eps of the whole-image Linf ball (default 1e-5).
++    assert len(sys.argv) in (2, 3), "expected args: <seed> [eps]"
+     random.seed(int(sys.argv[1]))
++    global LINF_EPS
++    LINF_EPS = float(sys.argv[2]) if len(sys.argv) == 3 else 1e-5
+ 
+     # prepare vnnlib and onnx directories
+     for dirname in ['vnnlib', 'onnx']:
+@@ -286,7 +292,7 @@ def main():
+     image_paths = get_image_paths(image_dir)
+     
+     num_images = 0
+-    total_images = 18 # 20 minute timeout each for 6 hours
++    total_images = 10 #FEAT: 10 images (benchmark: 18)
+ 
+     with open('instances.csv', 'w', encoding='utf-8') as f:
+ 
