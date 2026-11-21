@@ -30,14 +30,10 @@ _command = argv[0] if argv else ""
 globals.inductor_mode.set_flag() if _command in ("jit", "run") and "--no-inductor" not in argv else globals.inductor_mode.reset_flag()
 globals.sroa.set_flag()
 
-print(f'dummy_mode in cli: {globals.dummy_mode}')
-print(f'reuse_mode in cli: {globals.reuse_mode}')
-print(f'inductor_mode in cli: {globals.inductor_mode}')
-print(f'tf32 in cli: {"disabled (CF_DISABLE_TF32)" if DISABLE_TF32 else "PyTorch default"}')
-#FEAT: report the run dtype.
-print(f'dtype in cli: {DTYPE}')
 
 
+import contextlib
+import io
 import os
 import shutil
 import sys
@@ -61,6 +57,21 @@ from constraintflow.lib.spec import get_network_and_input_spec, vnnlib_path
 
 app = typer.Typer(help="ConstraintFlow CLI for verification and compilation of DSL programs.")
 
+
+@contextlib.contextmanager
+def _quiet(verbose):
+    """Hide compiler progress output unless --verbose; if the build fails, show it."""
+    if verbose:
+        yield
+        return
+    log = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(log):
+            yield
+    except BaseException:
+        sys.stdout.write(log.getvalue())
+        raise
+
 # --------------------------
 # Utility Functions
 # --------------------------
@@ -80,19 +91,12 @@ def get_network(network: str, network_format: str, dataset: str) -> str:
     return network
 
 
+CPU_THREADS = 8
+
+
 def _configure_cuda_cpu_threads() -> None:
     """Cap eager ATen CPU parallelism before the first compiled CUDA run."""
-    raw_limit = os.environ.get("CF_CPU_THREADS", "8")
-    try:
-        limit = int(raw_limit)
-    except ValueError:
-        typer.echo(f"Error: CF_CPU_THREADS must be a positive integer, got {raw_limit!r}.")
-        raise typer.Exit(code=1)
-    if limit < 1:
-        typer.echo(f"Error: CF_CPU_THREADS must be a positive integer, got {raw_limit!r}.")
-        raise typer.Exit(code=1)
-
-    torch.set_num_threads(min(torch.get_num_threads(), limit))
+    torch.set_num_threads(min(torch.get_num_threads(), CPU_THREADS))
 
 
 def get_dataset(
@@ -209,12 +213,15 @@ def compile(
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
     #FEAT: torch.compile without specialization (the generic build's Flow.flow), for the specialization ablation.
     compile_flow: bool = typer.Option(False, "--compile-flow", help="Wrap Flow.flow in torch.compile (Inductor, fullgraph=False, the jit build's options) in the generated main.py; transformers.py is unchanged. Run with --inductor."),
+    verbose: bool = typer.Option(False, "--verbose", help="Print the compiler's per-pass progress."),
 ):
     start_time = time.perf_counter()
     globals.compile_flow.set_flag() if compile_flow else globals.compile_flow.reset_flag()
     globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
     globals.center_radius.set_flag() if center_radius else globals.center_radius.reset_flag()
-    compile_code(program_file, output_path)
+    with _quiet(verbose):
+        compile_code(program_file, output_path)
+    typer.echo(f"Compiled to: {os.path.abspath(output_path)}")
     total_time = time.perf_counter() - start_time
     typer.echo(f"Total time: {total_time:.6f} seconds")
     import resource
@@ -249,6 +256,7 @@ def simulacrum_compile(
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
     #FEAT: certified-training build (constraintflow/lib/training.py).
     training: bool = typer.Option(False, "--training", help="Build for certified training: importable as a package, NaN-free division gradients, margin spec folded into the last Linear."),
+    verbose: bool = typer.Option(False, "--verbose", help="Print the compiler's per-pass progress."),
 ):
     """
     Compile a ConstraintFlow program through the whole simulacrum+reuse pipeline
@@ -291,70 +299,71 @@ def simulacrum_compile(
     globals.jit_store_clear()
 
     globals.training.set_flag() if training else globals.training.reset_flag()
-    # Simulacrum.
-    globals.inductor_mode.reset_flag()
-    globals.dummy_mode.set_flag()
-    globals.reuse_mode.reset_flag()
-    compile_code(program_file, output_path)
-
-    sys.path.insert(0, os.path.abspath(output_path))
-    network_file = get_network(network, network_format, dataset)
-
-    from main import run as _probe_run  # probe build provides this
-
-    dataset_device = device_mode.get_device() if is_cuda else None
-    X, y = get_dataset(batch_size, dataset, train=train, device=dataset_device)
-    _probe_run(
-        network_file,
-        batch_size,
-        eps,
-        X,
-        y,
-        dataset=dataset,
-        train=train,
-        print_intermediate_results=False,
-        no_sparsity=no_sparsity,
-    )
-
-    if not globals.capture_exists("jit_layers/layers.json"):
-        typer.echo(
-            "Error: simulacrum pass did not produce a trace in the in-memory store. "
-            "Cannot proceed to the reuse compile."
-        )
-        raise typer.Exit(code=1)
-
-    # Reuse
-    globals.dummy_mode.reset_flag()
-    globals.reuse_mode.set_flag()
-    if inductor:
-        globals.inductor_mode.set_flag()
-    globals.early_reductions.set_flag()
-    globals.fuse_sign_convs.set_flag()
-    globals.cudagraphs.set_flag() if cudagraphs else globals.cudagraphs.reset_flag()
-    globals.product_grids.set_flag()
-    globals.flow_segment_mb.set_value(flow_segment_mb)
-    globals.memory_budget_mb.set_value(memory_budget_mb)
-    globals.set_network_path(network_file)
-    stop_chunk = [int(c) for c in traversal_stop_chunk.split(',')]
-    globals.traversal_stop_config = (stop_chunk[0] if len(stop_chunk) == 1 else tuple(stop_chunk), not traversal_stop_per_example)
-    try:
-        compile_code(program_file, output_path)
-    finally:
-        globals.reuse_mode.reset_flag()
+    with _quiet(verbose):
+        # Simulacrum.
         globals.inductor_mode.reset_flag()
-        globals.fused_flow.reset_flag()
-        globals.compact_patches.reset_flag()
-        globals.early_reductions.reset_flag()
-        globals.fuse_sign_convs.reset_flag()
-        globals.cudagraphs.reset_flag()
-        globals.training.reset_flag()
-        globals.product_grids.reset_flag()
-        globals.center_radius.set_flag()   # back to the default
-        globals.flow_segment_mb.set_value(0.0)
-        globals.memory_budget_mb.reset()
-        globals.set_network_path(None)
-        globals.traversal_stop_config = (128, True)
-        globals.jit_store_clear()
+        globals.dummy_mode.set_flag()
+        globals.reuse_mode.reset_flag()
+        compile_code(program_file, output_path)
+
+        sys.path.insert(0, os.path.abspath(output_path))
+        network_file = get_network(network, network_format, dataset)
+
+        from main import run as _probe_run  # probe build provides this
+
+        dataset_device = device_mode.get_device() if is_cuda else None
+        X, y = get_dataset(batch_size, dataset, train=train, device=dataset_device)
+        _probe_run(
+            network_file,
+            batch_size,
+            eps,
+            X,
+            y,
+            dataset=dataset,
+            train=train,
+            print_intermediate_results=False,
+            no_sparsity=no_sparsity,
+        )
+
+        if not globals.capture_exists("jit_layers/layers.json"):
+            typer.echo(
+                "Error: simulacrum pass did not produce a trace in the in-memory store. "
+                "Cannot proceed to the reuse compile."
+            )
+            raise typer.Exit(code=1)
+
+        # Reuse
+        globals.dummy_mode.reset_flag()
+        globals.reuse_mode.set_flag()
+        if inductor:
+            globals.inductor_mode.set_flag()
+        globals.early_reductions.set_flag()
+        globals.fuse_sign_convs.set_flag()
+        globals.cudagraphs.set_flag() if cudagraphs else globals.cudagraphs.reset_flag()
+        globals.product_grids.set_flag()
+        globals.flow_segment_mb.set_value(flow_segment_mb)
+        globals.memory_budget_mb.set_value(memory_budget_mb)
+        globals.set_network_path(network_file)
+        stop_chunk = [int(c) for c in traversal_stop_chunk.split(',')]
+        globals.traversal_stop_config = (stop_chunk[0] if len(stop_chunk) == 1 else tuple(stop_chunk), not traversal_stop_per_example)
+        try:
+            compile_code(program_file, output_path)
+        finally:
+            globals.reuse_mode.reset_flag()
+            globals.inductor_mode.reset_flag()
+            globals.fused_flow.reset_flag()
+            globals.compact_patches.reset_flag()
+            globals.early_reductions.reset_flag()
+            globals.fuse_sign_convs.reset_flag()
+            globals.cudagraphs.reset_flag()
+            globals.training.reset_flag()
+            globals.product_grids.reset_flag()
+            globals.center_radius.set_flag()   # back to the default
+            globals.flow_segment_mb.set_value(0.0)
+            globals.memory_budget_mb.reset()
+            globals.set_network_path(None)
+            globals.traversal_stop_config = (128, True)
+            globals.jit_store_clear()
 
     typer.echo("Simulacrum+reuse compile complete ✅")
     typer.echo(f"Optimized code written to: {os.path.abspath(output_path)}")
@@ -462,7 +471,6 @@ def run(
         return xs.to(dataset_device), ys.to(dataset_device)
 
     is_cuda = device_mode.get_device() == "cuda"
-    print(f"WARMMMMMM")
     torch._dynamo.reset()
 
     if num_images:
@@ -509,7 +517,6 @@ def run(
 
     repeat_times = []
     repeat_peaks = []
-    print("REPEAT")
     for i in range(repeat):
         resident = 0
         if is_cuda:

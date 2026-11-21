@@ -371,10 +371,6 @@ class CodeGen(irVisitor.IRVisitor):
         self._method_has_view_write = had_write
         if sized:
             print('[flow-sizes] ' + flow_shapes.summary(stmts, sized))
-            #FEAT: CF_FLOW_SIZES_DUMP=<path> writes every statement's size and source (memory diagnosis).
-            if os.environ.get('CF_FLOW_SIZES_DUMP'):
-                with open(os.environ['CF_FLOW_SIZES_DUMP'], 'w') as f:
-                    json.dump([dict(sized.get(i, {}), index=i, source=src[:2000]) for i, src in enumerate(sources)], f)
         return sized
 
     def _memory_budget(self):

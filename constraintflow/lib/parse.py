@@ -124,8 +124,6 @@ def get_net(net_name, spec_weight, spec_bias, no_sparsity, initializers=None, fo
         raise ValueError("Unsupported net format!")
 
     net.net_name = net_name
-
-    print('Network loaded')
     return net
 
 #FEAT: training fast path (constraintflow/lib/training.py): a parsed network is reused across

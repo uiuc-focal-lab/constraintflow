@@ -552,7 +552,7 @@ def _components(stmts, probe, budget):
 
 #FEAT: per-neuron sums over long rows as two stages, so Inductor need not split the reduction (a split
 # reduction materializes its pointwise input: a full extra write and read of the coefficients).
-TWO_STAGE_MIN = int(os.environ.get('CF_TWO_STAGE_MIN', 32768))  # lower it only to test
+TWO_STAGE_MIN = 32768
 
 
 def _sum_groups(k):

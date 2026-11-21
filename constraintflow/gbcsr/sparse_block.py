@@ -701,7 +701,7 @@ class SparseBlock:
 
 # Upper bound on the intermediates of one patch composition (KernelBlock @
 # PatchesBlock, DenseBlock @ PatchesBlock); larger ones are split by origin channel.
-PATCH_COMPOSE_CHUNK_BYTES = int(float(os.environ.get("CF_PATCH_COMPOSE_CHUNK_MB", "1024")) * 1024 ** 2)
+PATCH_COMPOSE_CHUNK_BYTES = 1024 * 1024 ** 2
 
 
 def channel_step(channels, channel_bytes):
@@ -730,10 +730,6 @@ def cat_columns(pieces, piece_indices, json_list):
 # So the lowering is picked per call shape by timing the candidates on the first real
 # (warmup) call. Under torch.compile the op is opaque, so the choice is made at run time.
 CONV_TRANSPOSE_MAX_BATCH = 32768
-# CF_CONVT_TUNE=0 keeps the plain chunked lowering everywhere.
-CONV_TRANSPOSE_TUNE = os.environ.get("CF_CONVT_TUNE", "1") not in ("", "0")
-# CF_CONVT_LOG=1 prints every tuning decision to stderr.
-CONV_TRANSPOSE_LOG = os.environ.get("CF_CONVT_LOG", "0") not in ("", "0")
 # An alternative must beat the chunked lowering by this factor to be chosen.
 CONV_TRANSPOSE_MIN_GAIN = 0.95
 # The dense-matrix (Toeplitz) lowering is tried only while that matrix stays small and
@@ -1051,7 +1047,7 @@ def _choose_lowering(key, x, lowerings):
         return choice
     choice = "chunked"
     #FEAT: conv-transpose tuning on the CPU.
-    if CONV_TRANSPOSE_TUNE and len(lowerings) > 1:
+    if len(lowerings) > 1:
         times = {}
         for name, fn in lowerings.items():
             try:
@@ -1065,10 +1061,6 @@ def _choose_lowering(key, x, lowerings):
             best = min(times, key=times.get)
             if times[best] < CONV_TRANSPOSE_MIN_GAIN * times["chunked"]:
                 choice = best
-        if CONV_TRANSPOSE_LOG:
-            print(f"conv_transpose2d {list(x.shape)} w{list(key[2])} s{key[5][0]} p{key[6][0]}: "
-                  + " ".join(f"{n}={t:.2f}" for n, t in times.items()) + f" -> {choice}",
-                  file=sys.stderr)
     _conv_transpose_choice[key] = choice
     return choice
 
@@ -1080,7 +1072,7 @@ def _conv_transpose2d_op(x: torch.Tensor, weight: torch.Tensor, stride: list[int
     #FEAT: selection weights get their own tuning key (a dense weight of the same shape must not reuse it).
     #FIX FOR: the selection check read the weight back to the host (one D2H per conv weight per batch); the
     # compiler passes may_select=False for weights it already knows are dense.
-    sel = _channel_selection(weight, selection_taps) if CONV_TRANSPOSE_TUNE and may_select else None
+    sel = _channel_selection(weight, selection_taps) if may_select else None
     key = (tuple(x.shape), tuple(x.stride()), tuple(weight.shape), x.dtype, x.device,
            tuple(stride), tuple(padding), tuple(output_padding), sel is not None)
     #FIX FOR: every call built all candidate lowerings in Python though the tuner needs them only once (N33: ~330 calls per image).
@@ -1161,7 +1153,7 @@ def _conv_transpose2d_backward_op(grad: torch.Tensor, x: torch.Tensor, weight: t
     choice = _conv_transpose_bwd_choice.get(key)
     if choice is None:
         choice = "cudnn"
-        if CONV_TRANSPOSE_TUNE and x.is_cuda:
+        if x.is_cuda:
             times = {}
             for name, fn in lowerings.items():
                 try:
@@ -1171,9 +1163,6 @@ def _conv_transpose2d_backward_op(grad: torch.Tensor, x: torch.Tensor, weight: t
             best = min(times, key=times.get, default="cudnn")
             if best != "cudnn" and times[best] < CONV_TRANSPOSE_MIN_GAIN * times.get("cudnn", float("inf")):
                 choice = best
-            if CONV_TRANSPOSE_LOG:
-                print(f"conv_transpose2d backward {list(x.shape)} w{list(weight.shape)}: "
-                      + " ".join(f"{n}={t:.2f}" for n, t in times.items()) + f" -> {choice}", file=sys.stderr)
         _conv_transpose_bwd_choice[key] = choice
     gx, gw = lowerings[choice](grad)
     # custom ops cannot return None: unused gradients come back as empty placeholders.

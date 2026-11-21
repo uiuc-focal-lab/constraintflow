@@ -5,10 +5,7 @@ Requires splice_flow: one straight-line ir.flow_block. Sets ir.flow_params.
 
 from __future__ import annotations
 
-import os
 import re
-import sys
-import time
 
 from constraintflow.compiler.ir import *
 from constraintflow.compiler.optimizations import subexp_inlining
@@ -236,23 +233,6 @@ def _payload_names(desc, out=None):
         for item in desc.items:
             _payload_names(item, out)
     return out
-
-
-class _Progress:
-    """CF_SROA_PROGRESS=<n>: phase timings and a heartbeat every n statements."""
-
-    def __init__(self):
-        self.every = int(os.environ.get('CF_SROA_PROGRESS') or 0)
-        self.start = time.perf_counter()
-
-    def mark(self, label):
-        if self.every:
-            print('[sroa] {:8.1f}s {}'.format(time.perf_counter() - self.start, label),
-                  file=sys.stderr, flush=True)
-
-    def tick(self, done, total, emitted):
-        if self.every and done and done % self.every == 0:
-            self.mark('{}/{} statements, {} emitted'.format(done, total, emitted))
 
 
 def _meta(expr):
@@ -671,22 +651,18 @@ class _Scalarizer:
                                       + ' is written in place later')
 
     def run(self):
-        clock = _Progress()
         block = self.ir.flow_block
         nodes = []
         _walk_tree(block.children, nodes)  # skips analysis edges
-        clock.mark('walk ' + str(len(nodes)) + ' nodes')
         self.functional = not any(type(n).__name__ in _MUTATION for n in nodes)
 
         self.seed_entry()
         live_stmts = dead_store_elim(block.children)
         self.dead_dropped = len(block.children) - len(live_stmts)
-        clock.mark('dse ' + str(len(live_stmts)) + '/' + str(len(block.children)))
         ret = None
         layer_of = getattr(self.ir, 'flow_splice_layers', None) or {}
         bounds, current = [], None
         for done, stmt in enumerate(live_stmts):
-            clock.tick(done, len(live_stmts), len(self.out))
             tag = layer_of.get(id(stmt))
             if tag is not None and tag[0] is stmt:
                 if current is None:
@@ -699,8 +675,6 @@ class _Scalarizer:
                 try:
                     desc = self.eval(stmt.children[1])
                 except (SroaUnsupported, AttributeError, IndexError, KeyError) as exc:
-                    if os.environ.get('CF_SROA_STRICT'):
-                        raise
                     del self.out[mark_out:]
                     for key, _node in self.cache_log[mark_cache:]:
                         del self.cache[key]
@@ -722,9 +696,7 @@ class _Scalarizer:
                 raise SroaUnsupported('statement ' + type(stmt).__name__)
         if ret is None:
             raise SroaUnsupported('flow has no return')
-        clock.mark('scalarized ' + str(len(self.out)) + ' statements')
         self.check_copies()
-        clock.mark('checked ' + str(len(self.copies)) + ' copies')
 
         results = [self.densify(self.eval(child)) for child in ret.children[:2]]
         self.out.append(IrTransRetBasic([self.to_ir(d) for d in results]))

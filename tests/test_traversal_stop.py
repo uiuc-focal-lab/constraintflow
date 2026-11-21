@@ -185,7 +185,7 @@ class CompilerIntegrationTest(unittest.TestCase):
                 command = [sys.executable,'-m','constraintflow.cli','jit',str(PROGRAM),
                     '--network',str(network),'--dataset',dataset,'--device','cpu',
                     # Equality with the dense program holds under the program's own per-example stops.
-                    '--batch-size',str(batch),'--fuse-affine-subst','--traversal-stop-per-example','--output-path',str(folder)]
+                    '--batch-size',str(batch),'--fuse-affine-subst','--traversal-stop-per-example','--verbose','--output-path',str(folder)]
                 result = subprocess.run(command,cwd=tmp,env=env,capture_output=True,text=True)
                 self.assertEqual(result.returncode,0,result.stdout+result.stderr)
                 self.assertIn('[conditional-rows]',result.stdout)

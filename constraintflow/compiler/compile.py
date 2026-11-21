@@ -1,4 +1,3 @@
-import os
 import time
 
 import time
@@ -149,7 +148,7 @@ def compile(inputfile, output_path):
             # Partitioning needs SSA. Recycled names merge unrelated lifetimes
             # and can make segment interfaces refer to the wrong definition.
             needs_ssa = (stats['functional'] or early_reductions.get_flag() or flow_segment_mb.get_value() > 0)
-            if os.environ.get('CF_NO_RECYCLE') != '1' and not needs_ssa:
+            if not needs_ssa:
                 subexp_inlining.recycle_temp_names_block(ir.flow_block.children)
         else:
             subexp_inlining.inline_subexp(ir)

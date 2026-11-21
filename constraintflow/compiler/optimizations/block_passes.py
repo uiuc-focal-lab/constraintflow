@@ -1,4 +1,3 @@
-import os
 """
 Block-level optimization round over the scalarized flow block.
 
@@ -48,7 +47,7 @@ sliceable = (cse,)
 
 # Slicing costs cross-layer cse, worth ~16% of the split win on convBig, so only
 # take it when the whole-block pass would be too slow (it is quadratic).
-SLICE_ABOVE = int(os.environ.get('CF_SLICE_ABOVE', 5000))
+SLICE_ABOVE = 5000
 
 
 def _apply(piece, optimizations, counts):
