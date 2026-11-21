@@ -315,7 +315,9 @@ def _lower_vector_op(node, names_hash, tensor_shapes, values, initializers, laye
         return index
     if op == 'Neg' and act(ins[0]):
         return diagonal(ins[0], -1.0)
-    if op == 'MatMul' and act(ins[0]) and const(ins[1]) is not None and ins[1] not in initializers:
+    #FIX FOR: const() converts the weight from the protobuf; testing it before `not in initializers` converted the
+    # final FC weight of every network on every load (ResNetTiny 32768x500: +35 ms per image, inside the timed run).
+    if op == 'MatMul' and act(ins[0]) and ins[1] not in initializers and const(ins[1]) is not None:
         weight = const(ins[1])  # computed in the graph; the existing case takes initializer weights
         if weight.ndim != 2:
             raise ValueError(f"MatMul {node.name!r} needs a 2-D constant, got {weight.shape}")
@@ -327,9 +329,9 @@ def _lower_vector_op(node, names_hash, tensor_shapes, values, initializers, laye
                 return None  # the existing residual Add
             n = width(a)
             return done(emit(LayerType.Add, [names_hash[a], linear(b, -np.eye(n))], n), n)
+        if op == 'Add' and act(a) and b in initializers:
+            return None  # the existing case: a bias folded into the producing layer (no conversion needed)
         if act(a) and const(b) is not None:
-            if op == 'Add' and b in initializers:
-                return None  # the existing case: a bias folded into the producing layer
             n = width(a)
             return done(linear(a, np.eye(n), const(b) if op == 'Add' else -const(b)), n)
         if const(a) is not None and act(b):
