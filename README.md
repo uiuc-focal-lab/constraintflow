@@ -2,7 +2,7 @@
 
 **ConstraintFlow** is a domain-specific language for writing neural network certifiers (DeepPoly, CROWN, IBP,
 DeepZ, ...) as short, declarative `.cf` programs. This repository compiles those programs into fast GPU code:
-`jit` specializes a certifier to one network and batch size, removes all interpretation overhead, and compiles
+`scepter` specializes a certifier to one network and batch size, removes all interpretation overhead, and compiles
 the resulting tensor program with PyTorch Inductor.
 
 The certifiers used in our experiments are in [`examples/compiler_examples/`](examples/compiler_examples).
@@ -26,7 +26,7 @@ Download a network (or use any ONNX file), then build and run a certifier:
 python reproduce/download.py --nets nets --only N1
 
 # Build DeepPoly for this network, batch size 100 (writes the generated code to output/)
-constraintflow jit examples/compiler_examples/deeppoly_priority_add.cf \
+constraintflow scepter examples/compiler_examples/deeppoly_priority_add.cf \
     --network nets/mnist/mnist_relu_3_50.onnx --dataset mnist --eps 0.004 --batch-size 100 \
     --device gpu --fuse-affine-subst --output-path output/
 
@@ -47,14 +47,14 @@ on first use; TinyImageNet is read from `./tinyimagenet` (`python reproduce/down
 
 | Command | What it does |
 |---|---|
-| `jit` | Builds a certifier specialized to one network, dataset and batch size (the fast path). |
+| `scepter` | Builds a certifier specialized to one network, dataset and batch size (the fast path). |
 | `run` | Runs a built program on test images and reports time, memory and bounds. |
 | `compile` | Builds the general, unspecialized interpreter of a program, as the original ConstraintFlow does. Run it with `run --no-inductor`, or with `run --compile` to compile and run in one step. |
 | `provesound` | Checks a certifier's soundness automatically. |
 
 Run `constraintflow <command> --help` for every option. The ones you are most likely to need:
 
-**`jit`**
+**`scepter`**
 
 - `--network`, `--dataset`, `--eps`, `--batch-size`, `--device gpu`: the network and the property being
   certified. `--dataset` is `mnist`, `cifar`, `cifar100`, `tinyimagenet`, `vnnlib:<benchmark folder>` (VNN-COMP
@@ -79,7 +79,7 @@ Run `constraintflow <command> --help` for every option. The ones you are most li
 - `--warmup` (default 1), `--repeat`: untimed warmup runs, and the number of timed runs on the first batch
   when `--num-images` is not given.
 - `--batch-timeout`, `--warmup-timeout`: stop if one batch or one warmup takes longer than this many seconds.
-- `--dtype float64`: computes everything in fp64 (pass it to `jit` too), to check fp32 bounds.
+- `--dtype float64`: computes everything in fp64 (pass it to `scepter` too), to check fp32 bounds.
 - `--profile-comm`: profiles each timed batch and records CPU–GPU synchronizations and copies.
 
 Set `CF_DISABLE_TF32=1` to keep cuDNN and matmuls in full fp32 instead of PyTorch's default TF32 convolutions.
@@ -90,7 +90,7 @@ For networks whose back-substitution does not fit in GPU memory (ResNet50, VGG16
 processes the rows of each large back-substitution in chunks that fit a memory budget:
 
 ```bash
-constraintflow jit <program> --network <onnx> ... --no-inductor --flow-segment-mb 0 --output-path build/
+constraintflow scepter <program> --network <onnx> ... --no-inductor --flow-segment-mb 0 --output-path build/
 python -m constraintflow.compiler.optimizations.row_chunks build/ --network <onnx> --dataset <dataset> \
     --budget-gb 40 --compile-bodies
 constraintflow run <program> --network <onnx> ... --no-inductor --output-path build/
@@ -121,7 +121,7 @@ settings of each experiment. See [`reproduce/README.md`](reproduce/README.md).
 ## How the compiler works
 
 [`constraintflow/compiler/optimizations/README.md`](constraintflow/compiler/optimizations/README.md) describes
-the two-pass `jit` build and every optimization pass.
+the two-pass `scepter` build and every optimization pass.
 
 ## Tests
 

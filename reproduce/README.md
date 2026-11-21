@@ -46,7 +46,7 @@ python reproduce/run.py --nets nets --certifiers ibp,deeppoly_add --configs N1,N
 python reproduce/run.py --nets nets          # every cell; takes many hours
 ```
 
-Each cell is compiled with `jit` (plus the `row_chunks` rewrite for DeepPoly and SkipPoly on N40 and N54), then
+Each cell is compiled with `scepter` (plus the `row_chunks` rewrite for DeepPoly and SkipPoly on N40 and N54), then
 run with the paper's protocol: untimed warmups, then one timed run per batch. Results go to
 `reproduce_results/<certifier>/<config>/`: `cf.jsonl` has every batch's time, peak GPU memory and bounds.
 `reproduce_results/summary.csv` has one row per cell with the mean time per image, peak GPU memory and the number

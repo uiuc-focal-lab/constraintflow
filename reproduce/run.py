@@ -5,7 +5,7 @@
     python reproduce/run.py --nets nets                  # every cell (many hours)
 
 Run it from the directory that holds the datasets (MNIST, CIFAR-10/100 are downloaded there on
-first use; TinyImageNet is read from ./tinyimagenet). Each cell is built with `jit` (and the
+first use; TinyImageNet is read from ./tinyimagenet). Each cell is built with `scepter` (and the
 row_chunks rewrite where the paper used it) into <out>/<certifier>/<config>/program, then run with
 the paper's protocol; per-batch times, peak memory and bounds go to cf.jsonl. Finished cells are
 skipped on a rerun. summary.csv has one row per cell: mean time per image, peak GPU memory and the
@@ -59,7 +59,7 @@ def run_cell(cell, nets, out, keep_caches, log):
     dataset = cell["dataset"].replace("{nets}", os.path.abspath(nets))
     cf = [sys.executable, "-m", "constraintflow.cli"]
     source = os.path.join(ROOT, cell["program"])
-    steps = [("jit", cf + ["jit", source, "--network", network, "--dataset", dataset]
+    steps = [("scepter", cf + ["scepter", source, "--network", network, "--dataset", dataset]
               + shlex.split(cell["jit_args"]) + ["--output-path", program + "/"])]
     if cell["row_chunks_args"]:
         steps.append(("row_chunks", [sys.executable, "-m", "constraintflow.compiler.optimizations.row_chunks", program,

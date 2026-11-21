@@ -182,7 +182,7 @@ class CompilerIntegrationTest(unittest.TestCase):
                 folder = Path(tmp,'program')
                 dataset = 'box-'+'x'.join(map(str,shape))+'-2-2'
                 env = dict(os.environ,PYTHONPATH=str(root))
-                command = [sys.executable,'-m','constraintflow.cli','jit',str(PROGRAM),
+                command = [sys.executable,'-m','constraintflow.cli','scepter',str(PROGRAM),
                     '--network',str(network),'--dataset',dataset,'--device','cpu',
                     # Equality with the dense program holds under the program's own per-example stops.
                     '--batch-size',str(batch),'--fuse-affine-subst','--traversal-stop-per-example','--verbose','--output-path',str(folder)]

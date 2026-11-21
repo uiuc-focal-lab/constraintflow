@@ -27,7 +27,7 @@ globals.dummy_mode.reset_flag()
 globals.reuse_mode.reset_flag()
 globals.dense_default_mode.set_flag() if "--dense" in argv else globals.dense_default_mode.reset_flag()
 _command = argv[0] if argv else ""
-globals.inductor_mode.set_flag() if _command in ("jit", "run") and "--no-inductor" not in argv else globals.inductor_mode.reset_flag()
+globals.inductor_mode.set_flag() if _command in ("scepter", "run") and "--no-inductor" not in argv else globals.inductor_mode.reset_flag()
 globals.sroa.set_flag()
 
 
@@ -212,7 +212,7 @@ def compile(
     fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- only affects a jit reuse compile (no-op on plain compile, which never runs tensor_to_block); unsound if the assertion doesn't hold."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
     #FEAT: torch.compile without specialization (the generic build's Flow.flow), for the specialization ablation.
-    compile_flow: bool = typer.Option(False, "--compile-flow", help="Wrap Flow.flow in torch.compile (Inductor, fullgraph=False, the jit build's options) in the generated main.py; transformers.py is unchanged. Run with --inductor."),
+    compile_flow: bool = typer.Option(False, "--compile-flow", help="Wrap Flow.flow in torch.compile (Inductor, fullgraph=False, the scepter build's options) in the generated main.py; transformers.py is unchanged. Run with --inductor."),
     verbose: bool = typer.Option(False, "--verbose", help="Print the compiler's per-pass progress."),
 ):
     start_time = time.perf_counter()
@@ -230,7 +230,7 @@ def compile(
     typer.echo(f"Peak CPU memory: {peak_bytes} bytes")
 
 
-@app.command(name="jit")
+@app.command(name="scepter")
 def simulacrum_compile(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
     network: str = typer.Option(..., help="Path to the ONNX network"),
@@ -392,7 +392,7 @@ def run(
     output_path: str = typer.Option("output/", help="Path where compiled program is stored"),
     compile: bool = typer.Option(False, help="Run compilation before execution"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
-    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Run with PyTorch Inductor; must match how the program was built (jit --inductor/--no-inductor; the generic `compile` build runs with --no-inductor unless built with --compile-flow)."),
+    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Run with PyTorch Inductor; must match how the program was built (scepter --inductor/--no-inductor; the generic `compile` build runs with --no-inductor unless built with --compile-flow)."),
     warmup: int = typer.Option(1, help="Number of warmup runs on different data before the timed runs (the first one compiles)"),
     repeat: int = typer.Option(1, "--repeat", help="Number of timed runs, each reported separately. Independent of --warmup: the warmup runs (if any) still happen once, before the first timed run."),
     num_images: int = typer.Option(0, "--num-images", help="Verify this many test images, batch-size at a time, one timed run per batch (batch i = images [i*batch_size, (i+1)*batch_size)); warmup j uses the images right after them. Requires --results-file; replaces --repeat. 0 (default): the --repeat protocol, every timed run on the first batch."),

@@ -1,8 +1,8 @@
-# Optimizations in `constraintflow jit`
+# Optimizations in `constraintflow scepter`
 
-## How `jit` works
+## How `scepter` works
 
-`jit` compiles the certifier twice.
+`scepter` compiles the certifier twice.
 
 1. **First compile (the probe run).** ConstraintFlow builds a version of the certifier and runs it once on the network. While it runs, it records facts about the network: which layers exist, which branch of each `if` is taken, and how many times each loop runs.
 2. **Second compile (the reuse compile).** ConstraintFlow compiles the certifier again using those recorded facts. Because the loop counts and branches are now known, it can remove the loops and `if`s and produce one long, straight list of tensor operations, called `flow()`. Every optimization below works on this second compile.
@@ -16,7 +16,7 @@ The passes are listed in the order they run. The code that runs them is in [comp
 
 ## Switches
 
-Passes marked **"always on"** run in every `jit` build and have no switch. The few that do have one name it below.
+Passes marked **"always on"** run in every `scepter` build and have no switch. The few that do have one name it below.
 
 ---
 

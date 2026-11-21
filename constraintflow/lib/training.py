@@ -1,7 +1,7 @@
 #FEAT: certified training with compiled ConstraintFlow programs.
 """Differentiable margin bounds for a torch model, used like auto_LiRPA's BoundedModule.
 
-Each (method, batch size) is compiled once with `cli jit --training`, cached on disk, loaded as a
+Each (method, batch size) is compiled once with `cli scepter --training`, cached on disk, loaded as a
 package, and built once. A step only swaps in the box, the labels' margin spec and the parameters.
 """
 import hashlib
@@ -90,7 +90,7 @@ def program_dir(cache_dir, onnx_path, method, batch_size, dataset, cudagraphs, j
     return os.path.join(cache_dir, f'{method}_b{batch_size}_{key}')
 
 
-#FEAT: jit_flags = extra `cli jit` options (e.g. --fuse-affine-subst), part of the cache key.
+#FEAT: jit_flags = extra `cli scepter` options (e.g. --fuse-affine-subst), part of the cache key.
 def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraphs=True, data_root='./data', jit_flags=()):
     """Compile into the cache unless already there; return the program folder."""
     folder = program_dir(cache_dir, onnx_path, method, batch_size, dataset, cudagraphs, jit_flags)
@@ -99,7 +99,7 @@ def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraph
     #FIX FOR: concurrent runs sharing a cache compiled the same program into one .tmp folder and deleted each other's.
     tmp = f'{folder}.tmp{os.getpid()}'
     shutil.rmtree(tmp, ignore_errors=True)
-    cmd = [sys.executable, '-m', 'constraintflow.cli', 'jit', os.path.join(CF_ROOT, 'examples', 'compiler_examples', PROGRAMS[method]),
+    cmd = [sys.executable, '-m', 'constraintflow.cli', 'scepter', os.path.join(CF_ROOT, 'examples', 'compiler_examples', PROGRAMS[method]),
            '--network', os.path.abspath(onnx_path), '--dataset', dataset, '--batch-size', str(batch_size), '--eps', '0.01',
            '--device', 'gpu', '--output-path', os.path.abspath(tmp) + '/', '--inductor', '--training',
            '--flow-segment-mb', '0'] + (['--cudagraphs'] if cudagraphs else []) + list(jit_flags)  # one flow region
@@ -108,7 +108,7 @@ def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraph
     if os.path.basename(PROGRAMS[method]).startswith('deeppoly'):
         cmd.append('--fuse-affine-subst')
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([CF_ROOT, os.environ.get('PYTHONPATH', '')]))
-    # cli jit traces one batch read from torchvision under its working directory.
+    # cli scepter traces one batch read from torchvision under its working directory.
     res = subprocess.run(cmd, cwd=data_root, env=env, capture_output=True, text=True)
     with open(f'{folder}.compile{os.getpid()}.log', 'w') as f:
         f.write(res.stdout + res.stderr)
