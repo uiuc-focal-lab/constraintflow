@@ -99,6 +99,9 @@ If the code splits a convolution's output channels into pieces and then glues th
 **5. conv_sum** (`conv_sum.py`), always on, only after patch_factor changed something
 `conv(x, W) + conv(y, W)` becomes `conv(x + y, W)`: one convolution instead of two when the weight is the same.
 
+**5b. fold_padsum** (`fold_padsum.py`), CPU builds only (`--device cpu`)
+A kernel-times-patches composition is captured as an einsum followed by `F.fold`, a scatter-add that Inductor turns into slow scattered loops on the CPU. This pass writes the same sum as padded slices of the einsum output added together (a gather). Same values up to summation order. It is not used on the GPU until it has been measured there.
+
 **6. product_grids** (`product_grids.py`), always on
 Interval arithmetic computes all four combinations of `{W+, W−} × {lower, upper}`. Instead of four separate convolutions (or matrix products), it stacks the inputs and the weights, runs one bigger convolution, and slices out the four results. One large GPU call is faster than four small ones.
 It does the same for transposed convolutions, and counts the stacked inputs when checking that the combined call fits in memory.
