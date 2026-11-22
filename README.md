@@ -94,7 +94,7 @@ constraintflow scepter example.cf --network <onnx> [OPTIONS]
 | `--dataset`                              | `mnist`, `cifar`, `cifar100`, `tinyimagenet`, `vnnlib:<benchmark folder>`, or `box-<input shape>-<outputs>-<spec rows>` | `mnist`   |
 | `--batch-size`                           | Batch size the program is specialized to                                                                     | 1         |
 | `--eps`                                  | Epsilon                                                                                                      | 0         |
-| `--device`                               | `cpu`, `gpu` (CUDA) or `gpumac` (Apple MPS)                                                                  | `cpu`     |
+| `--device`                               | `cpu` or `gpu` (CUDA)                                                                  | `cpu`     |
 | `--output-path`                          | Directory for the specialized code                                                                           | `output/` |
 | `--inductor` / `--no-inductor`           | Compile the program with Inductor, or emit eager PyTorch code; `run` must be given the same choice           | on        |
 | `--fuse-affine-subst`                    | Skip redundant work at Affine layers; correct only when every Affine rule gives identical lower and upper expressions (true for the DeepPoly/CROWN programs) | False     |
@@ -127,7 +127,7 @@ constraintflow run example.cf [OPTIONS]
 | `--print-intermediate-results` | Print intermediate results during execution | False             |
 | `--output-path`                | Path where compiled program is stored       | `output/`         |
 | `--compile`                    | Compile the program before running          | False             |
-| `--device`                     | `cpu`, `gpu` (CUDA) or `gpumac` (Apple MPS) | `cpu`             |
+| `--device`                     | `cpu` or `gpu` (CUDA) | `cpu`             |
 | `--inductor` / `--no-inductor` | Run with Inductor; must match the `scepter` build (a `compile` build runs with `--no-inductor`) | on |
 | `--warmup`                     | Untimed warmup runs before the timed runs (the first one compiles) | 1  |
 | `--repeat`                     | Number of timed runs on the first batch     | 1                 |
