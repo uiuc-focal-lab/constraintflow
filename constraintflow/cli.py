@@ -4,8 +4,13 @@ import math
 import sys
 import faulthandler
 
-DISABLE_TF32 = os.environ.get("CF_DISABLE_TF32", "0") not in ("", "0")
-if DISABLE_TF32:
+# The paper's settings, set before torch is imported (an environment variable still overrides them): one Inductor
+# compile thread, and Inductor's coalesce-tiling analysis off (it crashes PyTorch 2.10 on some of our programs).
+os.environ.setdefault("TORCHINDUCTOR_COMPILE_THREADS", "1")
+os.environ.setdefault("TORCHINDUCTOR_COALESCE_TILING_ANALYSIS", "0")
+
+# Full fp32 unless --tf32 (PyTorch's default: TF32 cuDNN convolutions, 10 mantissa bits). Read before CUDA starts.
+if "--tf32" not in sys.argv[1:]:
     os.environ["NVIDIA_TF32_OVERRIDE"] = "0"
     import torch
     torch.backends.cudnn.allow_tf32 = False
@@ -252,6 +257,7 @@ def simulacrum_compile(
     memory_budget_mb: float = typer.Option(-1.0, "--memory-budget-mb", help="When the flow's estimated peak tensor memory exceeds this many MB, reorder it group by group and recompute large values instead of keeping them live (mem_plan). -1 (default) uses 70% of the CUDA device's memory; 0 disables."),
     #FEAT: --dtype on jit, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
+    tf32: bool = typer.Option(False, "--tf32/--no-tf32", help="Use PyTorch's default TF32 cuDNN convolutions (faster, about 3 significant digits). Default: full fp32 everywhere. Read from argv before the imports; scepter and run should agree."),
     #FEAT: certified-training build (constraintflow/lib/training.py).
     training: bool = typer.Option(False, "--training", help="Build for certified training: importable as a package, NaN-free division gradients, margin spec folded into the last Linear."),
     verbose: bool = typer.Option(False, "--verbose", help="Print the compiler's per-pass progress."),
@@ -392,6 +398,7 @@ def run(
     results_file: str = typer.Option(None, "--results-file", help="With --num-images: write one JSON line per warmup and per timed batch (time, peak/resident memory, bounds) here, outside the timer."),
     #FEAT: --dtype on run, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
+    tf32: bool = typer.Option(False, "--tf32/--no-tf32", help="Use PyTorch's default TF32 cuDNN convolutions (faster, about 3 significant digits). Default: full fp32 everywhere. Read from argv before the imports; scepter and run should agree."),
     #FEAT: --profile-comm records CPU-GPU communication per timed batch (lib/comm_profile.py).
     profile_comm: bool = typer.Option(False, "--profile-comm", help="With --num-images: profile each timed batch with torch.profiler and add syncs, alloc_syncs, gpu_idle_pct and sync_calls to its results line; its time goes to profiled_time_s instead of time_s. Warmups are not profiled."),
     #FEAT: per-batch time limit.

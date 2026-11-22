@@ -102,6 +102,7 @@ constraintflow scepter example.cf --network <onnx> [OPTIONS]
 | `--memory-budget-mb`                     | Above this estimated peak memory, reorder the program and recompute large values; -1 = 70% of the GPU, 0 = off | -1        |
 | `--cudagraphs`                           | Replay one CUDA graph per run (needs `--inductor`)                                                           | False     |
 | `--dtype`                                | `float32` or `float64`; `run` must be given the same                                                         | `float32` |
+| `--tf32`                                 | Use PyTorch's default TF32 convolutions (faster, less precise); `run` should be given the same              | False     |
 
 Run a `scepter` build with `run` and the same `--network`, `--dataset`, `--batch-size` and `--output-path`.
 
@@ -138,6 +139,7 @@ constraintflow run example.cf [OPTIONS]
 | `--warmup-timeout`             | With `--num-images`: stop if one warmup takes longer than this many seconds (0 = no limit) | 0 |
 | `--profile-comm`               | With `--num-images`: record CPU–GPU synchronizations and copies per batch | False |
 | `--dtype`                      | `float32` or `float64`; must match the build | `float32`        |
+| `--tf32`                       | Use PyTorch's default TF32 convolutions; should match the build | False |
 
 
 ---
