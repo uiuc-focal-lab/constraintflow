@@ -25,10 +25,12 @@ Passes marked **"always on"** run in every `scepter` build and have no switch. T
 **tensor_to_block** (`tensor_to_block.py`), always runs
 Makes one copy of each layer's transformer code. In each copy it replaces every loop with the recorded number of repeats and keeps only the recorded side of each `if`. The result is one straight block of code per layer.
 
-**fuse_affine_subst** (`fuse_affine_subst.py`), off by default, `--fuse-affine-subst`
-Two shortcuts for Linear/Conv layers:
-- If a Linear/Conv layer only feeds other Linear/Conv layers, it skips computing that layer's concrete bounds, because nothing needs them.
-- During back-substitution through a Linear/Conv layer, it computes the lower and upper versions once instead of twice. **This is only correct if the layer's lower and upper outputs really are identical**, which holds for the DeepPoly/CROWN programs here.
+**fuse_affine_subst** (`fuse_affine_subst.py`, `single_bound.py`), on when `affine_subst_check.py` finds it sound
+Two shortcuts for Linear/Conv layers, each decided from the `.cf` source:
+- During back-substitution through a Linear/Conv layer, it computes the lower and upper versions once instead of twice. On when every Affine and `Neuron_add` rule writes the same expression for the lower and upper polyhedral members (DeepPoly, CROWN, CROWN-IBP, ZID; not ReuseCert).
+- If a Linear/Conv layer only feeds other Linear/Conv layers, it skips computing that layer's concrete bounds. On when those rules read their inputs' concrete bounds only after a traversal that runs to the input (DeepPoly, SkipPoly; not BoxPoly, CROWN-IBP or ZID).
+
+`--verbose` prints which shortcuts are on and, if one is off, the rule that blocked it.
 
 **splice_flow** (`tensor_to_block.py`), always on
 Joins the per-layer blocks into one function, `flow()`. Each layer's local variable names get a suffix (`_L3`, ...) so names from different layers don't clash.

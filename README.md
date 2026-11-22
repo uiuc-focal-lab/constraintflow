@@ -97,7 +97,6 @@ constraintflow scepter example.cf --network <onnx> [OPTIONS]
 | `--device`                               | `cpu` or `gpu` (CUDA)                                                                  | `cpu`     |
 | `--output-path`                          | Directory for the specialized code                                                                           | `output/` |
 | `--inductor` / `--no-inductor`           | Compile the program with Inductor, or emit eager PyTorch code; `run` must be given the same choice           | on        |
-| `--fuse-affine-subst`                    | Skip redundant work at Affine layers; correct only when every Affine rule gives identical lower and upper expressions (true for the DeepPoly/CROWN programs) | False     |
 | `--traversal-stop-chunk`                 | Rows per compiled kernel for traversals that stop early per neuron; a comma list compiles one kernel per size | `128`     |
 | `--flow-segment-mb`                      | Split the program into regions of about this many MB that Inductor compiles separately; 0 keeps one region   | 8192      |
 | `--memory-budget-mb`                     | Above this estimated peak memory, reorder the program and recompute large values; -1 = 70% of the GPU, 0 = off | -1        |

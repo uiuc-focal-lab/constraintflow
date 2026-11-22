@@ -90,7 +90,7 @@ def program_dir(cache_dir, onnx_path, method, batch_size, dataset, cudagraphs, j
     return os.path.join(cache_dir, f'{method}_b{batch_size}_{key}')
 
 
-#FEAT: jit_flags = extra `cli scepter` options (e.g. --fuse-affine-subst), part of the cache key.
+#FEAT: jit_flags = extra `cli scepter` options (e.g. --no-center-radius), part of the cache key.
 def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraphs=True, data_root='./data', jit_flags=()):
     """Compile into the cache unless already there; return the program folder."""
     folder = program_dir(cache_dir, onnx_path, method, batch_size, dataset, cudagraphs, jit_flags)
@@ -103,10 +103,6 @@ def compile_program(onnx_path, method, batch_size, dataset, cache_dir, cudagraph
            '--network', os.path.abspath(onnx_path), '--dataset', dataset, '--batch-size', str(batch_size), '--eps', '0.01',
            '--device', 'gpu', '--output-path', os.path.abspath(tmp) + '/', '--inductor', '--training',
            '--flow-segment-mb', '0'] + (['--cudagraphs'] if cudagraphs else []) + list(jit_flags)  # one flow region
-    #FEAT: DeepPoly programs get --fuse-affine-subst, as in the verification harness.
-    #FIX FOR: custom_stops/deeppoly_* programs missed the flag (the test was on the path, not the file name).
-    if os.path.basename(PROGRAMS[method]).startswith('deeppoly'):
-        cmd.append('--fuse-affine-subst')
     env = dict(os.environ, PYTHONPATH=os.pathsep.join([CF_ROOT, os.environ.get('PYTHONPATH', '')]))
     # cli scepter traces one batch read from torchvision under its working directory.
     res = subprocess.run(cmd, cwd=data_root, env=env, capture_output=True, text=True)

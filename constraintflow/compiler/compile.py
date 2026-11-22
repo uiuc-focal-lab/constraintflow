@@ -25,7 +25,7 @@ from constraintflow.compiler.optimizations import constant_folding
 from constraintflow.compiler.optimizations import sroa as sroa_pass
 from constraintflow.compiler.optimizations import block_passes
 from constraintflow.compiler.optimizations import sign_convs, sign_reductions, box_concretize
-from constraintflow.compiler import single_bound
+from constraintflow.compiler import single_bound, affine_subst_check
 from constraintflow.lib.globals import *
 
 
@@ -78,11 +78,16 @@ def compile(inputfile, output_path):
     tree = parser.prog()
     
     ast = astBuilder.ASTBuilder().visit(tree)
+    fuse, skip, reason = affine_subst_check.check(ast)
+    fuse_affine_subst.set_flag() if fuse else fuse_affine_subst.reset_flag()
     from constraintflow.compiler.traversal_stop import transform
     invariant_stops = transform(ast)
     if invariant_stops:
         print(f"[traversal-stop] hoisted {invariant_stops} row-invariant predicates")
-    if fuse_affine_subst.get_flag() and not invariant_stops:
+    skip = skip and not invariant_stops
+    print(f"[affine-subst] L/U fusion {'on' if fuse else 'off'}, Affine_skip {'on' if skip else 'off'}"
+          + (f" ({reason})" if reason else ""))
+    if skip:
         single_bound.inject_affine_skip(ast)
     astTC.ASTTC().visit(ast)
     

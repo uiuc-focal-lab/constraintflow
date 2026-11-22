@@ -853,7 +853,7 @@ def post_process(layers):
     # A layer with no children (only the synthesized spec layer) is conservatively
     # left at the True default set in Layer.__init__.
     from constraintflow.lib.globals import program_add_rule
-    linear_consumers = (LayerType.Linear, LayerType.Conv2D) + ((LayerType.Add,) if program_add_rule else ())
+    linear_consumers = (LayerType.Linear, LayerType.Conv2D) + ((LayerType.Add,) if program_add_rule.get_flag() else ())  #FIX FOR: tested the Flag object (always true)
     for layer in new_layers:
         if layer.children:
             layer.feeds_nonlin = not all(

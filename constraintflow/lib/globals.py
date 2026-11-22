@@ -71,7 +71,7 @@ fuse_affine_subst = Flag()
 
 # Set by builtin_ops.inject_builtin_ops when the compiled program defines its own
 # Neuron_add rule. Such a rule (e.g. deeppoly's prev_0 + prev_1 for both L and U)
-# makes an Add layer behave like an Affine one for --fuse-affine-subst: L == U, and
+# makes an Add layer behave like an Affine one for affine_subst_check's shortcuts: L == U, and
 # its parents' concrete l/u are never read. The builtin Add reads both, so it doesn't.
 program_add_rule = Flag()
 

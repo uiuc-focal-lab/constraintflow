@@ -61,8 +61,8 @@ def inject_affine_skip(ast_program):
     specializes -- only the rare feeds_nonlin=False layers get their own (tiny)
     CFG.
 
-    When enabled by --fuse-affine-subst, and with stop_traverse=false (all
-    deeppoly*/crown specs), a hidden affine layer's concrete l/u are consumed
+    Injected when affine_subst_check finds it sound (stop_traverse=false and
+    no direct reads of the inputs' l/u), a hidden affine layer's concrete l/u are consumed
     only by a following nonlinearity's relaxation, so an affine feeding only
     further affines has zero consumers of l/u. Both concretizing traversals are
     therefore dead work. Only the L/U poly parts (needed for the next layer's

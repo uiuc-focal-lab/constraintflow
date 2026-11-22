@@ -209,7 +209,6 @@ def compile_code(
 def compile(
     program_file: str = typer.Argument(..., help="ConstraintFlow program file"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
-    fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- only affects a jit reuse compile (no-op on plain compile, which never runs tensor_to_block); unsound if the assertion doesn't hold."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
     #FEAT: torch.compile without specialization (the generic build's Flow.flow), for the specialization ablation.
     compile_flow: bool = typer.Option(False, "--compile-flow", help="Wrap Flow.flow in torch.compile (Inductor, fullgraph=False, the scepter build's options) in the generated main.py; transformers.py is unchanged. Run with --inductor."),
@@ -217,7 +216,6 @@ def compile(
 ):
     start_time = time.perf_counter()
     globals.compile_flow.set_flag() if compile_flow else globals.compile_flow.reset_flag()
-    globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
     globals.center_radius.set_flag() if center_radius else globals.center_radius.reset_flag()
     with _quiet(verbose):
         compile_code(program_file, output_path)
@@ -244,7 +242,6 @@ def simulacrum_compile(
     output_path: str = typer.Option("output/", help="Output path for generated code"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
     inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Compile flow() with torch.compile (Inductor). --no-inductor emits an eager flow(), as the row_chunks rewrite needs. `run` must be given the same choice."),
-    fuse_affine_subst: bool = typer.Option(False, "--fuse-affine-subst/--no-fuse-affine-subst", help="Two optimizations gated by one flag: (1) skip both concretizing traversals at any Affine layer that feeds only further Affine layers (always sound; single_bound.py). (2) Assert every Affine op's L and U outputs are identical (true for all deeppoly*/crown specs here) and drop the redundant sign-split when a traverse() substitution step crosses an Affine layer -- unsound if the assertion doesn't hold. Both take effect on the simulacrum and reuse compile passes below. The functional SROA pass also proves and removes matching sign-split convolution pairs across residual branches."),
     #FEAT: block sizes and batch rule for rows selected by row-invariant traversal stops.
     traversal_stop_chunk: str = typer.Option("128", "--traversal-stop-chunk", help="Rows per compiled kernel for traversal-stop selection; a comma list (e.g. 8,16,32,64,128,256,512) compiles one kernel per size and uses the smallest that fits."),
     traversal_stop_per_example: bool = typer.Option(False, "--traversal-stop-per-example", help="Keep each example's own stop decision, as the program states. Default: a row refined for any example takes the refined values for every example (auto_LiRPA's sparse rule)."),
@@ -263,7 +260,6 @@ def simulacrum_compile(
     in one shot.
     """
     start_time = time.perf_counter()
-    globals.fuse_affine_subst.set_flag() if fuse_affine_subst else globals.fuse_affine_subst.reset_flag()
     globals.compact_patches.set_flag()
     globals.fused_flow.set_flag()
     globals.sroa.set_flag()

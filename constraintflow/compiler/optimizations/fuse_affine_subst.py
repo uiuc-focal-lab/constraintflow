@@ -107,7 +107,7 @@ def fuse_iteration(statements, is_affine):
     already deep-copied for this iteration, before tensor_to_block_block
     converts it into captured-replay form -- in place. When is_affine,
     collapses every clamp+(c).X + clamp-(c).Y pair into c.X directly: exact
-    when X == Y, which --fuse-affine-subst asserts holds for any Affine op's
+    when X == Y, which affine_subst_check proves for every Affine op's
     L/U (both write the same expression). Only rewires references (every node
     that survives keeps its own pre-assigned ttb_counter, so its capture stays
     valid); the now-orphaned clamp-/mult- branch is left in place for
