@@ -1,5 +1,6 @@
 import os
 import gc
+import math
 import sys
 import faulthandler
 
@@ -674,7 +675,9 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
             verified += batch_verified
             del lb, ub
             gc.collect()
-    typer.echo(f"Verified {verified}/{num_images} images, mean time per batch: {sum(times) / len(times):.6f} s")
+    geomean = math.exp(sum(math.log(t) for t in times) / len(times))
+    typer.echo(f"Verified {verified}/{num_images} images, geomean time per batch: {geomean:.6f} s, "
+               f"per image: {1e3 * geomean / batch_size:.6f} ms")
 
 
 def main():
