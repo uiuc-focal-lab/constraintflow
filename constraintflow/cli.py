@@ -300,7 +300,6 @@ def simulacrum_compile(
 
     globals.training.set_flag() if training else globals.training.reset_flag()
     with _quiet(verbose):
-        # Simulacrum.
         globals.inductor_mode.reset_flag()
         globals.dummy_mode.set_flag()
         globals.reuse_mode.reset_flag()
@@ -332,7 +331,6 @@ def simulacrum_compile(
             )
             raise typer.Exit(code=1)
 
-        # Reuse
         globals.dummy_mode.reset_flag()
         globals.reuse_mode.set_flag()
         if inductor:
@@ -365,16 +363,14 @@ def simulacrum_compile(
             globals.traversal_stop_config = (128, True)
             globals.jit_store_clear()
 
-    typer.echo("Simulacrum+reuse compile complete ✅")
-    typer.echo(f"Optimized code written to: {os.path.abspath(output_path)}")
+    typer.echo("Specialization Complete! ✅")
+    typer.echo(f"Specialized code written to: {os.path.abspath(output_path)}")
     if is_cuda:
         torch.cuda.synchronize()
     total_time = time.perf_counter() - start_time
-    typer.echo(f"Total time: {total_time:.6f} seconds")
     import resource
     maxrss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     peak_bytes = maxrss if sys.platform == "darwin" else maxrss * 1024
-    typer.echo(f"Peak CPU memory: {peak_bytes} bytes")
 
 
 @app.command()
@@ -405,6 +401,8 @@ def run(
     batch_timeout: float = typer.Option(0.0, "--batch-timeout", min=0, help="With --num-images: end the process if one timed batch runs longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). Warmups: --warmup-timeout. 0: no limit."),
     #FEAT: per-warmup time limit.
     warmup_timeout: float = typer.Option(0.0, "--warmup-timeout", min=0, help="With --num-images: end the process if one warmup run takes longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). 0: no limit."),
+    save_bounds: bool = typer.Option(True, "--save-bounds/--no-save-bounds", help="Write each timed run's bounds to --bounds-file (one JSON line per run). With more than one run the bounds are saved instead of printed; --no-save-bounds prints them."),
+    bounds_file: str = typer.Option(None, "--bounds-file", help="Where --save-bounds writes (default: <output-path>/bounds.jsonl)."),
 ):
     """
     Run a compiled ConstraintFlow program.
@@ -472,11 +470,15 @@ def run(
 
     is_cuda = device_mode.get_device() == "cuda"
     torch._dynamo.reset()
+    bounds = _Bounds(bounds_file or os.path.join(output_path, "bounds.jsonl") if save_bounds else None,
+                     num_images // batch_size if num_images else repeat)
 
     if num_images:
         _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, warmup,
                            results_file, is_cuda, dataset, train,
-                           print_intermediate_results, no_sparsity, profile_comm, batch_timeout, warmup_timeout)
+                           print_intermediate_results, no_sparsity, profile_comm, batch_timeout, warmup_timeout,
+                           bounds)
+        bounds.close()
         return
 
     for i in range(warmup):
@@ -547,6 +549,7 @@ def run(
 
         ### Free Memory ####
         lb, ub = lb.detach().cpu(), ub.detach().cpu()
+        bounds.add(i, [0, batch_size], lb, ub)
         gc.collect()
         # Not needed for the per-run peak (max_memory_allocated counts live tensors only);
         # it only made the next run re-cudaMalloc its whole working set.
@@ -556,18 +559,41 @@ def run(
     total_time = sum(repeat_times)
     peak_bytes = max(repeat_peaks)
 
-    # Full float32 precision (9 significant digits) and no '...' elision, so the harness
-    # can parse the exact bounds into its CSV.
-    torch.set_printoptions(precision=8, sci_mode=True, threshold=sys.maxsize)
-    typer.echo(f"Lower bounds: {lb}")
-    typer.echo(f"Upper bounds: {ub}")
-    torch.set_printoptions(profile="default")
+    bounds.close()
     typer.echo(f"Total time: {total_time:.6f} seconds")
     typer.echo(f"{mem_label}: {peak_bytes} bytes")
+
+
+class _Bounds:
+    """Each timed run's bounds: one JSON line per run in `path` (None: not saved). They are printed
+    when there is a single run or nothing is saved."""
+
+    def __init__(self, path, runs):
+        self.path, self.echo = path, path is None or runs == 1
+        self.f = open(path, "w") if path else None
+
+    def add(self, run, images, lb, ub):
+        if self.f:
+            import json as _json
+            self.f.write(_json.dumps({"run": run, "images": images, "lower": lb.tolist(), "upper": ub.tolist()}) + "\n")
+            self.f.flush()
+        if self.echo:
+            # Full float32 precision (9 significant digits) and no '...' elision.
+            torch.set_printoptions(precision=8, sci_mode=True, threshold=sys.maxsize)
+            typer.echo(f"Lower bounds: {lb}")
+            typer.echo(f"Upper bounds: {ub}")
+            torch.set_printoptions(profile="default")
+
+    def close(self):
+        if self.f:
+            self.f.close()
+            typer.echo(f"Bounds written to: {os.path.abspath(self.path)}")
+
+
 def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, warmup,
                        results_file, is_cuda, dataset, train,
                        print_intermediate_results, no_sparsity, profile_comm=False, batch_timeout=0.0,
-                       warmup_timeout=0.0):
+                       warmup_timeout=0.0, bounds=None):
     """The --num-images protocol: warmups on the images after the evaluated ones, then one
     timed run per batch. The timed region is the --repeat protocol's (network load and
     build, box, spec, host-to-device copy, bounds, sync); the results line is written after
@@ -606,6 +632,7 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
         gc.collect()
         gc.freeze()
 
+        times, verified = [], 0
         for i in range(num_images // batch_size):
             lo = i * batch_size
             typer.echo(f"=== batch {i} start ===")
@@ -642,9 +669,16 @@ def _run_image_batches(run, _batch, network_file, batch_size, eps, num_images, w
             comm.save_trace(results_file, i)
             typer.echo(f"Run {i + 1}/{num_images // batch_size}: {run_time:.6f} s, "
                        f"Peak memory: {peak} bytes, Resident memory: {resident} bytes")
+            lb, ub = lb.detach().cpu(), ub.detach().cpu()
+            bounds.add(i, [lo, lo + batch_size], lb, ub)
+            batch_verified = int((lb > 0).all(dim=-1).sum())
+            typer.echo(f"Verified: {batch_verified}/{lb.shape[0]}")
             typer.echo(f"=== batch {i} end ===")
+            times.append(run_time)
+            verified += batch_verified
             del lb, ub
             gc.collect()
+    typer.echo(f"Verified {verified}/{num_images} images, mean time per batch: {sum(times) / len(times):.6f} s")
 
 
 def main():
