@@ -20,7 +20,8 @@ func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop
 
 func relu(Float x) = x > 0.0 ? x : 0.0;
 func relu_n(Neuron n) = n[l] + n[u] > 0.0 ? n : 0.0;
-func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] < 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+// FIX FOR: an input fixed at 0 (l = u = 0) divided 0/0 in the chord below; u <= 0 is the always-off case.
+func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] <= 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
 
 
 
@@ -28,7 +29,7 @@ func x(Float l, Float u, SymExp z) = ((u * z) / (u - l)) + (((u * l) * (eps - 1)
 func y(Float l, Float u, SymExp z) = (u / 2) * (1 + eps);
 
 
-transformer deeppoly{
+transformer zid{
     Affine -> curr[last_layer] == 1 ? (
         backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), 
         backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), 
@@ -79,4 +80,4 @@ transformer deeppoly{
 }
 
 
-flow(forward, priority, stop, deeppoly);
+flow(forward, priority, stop, zid);

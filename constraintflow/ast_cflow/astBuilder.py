@@ -130,13 +130,13 @@ class ASTBuilder(dslVisitor):
         return [expr1]
 
     def visitDot(self, ctx:dslParser.DotContext):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
+        left = self.visit(ctx.suffix())
+        right = self.visit(ctx.expr())
         return AST.DotNode(left, right)
 
     def visitConcat(self, ctx:dslParser.ConcatContext):
-        left = self.visit(ctx.expr(0))
-        right = self.visit(ctx.expr(1))
+        left = self.visit(ctx.suffix())
+        right = self.visit(ctx.expr())
         return AST.ConcatNode(left, right)
     
     def visitLp(self, ctx):
@@ -165,12 +165,14 @@ class ASTBuilder(dslVisitor):
         return AST.ConstFloatNode(value)
 
     def visitCond(self, ctx:dslParser.CondContext):
-        cond = self.visit(ctx.expr(0))
-        texpr = self.visit(ctx.expr(1))
-        fexpr = self.visit(ctx.expr(2))
+        cond = self.visit(ctx.logicalOr())
+        if ctx.QUES() is None:
+            return cond
+        texpr = self.visit(ctx.expr(0))
+        fexpr = self.visit(ctx.expr(1))
         return AST.TernaryNode(cond, texpr, fexpr)
-    
-    def visitCond_if(self, ctx:dslParser.CondContext):
+
+    def visitCond_if(self, ctx:dslParser.Cond_ifContext):
         cond = self.visit(ctx.expr(0))
         texpr = self.visit(ctx.expr(1))
         fexpr = self.visit(ctx.expr(2))
@@ -180,20 +182,16 @@ class ASTBuilder(dslVisitor):
         self.epsilon_count += 1
         return AST.EpsilonNode(self.epsilon_count)
 
-    def visitAlphaparam(self, ctx:dslParser.AlphaparamContext):
-        self.alpha_count = getattr(self, 'alpha_count', 0) + 1
-        return AST.AlphaNode(self.alpha_count, self.visit(ctx.expr()))
-
     def visitNeg(self, ctx:dslParser.NegContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.unary())
         return AST.UnOpNode("-", expr)
 
     def visitNot(self, ctx:dslParser.NotContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.unary())
         return AST.UnOpNode("~", expr)
-    
+
     def visitSigma(self, ctx:dslParser.SigmaContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.unary())
         return AST.UnOpNode("sigma", expr)
 
     def visitCurr(self, ctx:dslParser.CurrContext):
@@ -218,23 +216,22 @@ class ASTBuilder(dslVisitor):
         return self.visit(ctx.expr_list())
 
     def visitMap(self, ctx:dslParser.MapContext):
-        expr = self.visit(ctx.expr(0))
-        func = self.visit(ctx.expr(1))
+        expr = self.visit(ctx.suffix())
+        func = self.visit(ctx.expr())
         if(not isinstance (func, AST.FuncCallNode)):
-            func = AST.VarNode(ctx.expr(1).getText())
+            func = AST.VarNode(ctx.expr().getText())
         return AST.MapNode(expr, func)
 
     def visitMap_list(self, ctx:dslParser.MapContext):
-        expr = self.visit(ctx.expr(0))
-        func = self.visit(ctx.expr(1))
+        expr = self.visit(ctx.suffix())
+        func = self.visit(ctx.expr())
         if(not isinstance (func, AST.FuncCallNode)):
-            func = AST.VarNode(ctx.expr(1).getText())
+            func = AST.VarNode(ctx.expr().getText())
         return AST.MapListNode(expr, func)
 
     def visitGetMetadata(self, ctx:dslParser.GetMetadataContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.suffix())
         data = self.visit(ctx.metadata())
-        # data = ctx.getText())
         return AST.GetMetadataNode(expr, data)
     
     # def visitGetElementAtIndex(self, ctx:dslParser.GetElementAtIndexContext):
@@ -254,24 +251,85 @@ class ASTBuilder(dslVisitor):
         return AST.ConstIntNode(value)
 
     def visitTraverse(self, ctx:dslParser.TraverseContext):
-        expr = self.visit(ctx.expr(0))
+        expr = self.visit(ctx.suffix())
         direction = self.visit(ctx.direction())
-        priority = self.visit(ctx.expr(1))
-        stop = self.visit(ctx.expr(2))
-        func = self.visit(ctx.expr(3))
+        priority = self.visit(ctx.expr(0))
+        stop = self.visit(ctx.expr(1))
+        func = self.visit(ctx.expr(2))
         self.inconstraint = True
-        p = self.visit(ctx.expr(4))
+        p = self.visit(ctx.expr(3))
         self.inconstraint = False
         return AST.TraverseNode(expr, direction, priority, stop, func, p)
 
-    def visitBinopExp(self, ctx:dslParser.BinopExpContext):
-        left = self.visit(ctx.expr(0))
-        op = ctx.binop().getText()
-        right = self.visit(ctx.expr(1)) 
-        return AST.BinOpNode(left, op, right)
+    def _op_text(self, ctx, names):
+        for n in names:
+            t = getattr(ctx, n)()
+            if t is not None:
+                return t.getText()
+        raise AssertionError("missing operator token")
+
+    def visitOrOp(self, ctx:dslParser.OrOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.logicalOr()), self._op_text(ctx, ("OR",)), self.visit(ctx.logicalAnd())
+        )
+
+    def visitOrPass(self, ctx:dslParser.OrPassContext):
+        return self.visit(ctx.logicalAnd())
+
+    def visitAndOp(self, ctx:dslParser.AndOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.logicalAnd()), self._op_text(ctx, ("AND",)), self.visit(ctx.equality())
+        )
+
+    def visitAndPass(self, ctx:dslParser.AndPassContext):
+        return self.visit(ctx.equality())
+
+    def visitEqOp(self, ctx:dslParser.EqOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.equality()), self._op_text(ctx, ("EQQ", "NEQ")), self.visit(ctx.relational())
+        )
+
+    def visitEqPass(self, ctx:dslParser.EqPassContext):
+        return self.visit(ctx.relational())
+
+    def visitRelOp(self, ctx:dslParser.RelOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.relational()),
+            self._op_text(ctx, ("GEQ", "LEQ", "LT", "GT", "IN")),
+            self.visit(ctx.additive()),
+        )
+
+    def visitRelPass(self, ctx:dslParser.RelPassContext):
+        return self.visit(ctx.additive())
+
+    def visitAddOp(self, ctx:dslParser.AddOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.additive()),
+            self._op_text(ctx, ("PLUS", "MINUS")),
+            self.visit(ctx.multiplicative()),
+        )
+
+    def visitAddPass(self, ctx:dslParser.AddPassContext):
+        return self.visit(ctx.multiplicative())
+
+    def visitMulOp(self, ctx:dslParser.MulOpContext):
+        return AST.BinOpNode(
+            self.visit(ctx.multiplicative()),
+            self._op_text(ctx, ("MULT", "DIV")),
+            self.visit(ctx.unary()),
+        )
+
+    def visitMulPass(self, ctx:dslParser.MulPassContext):
+        return self.visit(ctx.unary())
+
+    def visitUnarySuffix(self, ctx:dslParser.UnarySuffixContext):
+        return self.visit(ctx.suffix())
+
+    def visitSuffixAtom(self, ctx:dslParser.SuffixAtomContext):
+        return self.visit(ctx.atom())
 
     def visitGetElement(self, ctx:dslParser.GetElementContext):
-        expr = self.visit(ctx.expr())
+        expr = self.visit(ctx.suffix())
         elem = AST.VarNode(ctx.VAR().getText())
         return AST.GetElementNode(expr, elem)
 

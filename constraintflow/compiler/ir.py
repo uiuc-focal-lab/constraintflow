@@ -72,6 +72,7 @@ def divide_metadata(m1, m2):
     else:
         lhs_multiplicands = collect_multiplicands(m1)
         rhs_multiplicands = collect_multiplicands(m2)
+        # Computes (∏ lhs) / (∏ rhs). Must ensure: rhs ⊆ lhs.
         new_metadata = []
         for i in range(len(lhs_multiplicands)):
             new_metadata.append(lhs_multiplicands[i])
@@ -107,6 +108,7 @@ class IrMetadataElement:
     def is_expanded(self):
         for i in self.broadcast:
             if i != 1:
+                # Some dimension's broadcast ≠ 1 means not yet expanded.
                 return False 
         return True
     
@@ -114,9 +116,6 @@ class IrMetadataElement:
         return self.shape == obj.shape and self.type == obj.type and self.isConst == obj.isConst and self.broadcast == obj.broadcast
 
     def __str__(self):
-        for i in range(len(self.shape)):
-            print(self.shape[i], self.broadcast[i])
-        print()
         return ' '
 
 def is_expanded_metadata(irMetadata):
@@ -134,6 +133,7 @@ def expand_irMetadata(irMetadata):
             if not check_eq(res[i].shape[j], 1):
                 print(check_eq(res[i].shape[j], 1))
                 print(check_eq(res[i].broadcast[j], 1))
+            # If broadcast[j] ≠ 1, then shape[j] must == 1.
             assert(check_eq(res[i].shape[j], 1))
             res[i].shape[j] = res[i].broadcast[j]
             res[i].broadcast[j] = 1
@@ -153,6 +153,12 @@ def copy_metadata(irMetadata):
 #     return 0 
 
 def checkEqualMetadata(irMetadata1, irMetadata2):
+    """
+    Checks that irMetadata1 and 2 have the same expression form of shape, not
+      only semantically the same shape.
+    That is, their shapes and broadcasts must be equal at each index (same
+      expansion status).
+    """
     if len(irMetadata1) != len(irMetadata2):
         return False
     for i in range(len(irMetadata1)):
@@ -161,11 +167,20 @@ def checkEqualMetadata(irMetadata1, irMetadata2):
         for j in range(len(irMetadata1[i].shape)):
             if not check_eq(irMetadata1[i].shape[j], irMetadata2[i].shape[j]):
                 return False
-            if not check_eq(irMetadata1[i].broadcast[j], irMetadata2[i].broadcast[j]):
+            if not check_eq(irMetadata1[i].broadcast[j], y=irMetadata2[i].broadcast[j]):
                 return False
     return True
 
 def createLcm(irMetadata1, irMetadata2):
+    """
+    Make two IR metadata's compatible by expanding any side whose shape is 1 to
+      match the other side's non-1 shape, as long as allowed by `broadcast`.
+    Does not mutate arguments, returns changed copies.
+    Returns
+    - flag[1/2]: Whether irMetadata[1/2] is expanded. Caller may need to
+      construct IrRepeat node(s) accordingly.
+    - newIrMetadata[1/2]: Updated IR metadata copies after expansion.
+    """
     flag1 = False 
     flag2 = False
     newIrMetadata1 = copy_metadata(irMetadata1)
@@ -194,6 +209,10 @@ def createLcm(irMetadata1, irMetadata2):
 
 
 def canRepeat(irMetadata1, irMetadata2):
+    """
+    Checks if irMetadata1 can be repeated to match irMetadata2's shape (up to
+      broadcast semantics), or vice versa.
+    """
     if len(irMetadata1) != len(irMetadata2):
         return False 
     for i in range(len(irMetadata1)):
@@ -214,15 +233,24 @@ def canAddDimension(irMetadataElement1, irMetadataElement2):
             return False
     for i in range(len(irMetadataElement1.shape), len(irMetadataElement2.shape)):
         if irMetadataElement2.shape[i]!=1:
+            # If the extra dimensions of irMetadataElement2 are not 1, then
+            #   they are not just placeholders (have extra meanings).
+            # They cannot be directly  added to irMetadataElement1.
             return False
     return True
 
 def matchDims(lhsIr, rhsIr):
+    """
+    Aligns two IR nodes before operation by wrapping around them.
+    After that, the IR nodes are dimension-compatible.
+    """
     lhsIrMetadata = lhsIr.irMetadata
     rhsIrMetadata = rhsIr.irMetadata
     if checkEqualMetadata(lhsIr.irMetadata, rhsIr.irMetadata):
         return lhsIr, rhsIr
     if lhsIrMetadata[-1].isConst:
+        # QUESTION: What if lhsIrMetadata[-1].isConst but not
+        #   lhsIrMetadata[i].isConst for some other i?
         updated_irMetadata = copy_metadata(rhsIrMetadata)
         for i in range(len(updated_irMetadata)):
             updated_irMetadata[i].isConst = True 
@@ -237,15 +265,6 @@ def matchDims(lhsIr, rhsIr):
             updated_irMetadata[i].type = rhsIrMetadata[-1].type
         rhsIr = IrAddDimensionConst(rhsIr, updated_irMetadata) 
         return lhsIr, rhsIr
-
-    # An alpha that has not yet been pinned down takes its rank and shape from
-    # the expression it is combined with.
-    if isinstance(lhsIr, IrAlpha) and not lhsIr.resolved and len(lhsIrMetadata) != len(rhsIrMetadata):
-        lhsIr.resolve_from(rhsIr)
-        lhsIrMetadata = lhsIr.irMetadata
-    elif isinstance(rhsIr, IrAlpha) and not rhsIr.resolved and len(lhsIrMetadata) != len(rhsIrMetadata):
-        rhsIr.resolve_from(lhsIr)
-        rhsIrMetadata = rhsIr.irMetadata
 
     # TODO: CHECK THIS ASSERT
     assert(len(lhsIrMetadata) == len(rhsIrMetadata))
@@ -281,6 +300,46 @@ def matchDims(lhsIr, rhsIr):
         rhsIr = IrRepeat(rhsIr, newIrMetadata2)
     return lhsIr, rhsIr
 
+_EQ_BOOKKEEPING = frozenset((
+    'node_name', 'identifier', 'parents', 'children', 'irMetadata',
+    'inside_while', 'while_number', 'ttb_counter', 'while_iteration'))
+
+
+def _value_equal(x, y):
+    """One attribute value; nested IR nodes and torch tensors both turn up here."""
+    if x is y:
+        return True
+    if isinstance(x, IrAst) or isinstance(y, IrAst):
+        return isinstance(x, IrAst) and isinstance(y, IrAst) and x == y
+    if type(x) is not type(y):
+        return False
+    if isinstance(x, (list, tuple)):
+        return len(x) == len(y) and all(_value_equal(p, q) for p, q in zip(x, y))
+    if isinstance(x, dict):
+        return x.keys() == y.keys() and all(_value_equal(x[k], y[k]) for k in x)
+    #FIX FOR: tensor == broadcasts, so IrTensorOnes sizes [100, 100] and [100] compared equal and CSE merged
+    # ones([batch, 100]) with ones([100]) whenever the batch size equaled a layer width (reshape crash at runtime).
+    if getattr(x, 'shape', None) != getattr(y, 'shape', None):
+        return False
+    try:
+        result = (x == y)
+    except Exception:
+        return False
+    if isinstance(result, bool):
+        return result
+    try:
+        return bool(result.all())
+    except Exception:
+        return False
+
+
+def _attrs_equal(a, b):
+    keys = {k for k in vars(a) if k not in _EQ_BOOKKEEPING}
+    if keys != {k for k in vars(b) if k not in _EQ_BOOKKEEPING}:
+        return False
+    return all(_value_equal(getattr(a, k), getattr(b, k)) for k in keys)
+
+
 class IrAst:
     counter = 0
     poly_size = None
@@ -297,6 +356,8 @@ class IrAst:
         self.parents = []
         self.children = []
         self.irMetadata = []
+        self.inside_while = False
+        self.while_number = -1
         
     
     def update_parent_child(self, children):
@@ -326,21 +387,24 @@ class IrAst:
         return 0   
     
     def __eq__(self, obj):
-        if type(self)==type(obj):
-            if len(self.children) == len(obj.children):
-                for i in range(len(self.children)):
-                    if self.children[i] != obj.children[i]:
-                        return False 
-                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
-                    return True 
-                else:
-                    return False
-        return False
-    
-        
+        if type(self) != type(obj):
+            return False
+        if len(self.children) != len(obj.children):
+            return False
+        if not _attrs_equal(self, obj):
+            return False
+        for i in range(len(self.children)):
+            if self.children[i] != obj.children[i]:
+                return False
+        return checkEqualMetadata(self.irMetadata, obj.irMetadata)
+
+
 class IrExpression(IrAst):
     def __init__(self):
         super().__init__()
+        self.ttb_counter = -1
+        self.while_number = -1
+        self.while_iteration = -1
         
 
 class IrStatement(IrAst):
@@ -408,7 +472,408 @@ class IrVar(IrExpression):
         self.hash_str += self.name 
         return self.hash_str
     
-    
+class IrSparseTensor(IrExpression):
+    def __init__(self, start_indices, blocksIr, dims, total_size, end_indices=None, type=None, dense_const=None, delete_indices=None):
+        super().__init__()
+        self.start_indices = start_indices
+        self.dims = dims
+        self.total_size = total_size
+        if end_indices is not None:
+            self.end_indices = end_indices
+        if type is not None:
+            self.type = type
+        if dense_const is not None:
+            self.dense_const = dense_const
+        # Recorded by SparseTensorConstructor only; the hand-written records predate it.
+        if delete_indices is not None:
+            self.delete_indices = delete_indices
+        self.update_parent_child([blocksIr])
+
+
+    def __str__(self):
+        print(type(self), self.name)
+        return ''
+
+    def __hash__(self):
+        return 0
+
+    def hash(self):
+        self.hash_str = str(type(self))
+        self.hash_str += self.start_indices
+        # self.hash_str += self.blocks.hash()
+        self.hash_str += self.dims
+        self.hash_str += self.total_size
+        self.hash_str += self.end_indices
+        self.hash_str += self.type
+        self.hash_str += self.dense_const
+        return self.hash_str
+
+
+class IrConstBlock(IrExpression):
+    def __init__(self, inputIr, total_shape, sparse_block_type=None):
+        super().__init__()
+        self.total_shape = total_shape
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.update_parent_child([inputIr])
+
+class IrPatchesBlock(IrExpression):
+    def __init__(self, blockIr, total_shape, ix, iy, ox, oy, sx, sy, px, py, kx, ky, num_channels, num_kernels,
+                 sparse_block_type=None):
+        super().__init__()
+        self.total_shape = total_shape
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.ix = ix
+        self.iy = iy
+        self.ox = ox
+        self.oy = oy
+        self.sx = sx
+        self.sy = sy
+        self.px = px
+        self.py = py
+        self.kx = kx
+        self.ky = ky
+        self.num_channels = num_channels
+        self.num_kernels = num_kernels
+        self.update_parent_child([blockIr])
+
+class IrRepeatBlock(IrExpression):
+    def __init__(self, blockIr, total_shape, repeat_dims=None, only_one_repeat=None, sparse_block_type=None):
+        super().__init__()
+        self.total_shape = total_shape
+        if repeat_dims is not None:
+            self.repeat_dims = repeat_dims
+        if only_one_repeat is not None:
+            self.only_one_repeat = only_one_repeat
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.update_parent_child([blockIr])
+
+
+# sparse_block.get_diagonal simulacrum trace — step 1: torch.diagonal on block tensor payload.
+class IrTorchDiagonal(IrExpression):
+    def __init__(self, inputIr, dim1, dim2):
+        super().__init__()
+        self.dim1 = dim1
+        self.dim2 = dim2
+        self.update_parent_child([inputIr])
+
+
+# sparse_block.get_diagonal simulacrum trace — step 2: permute after diagonal.
+class IrTorchPermute(IrExpression):
+    def __init__(self, inputIr, permutation):
+        super().__init__()
+        self.permutation = permutation
+        self.update_parent_child([inputIr])
+
+class IrTorchTranspose(IrExpression):
+    def __init__(self, inputIr, dim0, dim1):
+        super().__init__()
+        self.dim0 = dim0
+        self.dim1 = dim1
+        self.update_parent_child([inputIr])
+
+class IrTorchMatmul(IrExpression):
+    def __init__(self, lhsIr, rhsIr):
+        super().__init__()
+        self.update_parent_child([lhsIr, rhsIr])
+
+class IrTorchWhere(IrExpression):
+    def __init__(self, condIr, lhsIr, rhsIr):
+        super().__init__()
+        self.update_parent_child([condIr, lhsIr, rhsIr])
+
+class IrTorchUnsqueeze(IrExpression):
+    def __init__(self, inputIr, index):
+        super().__init__()
+        self.index = index
+        self.update_parent_child([inputIr])
+
+class IrTorchSqueeze(IrExpression):
+    def __init__(self, inputIr, index):
+        super().__init__()
+        self.index = index
+        self.update_parent_child([inputIr])
+
+class IrTorchReshape(IrExpression):
+    def __init__(self, inputIr, shape):
+        super().__init__()
+        self.shape = shape
+        self.update_parent_child([inputIr])
+
+class IrTorchView(IrExpression):
+    def __init__(self, inputIr, shape):
+        super().__init__()
+        self.shape = shape
+        self.update_parent_child([inputIr])
+
+class IrTorchRepeat(IrExpression):
+    def __init__(self, inputIr, repeats):
+        super().__init__()
+        self.repeats = repeats
+        self.update_parent_child([inputIr])
+
+class IrTorchExpand(IrExpression):
+    def __init__(self, inputIr, shape):
+        super().__init__()
+        self.shape = shape
+        self.update_parent_child([inputIr])
+
+class IrTorchPad(IrExpression):
+    def __init__(self, inputIr, pad):
+        super().__init__()
+        self.pad = pad
+        self.update_parent_child([inputIr])
+
+class IrTorchSum(IrExpression):
+    def __init__(self, inputIr, dim):
+        super().__init__()
+        self.dim = dim
+        self.update_parent_child([inputIr])
+
+class IrTorchZeros(IrExpression):
+    def __init__(self, size, device=None, dtype=None):
+        super().__init__()
+        self.size = size
+        self.device = device
+        self.dtype = dtype
+
+class IrTorchEye(IrExpression):
+    def __init__(self, size, device=None, dtype=None):
+        super().__init__()
+        self.size = size
+        self.device = device
+        self.dtype = dtype
+
+class IrTorchFloat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrTorchDiagEmbed(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrTorchStride(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrTorchAsStrided(IrExpression):
+    def __init__(self, inputIr, size, stride):
+        super().__init__()
+        self.size = size
+        self.stride = stride
+        self.update_parent_child([inputIr])
+
+class IrTorchSlice(IrExpression):
+    def __init__(self, inputIr, index):
+        super().__init__()
+        self.index = index
+        self.update_parent_child([inputIr])
+
+class IrPatchesToDense(IrExpression):
+    def __init__(self, inputIr, geometry):
+        super().__init__()
+        self.geometry = geometry
+        self.update_parent_child([inputIr])
+
+
+class IrRowGather(IrExpression):
+    """Select axis-one rows, optionally mapping flattened rows to channels/tiles."""
+    def __init__(self, inputIr, divisor=1, period=None):
+        super().__init__()
+        self.divisor, self.period = divisor, period
+        self.update_parent_child([inputIr, IrVar('_idx', [])])
+
+
+class IrSelectedPatchesToDense(IrExpression):
+    def __init__(self, inputIr, geometry):
+        super().__init__()
+        self.geometry = geometry
+        self.update_parent_child([inputIr, IrVar('_idx', [])])
+
+
+class IrTensorScatter(IrExpression):
+    def __init__(self, inputIr, valueIr, dim, index):
+        super().__init__()
+        self.dim = dim
+        self.index = index
+        self.update_parent_child([inputIr, valueIr])
+
+class IrFConv2d(IrExpression):
+    def __init__(self, inputIr, weightIr, stride, padding, biasIr=None):
+        super().__init__()
+        self.stride = stride
+        self.padding = padding
+        # Optional per-channel bias, applied by the convolution itself.
+        self.update_parent_child([inputIr, weightIr] + ([biasIr] if biasIr is not None else []))
+
+class IrFConvTranspose2d(IrExpression):
+    def __init__(self, inputIr, weightIr, stride=None, padding=None, output_padding=None):
+        super().__init__()
+        self.stride = stride
+        self.padding = padding
+        self.output_padding = output_padding
+        self.update_parent_child([inputIr, weightIr])
+
+class IrFUnfold(IrExpression):
+    def __init__(self, inputIr, kernel_size, padding, stride):
+        super().__init__()
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
+        self.update_parent_child([inputIr])
+
+class IrFFold(IrExpression):
+    def __init__(self, inputIr, output_size, kernel_size, stride, padding=None):
+        super().__init__()
+        self.output_size = output_size
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.padding = padding
+        self.update_parent_child([inputIr])
+
+class IrTorchEinsum(IrExpression):
+    def __init__(self, equation, operandIrs):
+        super().__init__()
+        self.equation = equation
+        self.update_parent_child(operandIrs)
+
+class IrTorchCat(IrExpression):
+    def __init__(self, inputIrs, dim):
+        super().__init__()
+        self.dim = dim
+        self.update_parent_child(list(inputIrs))
+
+class IrAssignToView(IrStatement):
+    def __init__(self, inputIr, index, valueIr):
+        super().__init__()
+        self.index = index
+        self.update_parent_child([inputIr, valueIr])
+
+
+# create_similar_diagonal trace: wrap tensor payload as DiagonalBlock.
+class IrDiagonalBlock(IrExpression):
+    def __init__(self, blockIr, total_shape, diag_index, batch_size=None, sparse_block_type=None):
+        super().__init__()
+        self.total_shape = total_shape
+        self.diag_index = diag_index
+        if batch_size is not None:
+            self.batch_size = batch_size
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.update_parent_child([blockIr])
+
+
+class IrEmptyList(IrExpression):
+    def __init__(self):
+        super().__init__()
+        self.update_parent_child([]) 
+
+    def __eq__(self, obj):
+        return False
+
+class IrAppendList(IrExpression):
+    def __init__(self, listIr, elementIr):
+        super().__init__()
+        self.update_parent_child([listIr, elementIr])
+
+class IrListExtract(IrExpression):
+    def __init__(self, listIr, indexIr):
+        super().__init__()
+        self.update_parent_child([listIr, indexIr])
+
+class IrBlockExtract(IrExpression):
+    def __init__(self, inputIr, indexIr):
+        super().__init__()
+        self.update_parent_child([inputIr, indexIr])
+
+class IrBlockCopy(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetSparseTensorBlocks(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetAbsElemSparseDKey(IrExpression):
+    def __init__(self, inputIr, key: str):
+        super().__init__()
+        self.key = key
+        self.ttb_counter = -1
+        self.update_parent_child([inputIr])
+
+class IrGetPolyExpSparseConst(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetPolyExpSparseMat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetSymExpSparseConst(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetSymExpSparseMat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.update_parent_child([inputIr])
+
+class IrGetKthLayerNetworkParam(IrExpression):
+    def __init__(self, layer_index, param):
+        super().__init__()
+        self.layer_index = layer_index
+        self.param = param
+        self.update_parent_child([])
+
+class IrDenseBlock(IrExpression):
+    def __init__(self, inputIr, total_shape=None, batch_size=None, sparse_block_type=None):
+        super().__init__()
+        if total_shape is not None:
+            self.total_shape = total_shape
+        if batch_size is not None:
+            self.batch_size = batch_size
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.update_parent_child([inputIr])
+
+class IrKernelBlock(IrExpression):
+    def __init__(self, inputIr, total_shape: list[int],
+                 ix, iy, ox, oy, sx, sy, px, py,
+                 kx=None, ky=None, num_channels=None, num_kernels=None,
+                 sparse_block_type=None):
+        """inputIr: the parameter `block` of the `KernelBlock` constructor"""
+        super().__init__()
+        self.total_shape = total_shape
+        self.ix = ix
+        self.iy = iy
+        self.ox = ox
+        self.oy = oy
+        self.sx = sx
+        self.sy = sy
+        self.px = px
+        self.py = py
+        if kx is not None:
+            self.kx = kx
+        if ky is not None:
+            self.ky = ky
+        if num_channels is not None:
+            self.num_channels = num_channels
+        if num_kernels is not None:
+            self.num_kernels = num_kernels
+        if sparse_block_type is not None:
+            self.sparse_block_type = sparse_block_type
+        self.update_parent_child([inputIr])
+
 class IrEpsilon(IrExpression):
     def __init__(self, num=None):
         super().__init__()
@@ -417,43 +882,16 @@ class IrEpsilon(IrExpression):
         self.num = num
         self.irMetadata = [IrMetadataElement([IrAst.batch_size, num], 'SymExp', [1, 1], False)]
         # self.update_parent_child([IrConst(num)])
-        
-    
-class IrAlpha(IrExpression):
-    """An optimizable parameter. Like IrEpsilon it takes its shape from shape
-    analysis, so it is materialised per (batch element, neuron); unlike IrEpsilon
-    it is a concrete Float tensor with requires_grad set, not a noise symbol."""
-    counter = 0
-    def __init__(self, num=None, site=None, init=None):
-        super().__init__()
-        if num is None:
-            num = IrAst.curr_size
-        self.num = num
-        self.init = init
-        if init is not None:
-            self.update_parent_child([init])
-        if site is None:
-            site = IrAlpha.counter
-            IrAlpha.counter += 1
-        self.site = site
-        # Rank-polymorphic: alpha materialises at whatever shape the context needs.
-        # Default is the transformer's own [batch, curr]; inside a map/traverse
-        # resolve_from() promotes it to the full nesting depth, so a spec can ask
-        # for one alpha per (target, source) rather than one per neuron.
-        self.resolved = False
-        self.irMetadata = [IrMetadataElement([IrAst.batch_size, num], 'Float', [1, 1], False)]
 
-    def resolve_from(self, other):
-        """Adopt other's nesting depth and fully materialised shape."""
-        md = copy_metadata(other.irMetadata)
-        for el in md:
-            for j in range(len(el.shape)):
-                el.shape[j] = mult_metadata(el.shape[j], el.broadcast[j])
-                el.broadcast[j] = 1
-            el.type = 'Float'
-            el.isConst = False
-        self.irMetadata = md
-        self.resolved = True
+
+# Reconstructs the SymExpSparse produced by get_new_eps from its replayed
+# mat and const SparseTensors (the tensor_to_block expansion of IrEpsilon).
+class IrNewEps(IrExpression):
+    def __init__(self, matIr, constIr):
+        super().__init__()
+        self.update_parent_child([matIr, constIr])
+
+    
 
 class IrPhi(IrExpression):
     def __init__(self, original_name, vars, irMetadata):
@@ -625,7 +1063,74 @@ class IrConvertNeuronToPoly(IrExpression):
         self.irMetadata = copy_metadata(inputIr.irMetadata)
         self.irMetadata[-1].type = 'PolyExp'
         self.update_parent_child([inputIr])
-    
+
+
+class IrConcatStitch(IrExpression):
+    """Opaque, traced 2-D Concat block re-stitch (see
+    constraintflow/gbcsr/tensor_ops.py:concat_stitch_2d). `prev1Ir`/`prev2Ir`
+    are only used by this node's own (non-reuse) codegen -- at reuse time
+    tensor_to_block.py discards them and rebuilds the expression entirely
+    from the captured tape, exactly like IrGetPriorityLList and friends.
+
+    __eq__ always returns False (matching IrExpandSymExp/IrEmptyList): the
+    base IrAst.__eq__ compares only type+children+irMetadata, which does NOT
+    see `key`/`source` -- two keys of the same type (e.g. 'l' and 'u', both
+    Float) share identical prev1/prev2 children and identical metadata, so
+    without this override CSE merges them into one node and silently drops
+    one key's data."""
+    def __init__(self, prev1Ir, prev2Ir, key, source, irMetadata):
+        super().__init__()
+        assert source in ('direct', 'const')
+        self.key = key
+        self.source = source
+        self.irMetadata = irMetadata
+        self.update_parent_child([prev1Ir, prev2Ir])
+
+    def __eq__(self, obj):
+        return False
+
+    def __hash__(self):
+        return 0
+
+
+class IrUpdateReplay(IrExpression):
+    """Opaque, traced Abs_elem_sparse.update for one shape field (jit_update capture).
+
+    `operandIr` is the op's abstract-shape output for this field; the tape refers to
+    it as `abs_shape_<n>` and to the pre-update state via IrGetAbsElemSparseDKey.
+    __eq__ is always False for the same reason as IrConcatStitch: the base __eq__ sees
+    neither `key` nor `records`, so CSE would merge two same-typed fields into one."""
+    def __init__(self, operandIr, key, records, irMetadata):
+        super().__init__()
+        self.key = key
+        self.records = records
+        self.irMetadata = irMetadata
+        self.update_parent_child([operandIr])
+
+    def __eq__(self, obj):
+        return False
+
+    def __hash__(self):
+        return 0
+
+
+class IrConcatStitchMat(IrExpression):
+    """Opaque, traced 3-D Concat block re-stitch for a PolyExp's .mat (see
+    constraintflow/gbcsr/tensor_ops.py:concat_stitch_mat). See IrConcatStitch
+    for why __eq__ must always return False here too."""
+    def __init__(self, prev1Ir, prev2Ir, key, irMetadata):
+        super().__init__()
+        self.key = key
+        self.irMetadata = irMetadata
+        self.update_parent_child([prev1Ir, prev2Ir])
+
+    def __eq__(self, obj):
+        return False
+
+    def __hash__(self):
+        return 0
+
+
 
 class IrConvertConstToPoly(IrExpression):
     def __init__(self, inputIr):
@@ -708,6 +1213,7 @@ class IrAccess(IrExpression):
         super().__init__()
         self.isMetadata = isMetadata
         self.elem = elem
+        self.ttb_counter = -1
 
         lhsIrMetadata = lhsIr.irMetadata
 
@@ -728,11 +1234,6 @@ class IrAccess(IrExpression):
 
             elif elem == 'bias':
                 self.irMetadata[-1].type = 'Float'
-                for i in range(len(self.irMetadata)):
-                    for j in range(len(self.irMetadata[i].shape)):
-                        if self.irMetadata[i].broadcast[j] != 1:
-                            self.irMetadata[i].shape[j] = mult_metadata(self.irMetadata[i].shape[j], self.irMetadata[i].broadcast[j])
-                            self.irMetadata[i].broadcast[j] = 1
 
             elif elem == 'layer':
                 self.irMetadata[-1].type = 'Int'
@@ -759,11 +1260,12 @@ class IrBinaryOp(IrExpression):
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
         lhsIrMetadata = lhsIr.irMetadata
         rhsIrMetadata = rhsIr.irMetadata
+        self.ttb_counter = -1
 
 
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         new_type = 'Float' if lhsIrMetadata[-1].type!=rhsIrMetadata[-1].type else lhsIrMetadata[-1].type
-        if self.op in ['>', '>=', '==', '<', '<=']:
+        if self.op in ['>', '>=', '==', '!=', '<', '<=']:
             new_type = 'Bool'
         self.irMetadata[-1].type = new_type
         self.irMetadata[-1].isConst = lhsIrMetadata[-1].isConst and rhsIrMetadata[-1].isConst    
@@ -784,12 +1286,91 @@ class IrBinaryOp(IrExpression):
                     return False
         return False
 
+class IrBlockBinaryOp(IrExpression):
+    def __init__(self, lhsIr, rhsIr, op):
+        super().__init__()
+        self.op = op  
+        self.update_parent_child([lhsIr, rhsIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.op == obj.op:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
+
+class IrBlockWhereBlock(IrExpression):
+    def __init__(self, condIr, lhsIr, rhsIr):
+        super().__init__()
+        self.update_parent_child([condIr, lhsIr, rhsIr])
+
+class IrBlockUnaryOp(IrExpression):
+    def __init__(self, inputIr, op):
+        super().__init__()
+        self.op = op
+        self.update_parent_child([inputIr])
+
+class IrPolyExpMat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.update_parent_child([inputIr])
+
+class IrPolyExpNotStopFloat(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.irMetadata = copy_metadata(inputIr.irMetadata)
+        self.irMetadata[-1].type = 'Float'
+        self.update_parent_child([inputIr])
+
+class IrBlockPolyexpStop(IrExpression):
+    def __init__(self, travIr, blockMatIr):
+        super().__init__()
+        self.irMetadata = copy_metadata(travIr.irMetadata)
+        self.update_parent_child([travIr, blockMatIr])
+
+class IrBlockPolyexpNotStop(IrExpression):
+    def __init__(self, travIr, blockMatIr, constIr):
+        super().__init__()
+        self.irMetadata = copy_metadata(travIr.irMetadata)
+        self.update_parent_child([travIr, blockMatIr, constIr])
+
+class IrBlockAny(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        # Is all always results in a bool, this is justified
+        self.irMetadata = [IrMetadataElement([1], 'Bool', [1], True)]
+        self.update_parent_child([inputIr])
+
+class IrBlockAll(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        # Is all always results in a bool, this is justified
+        self.irMetadata = [IrMetadataElement([1], 'Bool', [1], True)]
+        self.update_parent_child([inputIr])
+
+class IrBlockGetDims(IrExpression):
+    def __init__(self, inputIr):
+        super().__init__()
+        self.irMetadata = [IrMetadataElement([1], 'Int', [1], True)]
+        self.update_parent_child([inputIr])
+
 class IrUnaryOp(IrExpression):
     def __init__(self, inputIr, op):
         super().__init__()
         self.op = op
         if self.op == 'get_dims':
             self.irMetadata = [IrMetadataElement([1], 'Int', [1], True)]
+        elif self.op in ('any', 'all'):
+            self.irMetadata = [IrMetadataElement([1], 'Bool', [1], True)]
         else:
             self.irMetadata = copy_metadata(inputIr.irMetadata)
         self.update_parent_child([inputIr])
@@ -810,6 +1391,14 @@ class IrUnaryOp(IrExpression):
                 # return True
         return False
 
+class IrGetSubBlockCustomRange(IrExpression):
+    def __init__(self, inputIr, start_index, end_index, block_id, tensor):
+        super().__init__()
+        self.start_index = start_index
+        self.end_index = end_index
+        self.block_id = block_id
+        self.tensor = tensor
+        self.update_parent_child([inputIr])
 
 
 class IrMult(IrExpression):
@@ -819,6 +1408,7 @@ class IrMult(IrExpression):
         lhsIr, rhsIr = matchDims(lhsIr, rhsIr)
         lhsIrMetadata = lhsIr.irMetadata
         rhsIrMetadata = rhsIr.irMetadata
+        self.ttb_counter = -1
 
         self.irMetadata = copy_metadata(lhsIr.irMetadata)
         new_type = 'Float' if lhsIrMetadata[-1].type!=rhsIrMetadata[-1].type else lhsIrMetadata[-1].type
@@ -841,6 +1431,130 @@ class IrMult(IrExpression):
         return False
 
 
+class IrSimpleUnary(IrExpression):
+    def __init__(self, inputIr, op):
+        super().__init__()
+        self.op = op
+        self.update_parent_child([inputIr])
+
+class IrLambda(IrExpression):
+    def __init__(self, op):
+        super().__init__()
+        self.op = op
+        self.update_parent_child([])
+        
+class IrSimpleBinary(IrExpression):
+    def __init__(self, lhsIr, rhsIr, op):
+        super().__init__()
+        self.op = op 
+        self.update_parent_child([lhsIr, rhsIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.op == obj.op:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
+    
+class IrTensorOnes(IrExpression):
+    def __init__(self, total_size):
+        super().__init__()
+        self.total_size = total_size
+
+class IrTensorRepeat(IrExpression):
+    def __init__(self, inputIr, repeat_dims):
+        super().__init__()
+        self.repeat_dims = repeat_dims
+        self.update_parent_child([inputIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.repeat_dims == obj.repeat_dims:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
+
+class IrTensorClamp(IrExpression):
+    def __init__(self, inputIr, const, min_true):
+        super().__init__()
+        self.const = const
+        self.min_true = min_true
+        self.update_parent_child([inputIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.min_true == obj.min_true and self.const == obj.const:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
+    
+class IrBlockClamp(IrExpression):
+    def __init__(self, inputIr, const, min_true):
+        super().__init__()
+        self.const = const
+        self.min_true = min_true
+        self.update_parent_child([inputIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.min_true == obj.min_true and self.const == obj.const:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
+
+class IrBlockSqueeze(IrExpression):
+    def __init__(self, inputIr, index):
+        super().__init__()
+        self.index = index
+        self.update_parent_child([inputIr])
+
+    def __hash__(self):
+        return 0
+
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.index == obj.index:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True
+                else:
+                    return False
+        return False
+
 class IrInnerProduct(IrExpression):
     def __init__(self, lhsIr, rhsIr):
         super().__init__()
@@ -848,6 +1562,27 @@ class IrInnerProduct(IrExpression):
         self.irMetadata[-1].shape[-1] = rhsIr.irMetadata[-1].shape[-1]
         self.irMetadata[-1].broadcast[-1] = rhsIr.irMetadata[-1].broadcast[-1]
         self.update_parent_child([lhsIr, rhsIr])
+
+class IrBlockInnerProduct(IrExpression):
+    def __init__(self, lhsIr, rhsIr, type='equal_dims'):
+        super().__init__()
+        self.type = type
+        self.update_parent_child([lhsIr, rhsIr])
+
+    def __hash__(self):
+        return 0   
+    
+    def __eq__(self, obj):
+        if type(self)==type(obj) and self.type == obj.type:
+            if len(self.children) == len(obj.children):
+                for i in range(len(self.children)):
+                    if self.children[i] != obj.children[i]:
+                        return False 
+                if checkEqualMetadata(self.irMetadata, obj.irMetadata):
+                    return True 
+                else:
+                    return False
+        return False
 
 
 class IrTernary(IrExpression):
@@ -1060,6 +1795,36 @@ class IrCombineToSym(IrExpression):
         self.update_parent_child(new_children)
 
 
+
+class IrObjectLookup(IrExpression):
+    def __init__(self, inputIr, object_name):
+        super().__init__()
+        self.object_name = object_name
+        self.update_parent_child([inputIr])
+
+class IrBlockCreateSimilar(IrExpression):
+    def __init__(self, inputIr, argIr):
+        super().__init__()
+        self.update_parent_child([inputIr, argIr])
+
+class IrSetBlockTotalShapeLastDim(IrStatement):
+    def __init__(self, inputVarIr, valueIr):
+        super().__init__()
+        self.update_parent_child([inputVarIr, valueIr])
+
+class IrAssignToBlock(IrStatement):
+    def __init__(self, blockVarIr, valueIr):
+        super().__init__()
+        self.update_parent_child([blockVarIr, valueIr])
+
+class IrBlockGetSubBlockCustomRange(IrExpression):
+    def __init__(self, inputIr, start_index, end_index, block_start_index):
+        super().__init__()
+        self.start_index = start_index
+        self.end_index = end_index
+        self.block_start_index = block_start_index
+        self.update_parent_child([inputIr])
+
 class IrReduce(IrExpression):
     def __init__(self, inputIr):
         super().__init__()
@@ -1193,6 +1958,12 @@ class IrBreak(IrStatement):
     def __init__(self):
         super().__init__()
 
+# For the del statements
+class IrDel(IrStatement):
+    def __init__(self, var_names):
+        super().__init__()
+        self.var_names = var_names
+
 class IrBlock(IrAst):
     def __init__(self, ir_list = [], jump = None, inner_jump = None, loopBack = None):
         super().__init__()
@@ -1201,6 +1972,8 @@ class IrBlock(IrAst):
         if len(ir_list) == 0:
             ir_list = list()
         self.update_parent_child(ir_list)
+        self.inside_while = False 
+        self.while_number = -1
 
     def __eq__(self, obj):
         if isinstance(obj, IrBlock):
@@ -1219,6 +1992,14 @@ class IrWhileBlock(IrBlock):
             self.loopBody = [self]
 
 
+
+# The parameter names for the generated method's signature (and the matching
+# call-site args). Every DSL-declared op (Affine, Relu, Sigmoid, ...) uses this;
+# ops synthesized outside the DSL (Add, Concat -- see builtin_ops.py) carry
+# their own params on IrOpStmt because they need more than one `prev`.
+DEFAULT_OP_PARAMS = ['abs_elem', 'prev', 'curr', 'poly_size', 'curr_size',
+                     'prev_size', 'input_size', 'batch_size']
+
 class IrParallelBlock(IrAst):
     """Two independent while-loop zones executed in parallel threads."""
     def __init__(self, zone1_init, while1, zone1_post,
@@ -1235,10 +2016,15 @@ class IrParallelBlock(IrAst):
         self.escape2    = escape2      # list of str — var names thread2 produces for caller
 
 class IrOpStmt(IrAst):
-    def __init__(self, op, cfg):
+    def __init__(self, op, cfg, layerwise_cfgs = None, params = None):
         super().__init__()
         self.op = op
         self.cfg = cfg
+        self.layerwise_cfgs = layerwise_cfgs
+        self.params = params if params is not None else DEFAULT_OP_PARAMS
+        # In jit builds the specialized methods also thread the d_<key> state.
+        self.layerwise_params = None
+
         # self.update_parent_child(inputIrs)
 
 class IrFlow(IrAst):
@@ -1253,9 +2039,10 @@ class IrProgram(IrAst):
     def __init__(self, shape, tstore, fstore, irNodes):
         super().__init__()
         self.shape = shape
+        # tstore: map { certifier name -> list of abstract transformers of operators of this CF program }
+        # tstore type: dict[str -> list[IrOpStmt with elem: op, cfg]]
         self.tstore = tstore
         self.fstore = fstore
         self.irNodes = irNodes
         
-
 

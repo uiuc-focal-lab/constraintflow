@@ -1,0 +1,16 @@
+def Shape as (Float l){[(curr[l]<=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff * n[l]);
+
+func priority(Neuron n) = n[layer];
+func stop(Neuron n) = true;
+
+transformer ibp{
+    Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower));
+    
+    Relu -> (((prev[l]) >= 0.0) ? (prev[l]) : (0.0));
+
+    Sigmoid -> (sigma(prev[l]));
+}
+
+flow(forward, priority, stop, ibp);

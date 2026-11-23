@@ -10,8 +10,8 @@ def populate_uses_metadata(irMetadata, ir_node, vars):
                 populate_uses_expr(irMetadataElement.broadcast[i], ir_node, vars)
 
 def populate_uses_expr(expr, ir_node, vars):
-    if isinstance(expr, int):
-        return 
+    if isinstance(expr, (int, float, str)) or expr is None:
+        return
     populate_uses_metadata(expr.irMetadata, ir_node, vars)
     if isinstance(expr, IrVar):
         if expr.formal_argument:
@@ -48,8 +48,8 @@ def populate_defs_block(block, vars):
             ir_list[i].children[0].formal_argument = False
 
 def clear_defs_expr(expr):
-    if isinstance(expr, int):
-        return 
+    if isinstance(expr, (int, float, str)) or expr is None:
+        return
     if isinstance(expr, IrVar):
         if expr.formal_argument:
             expr.uses = []
