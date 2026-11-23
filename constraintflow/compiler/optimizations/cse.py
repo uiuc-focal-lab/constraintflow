@@ -12,35 +12,71 @@ def get_var():
 def compare(x):
     return x[0]
 
-def check_expr_visit(expr, node, visited_expr, visited_order):
-    if isinstance(expr, IrConst) or isinstance(expr, IrVar) or isinstance(expr, IrPhi) or isinstance(expr, int):
-        return
-    if expr not in visited_expr:
-        visited_expr[expr] = {node}
-        for i in range(len(expr.children)):
-            check_expr_visit(expr.children[i], node, visited_expr, visited_order)        
+def _key(expr, memo):
+    """Structural key, coarser than __eq__ so it never separates equal nodes."""
+    k = memo.get(id(expr))
+    if k is not None:
+        return k
+    if isinstance(expr, (int, float, str)) or expr is None:
+        k = ('lit', repr(expr))
+    elif isinstance(expr, IrVar):
+        k = ('var', expr.name)
     else:
-        if expr not in visited_order:
-            visited_order.append(expr)
-            nodes = visited_expr[expr]
-            del visited_expr[expr]
-            visited_expr[expr] = nodes
-        visited_expr[expr].add(node)
+        k = (type(expr).__name__, len(expr.children),
+             tuple(_key(c, memo) for c in expr.children))
+    memo[id(expr)] = k
+    return k
 
-def cse_block(block, node, visited_expr, visited_order):
+
+class _Table:
+    """Buckets equal expressions together; __eq__ still decides within a bucket.
+
+    IrAst.__hash__ is 0, so a plain dict degrades to one bucket and every lookup
+    becomes a linear scan of deep comparisons -- quadratic on a large block.
+    """
+
+    def __init__(self):
+        self.buckets = {}
+        self.memo = {}
+        self.ordered = set()
+
+    def find_or_add(self, expr):
+        bucket = self.buckets.setdefault(_key(expr, self.memo), [])
+        for rep in bucket:
+            if rep == expr:
+                return rep, False
+        bucket.append(expr)
+        return expr, True
+
+
+def check_expr_visit(expr, node, visited_expr, visited_order, table):
+    if isinstance(expr, IrConst) or isinstance(expr, IrVar) or isinstance(expr, IrPhi) or isinstance(expr, (int, float, str)) or expr is None:
+        return
+    rep, is_new = table.find_or_add(expr)
+    if is_new:
+        visited_expr[id(rep)] = {node}
+        for i in range(len(expr.children)):
+            check_expr_visit(expr.children[i], node, visited_expr, visited_order, table)
+    else:
+        if id(rep) not in table.ordered:
+            table.ordered.add(id(rep))
+            visited_order.append(rep)
+        visited_expr[id(rep)].add(node)
+
+def cse_block(block, node, visited_expr, visited_order, table):
     ir_list = block.children
     for ir in ir_list:
         if isinstance(ir, IrAssignment):
-            check_expr_visit(ir.children[1], node, visited_expr, visited_order)
+            check_expr_visit(ir.children[1], node, visited_expr, visited_order, table)
         elif isinstance(ir, IrTransRetBasic):
             for j in range(len(ir.children)):
-                check_expr_visit(ir.children[j], node, visited_expr, visited_order)
+                check_expr_visit(ir.children[j], node, visited_expr, visited_order, table)
 
 def replace_all_occurrences_expr(expr, sub_expr, var):
     replaced = False
     if expr == sub_expr:
         return var, True
-    if isinstance(expr, int):
+    if isinstance(expr, (int, float, str)) or expr is None:
         return expr, False
     for i in range(len(expr.children)):
         new_child, replaced_temp = replace_all_occurrences_expr(expr.children[i], sub_expr, var)
@@ -93,15 +129,33 @@ def compute_ancestor(occurrences, dtree, node):
 def check_occurrence(ir, var):
     if ir == var:
         return True
-    if isinstance(ir, int):
+    if isinstance(ir, (int, float, str)) or ir is None:
         return False
     occurrs = False
     for i in range(len(ir.children)):
         occurrs = occurrs or check_occurrence(ir.children[i], var)
     return occurrs
 
+def _loop_body_nodes(cfg):
+    nodes = set()
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        if isinstance(block, IrWhileBlock):
+            nodes.update(cfg.get_block_id(inner) for inner in block.loopBody)
+    return nodes
+
+def _clear_inside_while(node):
+    if isinstance(node, IrAst):
+        node.inside_while = False
+        for child in node.children:
+            _clear_inside_while(child)
+
 def add_assignment(assignment, occurrences, cfg, dtree):
     node = compute_ancestor(occurrences, dtree, cfg.entry_node)
+    if node not in _loop_body_nodes(cfg):
+        # Hoisted out of a traversal loop: its jit capture must not be keyed by
+        # (or reference) a loop iteration that does not exist at this point.
+        _clear_inside_while(assignment.children[1])
     ir_list = cfg.ir[node].children
     index = -1
     if node in occurrences:
@@ -119,20 +173,22 @@ def create_new_assignments(visited_order, visited_expr, cfg, dtree):
         new_var = IrVar(get_var(), original_expr.irMetadata)
         new_assignment = IrAssignment(new_var, original_expr)
         new_var.defs = new_assignment
-        visited_expr[original_expr] = []
+        occurrences = []
         for node in cfg.nodes:
             block = cfg.ir[node]
             replaced = replace_all_occurrences_block(block, new_assignment)
             if replaced:
-                visited_expr[original_expr].append(node)
-        
-        add_assignment(new_assignment, visited_expr[original_expr], cfg, dtree)
+                occurrences.append(node)
+        visited_expr[id(original_expr)] = occurrences
+
+        add_assignment(new_assignment, occurrences, cfg, dtree)
 
 def cse_cfg(cfg, dtree):
     visited_expr = {}
     visited_order = []
+    table = _Table()
     for node in cfg.nodes:
-        cse_block(cfg.ir[node], node, visited_expr, visited_order)
+        cse_block(cfg.ir[node], node, visited_expr, visited_order, table)
     
     create_new_assignments(visited_order, visited_expr, cfg, dtree)
     

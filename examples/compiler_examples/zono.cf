@@ -16,6 +16,11 @@ func compute_l(Float u, Float l) = (u * l) / (u - (l + 0.0001)) ;
 transformer zono{
     Affine -> ((prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_lower), (prev[Z].dot(curr[weight]) + (curr[bias])).map(deepz_upper), prev[Z].dot(curr[weight]) + (curr[bias]));
     Relu -> (0, 0, (prev[l] >= 0.0 ? prev[Z] : (prev[u] <= 0.0 ? 0.0 : x(prev[l], prev[u], prev[Z]))));
+
+    //FIX FOR: the builtin Add summed the parents' l/u, but Relu stores placeholder (0, 0), so a residual Add's bounds
+    // ignored the skip branch and the following Relu relaxed against the wrong interval (unsound on ResNets).
+    // DeepZ (ELINA zonotope_aff_add): add the affine forms, then concretize the sum.
+    Neuron_add -> ((prev_0[Z] + prev_1[Z]).map(deepz_lower), (prev_0[Z] + prev_1[Z]).map(deepz_upper), prev_0[Z] + prev_1[Z]);
 }
 
 flow(forward, priority, stop, zono);

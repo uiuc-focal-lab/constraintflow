@@ -86,41 +86,83 @@ expr_list : expr COMMA expr_list
 exprs: expr exprs
     | expr;
 
-expr: FALSE					                        #false
-    | TRUE 					                        #true
-    | IntConst 					                    #int
-    | FloatConst 				                    #float
-    | VAR                     			            #varExp
-    | EPSILON 					                    #epsilon
-    | ALPHA LPAREN expr RPAREN                       #alphaparam
-    | CURR					                        #curr
-    | PREV					                        #prev
-    | PREV_0					                    #prev_0
-    | PREV_1					                    #prev_1
-    | CURRLIST					                    #curr_list
-    | LPAREN expr RPAREN      			            #parenExp
-    | LSQR expr_list RSQR                           #exprarray
-    | expr LSQR metadata RSQR                       #getMetadata
-    | expr LSQR VAR RSQR                            #getElement
-    | expr binop expr         			            #binopExp
-    | NOT expr       				                #not
-    | MINUS expr				                    #neg
-    | SIGMA expr				                    #sigma
-    | expr QUES expr COLON expr 		            #cond
-    | IF expr THEN expr ELSE expr FI                #cond_if
-    | expr DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE expr RBRACE		#traverse
-    | argmax_op LPAREN expr COMMA expr RPAREN 	    #argmaxOp
-    | max_op LPAREN expr RPAREN                     #maxOpList
-    | max_op LPAREN expr COMMA expr RPAREN          #maxOp
-    | list_op LPAREN expr RPAREN 			        #listOp
-    | expr DOT MAP LPAREN expr RPAREN 		        #map
-    | expr DOT MAPLIST LPAREN expr RPAREN 		    #map_list
-    | expr DOT DOTT LPAREN expr RPAREN 		        #dot
-    | expr DOT CONCAT LPAREN expr RPAREN 		    #concat
+// Precedence (lowest to highest, as in C/Java): ?: ; || ; && ; == != ; < <= > >= In ; + - ; * / ; unary ; postfix
+
+expr
+    : IF expr THEN expr ELSE expr FI                #cond_if
+    | logicalOr (QUES expr COLON expr)?             #cond
+    ;
+
+logicalOr
+    : logicalOr OR logicalAnd                       #orOp
+    | logicalAnd                                  #orPass
+    ;
+
+logicalAnd
+    : logicalAnd AND equality                      #andOp
+    | equality                                    #andPass
+    ;
+
+equality
+    : equality ( EQQ | NEQ ) relational           #eqOp
+    | relational                                  #eqPass
+    ;
+
+relational
+    : relational ( GEQ | LEQ | LT | GT | IN ) additive   #relOp
+    | additive                                    #relPass
+    ;
+
+additive
+    : additive ( PLUS | MINUS ) multiplicative    #addOp
+    | multiplicative                              #addPass
+    ;
+
+multiplicative
+    : multiplicative ( MULT | DIV ) unary         #mulOp
+    | unary                                       #mulPass
+    ;
+
+unary
+    : MINUS unary                                 #neg
+    | NOT unary                                   #not
+    | SIGMA unary                                 #sigma
+    | suffix                                      #unarySuffix
+    ;
+
+suffix
+    : suffix LSQR metadata RSQR                   #getMetadata
+    | suffix LSQR VAR RSQR                        #getElement
+    | suffix DOT TRAV LPAREN direction COMMA expr COMMA expr COMMA expr RPAREN LBRACE expr RBRACE   #traverse
+    | suffix DOT MAP LPAREN expr RPAREN           #map
+    | suffix DOT MAPLIST LPAREN expr RPAREN       #map_list
+    | suffix DOT DOTT LPAREN expr RPAREN          #dot
+    | suffix DOT CONCAT LPAREN expr RPAREN        #concat
+    | atom                                        #suffixAtom
+    ;
+
+atom
+    : FALSE                                       #false
+    | TRUE                                        #true
+    | IntConst                                    #int
+    | FloatConst                                  #float
+    | VAR                                         #varExp
+    | EPSILON                                     #epsilon
+    | CURR                                        #curr
+    | PREV                                        #prev
+    | PREV_0                                      #prev_0
+    | PREV_1                                      #prev_1
+    | CURRLIST                                    #curr_list
+    | LPAREN expr RPAREN                          #parenExp
+    | LSQR expr_list RSQR                         #exprarray
+    | argmax_op LPAREN expr COMMA expr RPAREN     #argmaxOp
+    | max_op LPAREN expr RPAREN                   #maxOpList
+    | max_op LPAREN expr COMMA expr RPAREN        #maxOp
+    | list_op LPAREN expr RPAREN                  #listOp
     | LP LPAREN lp_op COMMA expr COMMA expr RPAREN  #lp
-    | VAR LPAREN expr_list RPAREN 		            #funcCall
-    | VAR exprs                                     #curry
-;
+    | VAR LPAREN expr_list RPAREN                 #funcCall
+    | VAR exprs                                   #curry
+    ;
 
 argmax_op: ARGMAX
 	|	ARGMIN ;
@@ -134,20 +176,6 @@ max_op: MAX
 list_op: SUM
     |   LEN 
     |   AVG ;
-
-binop: DIV 
-	|	MULT  
-	|	MINUS 
-	|	PLUS  
-	|	AND 
-	|	OR 
-	|	GEQ 
-	|	LEQ
-    |   LT
-    |   GT
-    |   EQQ 
-    |   IN
-    ;
 
 
 metadata: WEIGHT 
@@ -253,7 +281,6 @@ TANH: 'Tanh' ;
 SHAPE: 'def Shape as' ;
 FUNC: 'func' ;
 EPSILON: 'eps' ;
-ALPHA: 'alpha' ;
 TRUE: 'true' ;
 FALSE: 'false' ;
 CURR: 'curr' ;

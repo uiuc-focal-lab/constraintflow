@@ -34,6 +34,11 @@ transformer deeppoly{
     
     Relu -> (relu(prev[l]), relu(prev[u]), relu_n(prev), compute_upper(prev));
 
+    //FIX FOR: residual Adds fell back to the builtin Add, which sums the parents' intervals and so loses the
+    // correlations between the skip and conv branches (sound but loose on ResNets). Same rule as deeppoly_add:
+    // backsubstitute the summed expression.
+    Neuron_add -> (backsubs_lower(prev_0 + prev_1, curr), backsubs_upper(prev_0 + prev_1, curr), prev_0 + prev_1, prev_0 + prev_1);
+
 }
 
 flow(forward, priority, stop, deeppoly);

@@ -21,12 +21,40 @@ func abs(Float x) = x > 0.0 ? x : -x;
 
 func relu(Float x) = x > 0.0 ? x : 0.0;
 func relu_n(Neuron n) = n[l] + n[u] > 0.0 ? n : 0.0;
-func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] < 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+// FIX FOR: an input fixed at 0 (l = u = 0) divided 0/0 in the chord below; u <= 0 is the always-off case.
+func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] <= 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+
+//FEAT: DeepPoly's sigmoid rule (from custom_stops/deeppoly.cf): chord if the interval is on one side of 0, else the
+// line through the endpoint with slope min(sigma'(l), sigma'(u)).
+func deriv(Float x) = sigma(x) * (1 - sigma(x));
+
+func my_min(Float a, Float b) = (a < b) ? a : b;
+
+func lambda(Float l, Float u) = (sigma(u) - sigma(l)) / (u - l);
+func lambda_prime(Float l, Float u) = my_min(deriv(l), deriv(u));
+
+func sigmoid_l(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[l] > 0.0 ? ((sigma(n[l])) + (lambda(n[l], n[u]) * n) - (lambda(n[l], n[u]) * n[l])) : ((sigma(n[l])) + (lambda_prime(n[l], n[u]) * n) - (lambda_prime(n[l], n[u]) * n[l]))) ;
+
+func sigmoid_u(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[u] <= 0.0 ? ((sigma(n[u])) + (lambda(n[l], n[u]) * n) - (lambda(n[l], n[u]) * n[u])) : ((sigma(n[u])) + (lambda_prime(n[l], n[u]) * n) - (lambda_prime(n[l], n[u]) * n[u]))) ;
+
+//FEAT: tanh as 2 sigma(2x) - 1 in DeepPoly's sigmoid rule (the same chord / min-slope cases).
+func tanh_f(Float x) = 2.0 * sigma(2.0 * x) - 1.0;
+func tanh_deriv(Float x) = 4.0 * sigma(2.0 * x) * (1 - sigma(2.0 * x));
+func tanh_lambda(Float l, Float u) = (tanh_f(u) - tanh_f(l)) / (u - l);
+func tanh_lambda_prime(Float l, Float u) = my_min(tanh_deriv(l), tanh_deriv(u));
+
+func tanh_l(Neuron n) = (n[l] >= n[u]) ? (tanh_f(n[l])) : (n[l] > 0.0 ? ((tanh_f(n[l])) + (tanh_lambda(n[l], n[u]) * n) - (tanh_lambda(n[l], n[u]) * n[l])) : ((tanh_f(n[l])) + (tanh_lambda_prime(n[l], n[u]) * n) - (tanh_lambda_prime(n[l], n[u]) * n[l]))) ;
+
+func tanh_u(Neuron n) = (n[l] >= n[u]) ? (tanh_f(n[l])) : (n[u] <= 0.0 ? ((tanh_f(n[u])) + (tanh_lambda(n[l], n[u]) * n) - (tanh_lambda(n[l], n[u]) * n[u])) : ((tanh_f(n[u])) + (tanh_lambda_prime(n[l], n[u]) * n) - (tanh_lambda_prime(n[l], n[u]) * n[u]))) ;
 
 transformer deeppoly{
     Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
     
     Relu -> (relu(prev[l]), relu(prev[u]), relu_n(prev), compute_upper(prev));
+
+    Sigmoid -> (sigma(prev[l]), sigma(prev[u]), sigmoid_l(prev), sigmoid_u(prev));
+
+    Tanh -> (tanh_f(prev[l]), tanh_f(prev[u]), tanh_l(prev), tanh_u(prev));
 
 }
 

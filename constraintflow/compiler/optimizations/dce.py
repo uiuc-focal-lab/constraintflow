@@ -1,5 +1,6 @@
 from constraintflow.compiler.ir import *
 from constraintflow.compiler.optimizations import uses
+from constraintflow.lib.globals import reuse_mode, dummy_mode
 
 
 # A polyexp/symexp variable whose every use reads only the coefficient half
@@ -63,12 +64,14 @@ def dce_cfg(cfg):
 
 def dce(ir):
     uses.populate_uses_defs(ir)
-    for transformer in ir.tstore.keys():
-        for i in range(len(ir.tstore[transformer])):
-            cfg = ir.tstore[transformer][i].cfg
-            for node in cfg.nodes:
-                kill_dead_poly_const_block(cfg.ir[node])
-    uses.populate_uses_defs(ir)
+    #FEAT: upstream's dead polyexp-constant pass, plain builds only (in scepter builds it blocks product grids).
+    if not (reuse_mode.get_flag() or dummy_mode.get_flag()):
+        for transformer in ir.tstore.keys():
+            for i in range(len(ir.tstore[transformer])):
+                cfg = ir.tstore[transformer][i].cfg
+                for node in cfg.nodes:
+                    kill_dead_poly_const_block(cfg.ir[node])
+        uses.populate_uses_defs(ir)
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
             cfg = ir.tstore[transformer][i].cfg

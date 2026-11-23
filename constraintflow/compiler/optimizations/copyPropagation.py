@@ -14,7 +14,7 @@ def replace_all_occurrences_metadata(irMetadata, old_var, new_var):
                 
 
 def replace_all_occurrences_expr(expr, old_var, new_var):
-    if not isinstance(expr, int):
+    if not (isinstance(expr, (int, float, str)) or expr is None):
         replace_all_occurrences_metadata(expr.irMetadata, old_var, new_var)
         if expr == old_var:
             return new_var
@@ -38,14 +38,62 @@ def replace_all_occurrences(old_var, new_var, cfg):
         if block.jump != None:
             block.jump[0] = replace_all_occurrences_expr(block.jump[0], old_var, new_var)
 
+def _target(var, mapping):
+    """Follow a copy chain to its end; mirrors applying the copies in order."""
+    seen = set()
+    while var.name in mapping and var.name not in seen:
+        seen.add(var.name)
+        var = mapping[var.name]
+    return var
+
+
+def _copy_map(ir_list):
+    """Every `x = y` in the block, resolved through the copies before it."""
+    mapping, removed = {}, []
+    for i, stmt in enumerate(ir_list):
+        if isinstance(stmt, IrAssignment) and isinstance(stmt.children[1], IrVar):
+            mapping[stmt.children[0].name] = _target(stmt.children[1], mapping)
+            removed.append(i)
+    return mapping, removed
+
+
+def _rewrite_metadata(irMetadata, mapping):
+    for irMetadataElement in irMetadata:
+        for seq in (irMetadataElement.shape, irMetadataElement.broadcast):
+            for i in range(len(seq)):
+                if isinstance(seq[i], IrAst):
+                    _rewrite_expr(seq[i], mapping)
+
+
+def _rewrite_expr(expr, mapping):
+    if isinstance(expr, (int, float, str)) or expr is None:
+        return expr
+    _rewrite_metadata(expr.irMetadata, mapping)
+    if isinstance(expr, IrVar) and expr.name in mapping:
+        return mapping[expr.name]
+    for i in range(len(expr.children)):
+        expr.children[i] = _rewrite_expr(expr.children[i], mapping)
+    return expr
+
+
+def _rewrite_cfg(cfg, mapping):
+    """One walk applying every copy at once; per-copy walks were quadratic."""
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        for stmt in block.children:
+            stmt.update_parent_child(
+                [_rewrite_expr(child, mapping) for child in stmt.children])
+        if block.inner_jump != None:
+            block.inner_jump[0] = _rewrite_expr(block.inner_jump[0], mapping)
+        if block.jump != None:
+            block.jump[0] = _rewrite_expr(block.jump[0], mapping)
+
+
 def cp_block(block, cfg):
     ir_list = block.children
-    to_be_removed = []
-    for i in range(len(ir_list)):
-        if isinstance(ir_list[i], IrAssignment):
-            if isinstance(ir_list[i].children[1], IrVar):
-                replace_all_occurrences(ir_list[i].children[0], ir_list[i].children[1], cfg)
-                to_be_removed.append(i)
+    mapping, to_be_removed = _copy_map(ir_list)
+    if mapping:
+        _rewrite_cfg(cfg, mapping)
     for i in range(len(to_be_removed)-1, -1, -1):
         del ir_list[to_be_removed[i]]
     return ir_list

@@ -62,7 +62,7 @@ class ASTTC(astVisitor.ASTVisitor):
 		self.shape = []
 		# self.currdefined = False #prev is also defined when curr is
 		self.edges = {"Int": "Float", "Float" : ["PolyExp", "SymExp"], "Neuron":"PolyExp", "Noise":"SymExp", "SymExp":"Top", "PolyExp":"Top", "Bool":"Ct", "Ct":"Top", "Bot":["Bool", "Int", "Noise", "Neuron"]}
-		self.metadata = {"layer":"Int", "last_layer":"Int", "weight": ArrayType("Float"), "bias": "Float", "serial":"Int", "local_serial": "Int", "equations":ArrayType("PolyExp")}	
+		self.metadata = {"layer":"Int", "last_layer":"Int", "weight": ArrayType("Float"), "bias": "Float", "serial":"Int", "local_serial": "Int", "equations":ArrayType("PolyExp")}
 		self.hasE = False
 
 	def isSubType(self, t1, t2):
@@ -160,6 +160,10 @@ class ASTTC(astVisitor.ASTVisitor):
 		if(op == "+" or op == "-"):
 			# if((self.isSubType(ltype, "SymExp") and self.isSubType(rtype, "PolyExp")) or (self.isSubType(rtype, "SymExp") and self.isSubType(ltype, "PolyExp"))):
 			# 	return 'PolyExp'
+			# A sum of two (different) neurons, e.g. Neuron_add's prev_0 + prev_1, is a
+			# linear expression, not a neuron.
+			if(ltype == "Neuron" and rtype == "Neuron"):
+				return 'PolyExp'
 			if(ltype in accepted and rtype in accepted):
 				if(self.lub_type(ltype, rtype) != "Top"):
 					return self.lub_type(ltype, rtype)
@@ -377,14 +381,6 @@ class ASTTC(astVisitor.ASTVisitor):
 		self.hasE = True
 		node.type = "Noise"
 		return "Noise"
-
-	def visitAlpha(self, node: AST.AlphaNode):
-		if node.init is not None:
-			itype = self.visit(node.init)
-			if itype not in ("Float", "Int"):
-				raise TypeMismatchException("alpha(...) initialiser must be Float")
-		node.type = "Float"
-		return "Float"
 
 	def visitTernary(self, node: AST.TernaryNode):
 		ctype = self.visit(node.cond)
@@ -679,7 +675,7 @@ class ASTTC(astVisitor.ASTVisitor):
 
 	def visitOpStmt(self, node: AST.OpStmtNode):
 		self.Gamma['curr'] = 'Neuron'
-		if node.op.op_name == 'Affine':
+		if node.op.op_name in ('Affine', 'Affine_skip'):
 			self.Gamma['prev'] = ArrayType('Neuron')
 		elif node.op.op_name == 'Relu':
 			self.Gamma['prev'] = 'Neuron'
