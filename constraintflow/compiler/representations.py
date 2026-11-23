@@ -1,8 +1,12 @@
 from constraintflow.compiler.ir import *
+from constraintflow.lib.globals import dummy_mode, reuse_mode
 
 import networkx as nx
 import matplotlib.pyplot as plt
 import graphviz
+
+def _jit_metadata_active():
+    return dummy_mode.get_flag() or reuse_mode.get_flag()
 
 def get_z3_vars(z3_expr):
     if isinstance(z3_expr, z3.z3.ArithRef):
@@ -21,6 +25,7 @@ class Graph:
         self.nodes = []
         self.predecessors = {}
         self.successors = {}
+        # ir type: dict[int -> ir.IrBlock]
         self.ir = {}
         self.counter = 0
         self.entry_node = -1
@@ -131,7 +136,14 @@ class Graph:
     def print(self):
         dot = graphviz.Digraph()
         for i in self.nodes:
-            dot.node(str(i))
+            block = self.ir[i]
+            label = str(i)
+            attrs = {}
+            if hasattr(block, 'inside_while') and block.inside_while:
+                label += '\nwhile ' + str(block.while_number)
+                attrs['color'] = 'blue'
+                attrs['fontcolor'] = 'blue'
+            dot.node(str(i), label=label, **attrs)
             for j in self.successors[i]:
                 dot.edge(str(i), str(j))
         dot.render('graph', view=True)
@@ -143,36 +155,51 @@ class Graph:
         return -1
 
 
+while_counter = -1
+def get_while_counter():
+    global while_counter
+    while_counter += 1
+    return while_counter
+
 def create_cfg(ir_list):
     cfg = Graph()
-    def create_cfg_rec(ir_list, cfg, currBlock, currNode, whileBlock, exitWhileBlock):
+
+    # The reasoning for creating this function is that we want to assign block ids to blocks as we assign them to the IR nodes. 
+    def register_block(node, block):
+        block.block_id = node
+        cfg.ir[node] = block
+
+    def create_cfg_rec(ir_list, cfg, currBlock, currNode, whileBlock, exitWhileBlock, while_number=-1):
         end = 0
         while(end < len(ir_list)):
             if isinstance(ir_list[end], IrWhile):
                 new_children = ir_list[:end]
                 currBlock.update_parent_child(new_children)
                 if whileBlock != None:
+                    if _jit_metadata_active():
+                        currBlock.inside_while = True
+                        currBlock.while_number = while_number
                     if currBlock not in whileBlock.loopBody:
                         whileBlock.loopBody.append(currBlock)
                 cond = ir_list[end].children[0]
                 node_2 = cfg.add()
 
                 block_2 = IrWhileBlock(ir_list[end].children[0])
-                cfg.ir[node_2] = block_2
+                register_block(node_2, block_2)
                 currBlock.inner_jump = [cond, block_2]
 
                 node_3 = cfg.add()
                 block_3 = IrBlock()
-                cfg.ir[node_3] = block_3
+                register_block(node_3, block_3)
                 
 
                 cond = IrUnaryOp(cond, 'not')
                 currBlock.jump = [cond, block_3]
 
-                break_node = create_cfg_rec(ir_list[end].children[1:], cfg, block_2, node_2, block_2, block_3)
+                break_node = create_cfg_rec(ir_list[end].children[1:], cfg, block_2, node_2, block_2, block_3, get_while_counter())
                 block_2.loopBody[-1].loopBack = [block_2.condIr, block_2]
                 
-                ret_node = create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock)
+                ret_node = create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock, while_number)
 
                 cfg.successors[currNode].append(node_2)
 
@@ -189,31 +216,34 @@ def create_cfg(ir_list):
                 new_children = ir_list[:end]
                 currBlock.update_parent_child(new_children)
                 if whileBlock != None:
+                    if _jit_metadata_active():
+                        currBlock.inside_while=True
+                        currBlock.while_number = while_number
                     if currBlock not in whileBlock.loopBody:
                         whileBlock.loopBody.append(currBlock)
-                cond_if = ir_list[end].condIr 
+                cond_if = ir_list[end].condIr
                 cond_else = IrUnaryOp(cond_if, 'not')
                 block_if = IrBlock()
                 node_if = cfg.add()
-                cfg.ir[node_if] = block_if
+                register_block(node_if, block_if)
 
                 
                 
-                end_if_node = create_cfg_rec(ir_list[end].lhsIrs, cfg, block_if, node_if, whileBlock, exitWhileBlock)
+                end_if_node = create_cfg_rec(ir_list[end].lhsIrs, cfg, block_if, node_if, whileBlock, exitWhileBlock, while_number)
 
                 if len(ir_list[end].rhsIrs) > 0:
                     block_else = IrBlock()
                     node_else = cfg.add()
-                    cfg.ir[node_else] = block_else
-                    end_else_node = create_cfg_rec(ir_list[end].rhsIrs, cfg, block_else, node_else, whileBlock, exitWhileBlock)
+                    register_block(node_else, block_else)
+                    end_else_node = create_cfg_rec(ir_list[end].rhsIrs, cfg, block_else, node_else, whileBlock, exitWhileBlock, while_number)
                     currBlock.inner_jump = [cond_if, block_if, block_else]
                 else:
                     currBlock.inner_jump = [cond_if, block_if]
                 
                 node_3 = cfg.add()
                 block_3 = IrBlock()
-                cfg.ir[node_3] = block_3
-                create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock)
+                register_block(node_3, block_3)
+                create_cfg_rec(ir_list[end+1:], cfg, block_3, node_3, whileBlock, exitWhileBlock, while_number)
                 currBlock.jump = [cond_else, block_3]
 
 
@@ -245,6 +275,9 @@ def create_cfg(ir_list):
                 new_children = ir_list[:end+1]
                 currBlock.update_parent_child(new_children)
                 if whileBlock != None:
+                    if _jit_metadata_active():
+                        currBlock.inside_while=True
+                        currBlock.while_number = while_number
                     if currBlock not in whileBlock.loopBody:
                         whileBlock.loopBody.append(currBlock)
 
@@ -256,13 +289,16 @@ def create_cfg(ir_list):
                     new_children = ir_list[:end]
                     currBlock.update_parent_child(new_children)
                     if whileBlock != None:
+                        if _jit_metadata_active():
+                            currBlock.inside_while=True
+                            currBlock.while_number = while_number
                         if currBlock not in whileBlock.loopBody:
                             whileBlock.loopBody.append(currBlock)
                     return currNode
     rootBlock = IrBlock([])
     whileBlock = None
     rootNode = cfg.add()
-    cfg.ir[rootNode] = rootBlock
+    register_block(rootNode, rootBlock)
     create_cfg_rec(ir_list, cfg, rootBlock, rootNode, whileBlock, whileBlock)
     return cfg
     

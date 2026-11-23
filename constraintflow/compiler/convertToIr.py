@@ -11,6 +11,7 @@ class FuncDef:
 
 class ConvertToIr(astVisitor.ASTVisitor):
     def __init__(self):
+        self.stop_call_cache = {}
         self.counter = 0
         self.store = {}
         self.fstore = {}
@@ -50,6 +51,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
         
 
     def visitBinOp(self, ast_node: AST.BinOpNode, lhsIr=None, rhsIr=None, ast_node_type=None, op=None):
+        # print(op, '#################')
         seqIr = []
         if lhsIr==None:
             lhsIr, lhsSeqIr = self.visit(ast_node.left)
@@ -304,7 +306,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 return new_var, condSeqIr + [new_out]
 
     def visitTernary(self, ast_node: AST.TernaryNode):
-        return self.get_conditional_args(ast_node, IrTernary)
+        result, seq = self.get_conditional_args(ast_node, IrTernary)
+        if getattr(ast_node, "invariant_stop", False):
+            result.invariant_stop = True
+        return result, seq
     
     def visitIf(self, ast_node: AST.IfNode):
         return self.get_conditional_args(ast_node, IrIte)
@@ -332,8 +337,8 @@ class ConvertToIr(astVisitor.ASTVisitor):
 
             return IrCombineToSym(IrDot(rhsIr, coeff), IrDot(rhsIr, const)), lhsSeqIr + rhsSeqIr
         else:
-            print(lhsIr.irMetadata[-1].type)
-            print(rhsIr.irMetadata[-1].type)
+            # print(lhsIr.irMetadata[-1].type)
+            # print(rhsIr.irMetadata[-1].type)
             assert False
 
         return IrDot(lhsIr, rhsIr), lhsSeqIr + rhsSeqIr
@@ -346,10 +351,6 @@ class ConvertToIr(astVisitor.ASTVisitor):
         exprIr, exprSeqIr = self.visit(ast_node.expr)
         return IrAccess(exprIr, ast_node.metadata.name, None, True), exprSeqIr
     
-    def visitAlpha(self, ast_node):
-        initIr, seqIr = self.visit(ast_node.init)
-        return IrAlpha(site=ast_node.identifier, init=initIr), seqIr
-
     def visitFuncCall(self, ast_node):
         seqIr = []
         argIrs = []
@@ -363,12 +364,26 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 seqIr.append(new_var_assignment)
             else:
                 argIrs.append(exprIr)
-        # argIrs = [self.visit(expr) for expr in ast_node.arglist.exprlist]
+        #FEAT: reserved names call the backend's tangent-point tables (constraintflow/lib/s_shaped.py).
+        if ast_node.name.name in ('sigma_tangent', 'tanh_tangent'):
+            return IrUnaryOp(argIrs[0], ast_node.name.name), seqIr
+        fn = self.ast_fstore[ast_node.name.name]
+        cache_key = None
+        if getattr(fn.expr, 'invariant_stop', False) and all(isinstance(x, (IrVar, IrConst)) for x in argIrs):
+            cache_key = (ast_node.name.name, tuple((x.__class__.__name__, x.name if isinstance(x, IrVar) else x.const) for x in argIrs))
+            if cache_key in self.stop_call_cache:
+                return self.stop_call_cache[cache_key], seqIr
+
         original_store = copy.deepcopy(self.store)
         for i, (type, arg) in enumerate(self.ast_fstore[ast_node.name.name].decl.arglist.arglist):
             self.store[arg.name] = argIrs[i]
         retIr, retSeqIr = self.visit(self.ast_fstore[ast_node.name.name].expr)
         self.store = original_store
+        if cache_key is not None:
+            value = IrVar(self.get_var(), retIr.irMetadata)
+            retSeqIr.append(IrAssignment(value, retIr))
+            retIr = value
+            self.stop_call_cache[cache_key] = value
         return retIr, seqIr + retSeqIr 
 
     def visitMap(self, ast_node, inputExpIr=None, inputExpSeqIr = None, name=None, reduce=True, dims=None):
@@ -587,11 +602,28 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return lhsIr + rhsIr
     
     def visitTransRetBasic(self, ast_node):
-        retlist = []
+        # Reuse is local to one return branch; sibling branches do not dominate it.
+        self.stop_call_cache = {}
+        exprIrs = []
         seqIr = []
         for i in range(len(self.shape.keys())):
             exprIr, exprSeqIr = self.visit(ast_node.exprlist.exprlist[i])
             seqIr += exprSeqIr
+            exprIrs.append(exprIr)
+        tail_seqIr, retlist = self.build_trans_ret(exprIrs)
+        seqIr += tail_seqIr
+        seqIr.append(IrTransRetBasic(retlist))
+        return seqIr
+
+    def build_trans_ret(self, exprIrs):
+        """Type-coerce/expand one already-built expression per shape key and bind
+        it to a `<key>_new` var. This is visitTransRetBasic's tail, split out so
+        synthesized ops (see compiler/builtin_ops.py) that build exprIrs without
+        an AST can reuse the same return-shaping logic instead of duplicating it."""
+        seqIr = []
+        retlist = []
+        for i in range(len(self.shape.keys())):
+            exprIr = exprIrs[i]
 
             if exprIr.irMetadata[-1].type != self.shape[list(self.shape.keys())[i]]:
                 if exprIr.irMetadata[-1].isConst:
@@ -603,13 +635,13 @@ class ConvertToIr(astVisitor.ASTVisitor):
                         exprIr = IrConvertConstToPoly(exprIr)
                 elif self.shape[list(self.shape.keys())[i]] == 'SymExp':
                     exprIr = IrConvertConstToSym(exprIr)
-                
+
             if is_expanded_metadata(exprIr.irMetadata):
                 varIr = IrVar(list(self.shape.keys())[i]+'_new', exprIr.irMetadata)
                 temp = IrAssignment(varIr, exprIr)
             else:
                 if exprIr.irMetadata[-1].type == 'PolyExp':
-                    coeffIr, constIr = IrExtractPolyCoeff(exprIr), IrExtractPolyConst(exprIr)               
+                    coeffIr, constIr = IrExtractPolyCoeff(exprIr), IrExtractPolyConst(exprIr)
                     new_coeffIr = IrRepeat(coeffIr, expand_irMetadata(coeffIr.irMetadata))
                     new_constIr = IrRepeat(constIr, expand_irMetadata(constIr.irMetadata))
                     repeatedIr = IrCombineToPoly(new_coeffIr, new_constIr)
@@ -621,8 +653,7 @@ class ConvertToIr(astVisitor.ASTVisitor):
 
             seqIr.append(temp)
             retlist.append(varIr)
-        seqIr.append(IrTransRetBasic(retlist))
-        return seqIr
+        return seqIr, retlist
 
     def merge_condition(self, ast_node):
         if isinstance(ast_node, AST.TransRetBasicNode):
@@ -657,17 +688,32 @@ class ConvertToIr(astVisitor.ASTVisitor):
         return condIr[1] + [new_assignment, IrIte(new_var, leftIrs, rightIrs)]
     
     def visitOpStmt(self, ast_node):
+        self.stop_call_cache = {}
         original_store = copy.deepcopy(self.store)
-        if ast_node.op.op_name == 'Relu' or ast_node.op.op_name == 'Abs' or ast_node.op.op_name == 'HardSigmoid' or ast_node.op.op_name == 'HardTanh' or ast_node.op.op_name == 'Sigmoid':
+        if ast_node.op.op_name == 'Relu' or ast_node.op.op_name == 'Abs' or ast_node.op.op_name == 'HardSigmoid' or ast_node.op.op_name == 'HardTanh' or ast_node.op.op_name in ('Sigmoid', 'Tanh'):
             self.store['curr'] = IrVar('curr', [IrMetadataElement([1, IrAst.curr_size], 'Neuron', [IrAst.batch_size, 1], False)])
             self.store['prev'] = IrVar('prev', [IrMetadataElement([1, IrAst.curr_size], 'Neuron', [IrAst.batch_size, 1], False)])
-        elif ast_node.op.op_name == 'Affine':
+        elif ast_node.op.op_name in ('Affine', 'Affine_skip'):
             self.store['curr'] = IrVar('curr', [IrMetadataElement([1, IrAst.curr_size], 'Neuron', [IrAst.batch_size, 1], False)])
             self.store['prev'] = IrVar('prev', [IrMetadataElement([1, 1, IrAst.prev_size], 'Neuron', [IrAst.batch_size, IrAst.curr_size, 1], False)])
+        #FEAT: Neuron_mult (product of two network values) lowers like Neuron_add, to the 'Mult' op Flow.flow calls.
+        elif ast_node.op.op_name in ('Neuron_add', 'Neuron_mult'):
+            # A program-defined rule for the residual Add layer. prev_0/prev_1 are the two
+            # parent layers, bound to the prev1/prev2 parameters Flow.flow passes to
+            # transformer.Add; when present it replaces builtin_ops' default Add.
+            from constraintflow.compiler.builtin_ops import BINARY_OP_PARAMS, _relu_shaped_operand
+            self.store['curr'] = IrVar('curr', [IrMetadataElement([1, IrAst.curr_size], 'Neuron', [IrAst.batch_size, 1], False)])
+            self.store['prev_0'] = _relu_shaped_operand('prev1')
+            self.store['prev_1'] = _relu_shaped_operand('prev2')
+            temp = self.visit(ast_node.ret)
+            op = 'Add' if ast_node.op.op_name == 'Neuron_add' else 'Mult'
+            retIr = IrOpStmt(op, representations.create_cfg(temp), params=BINARY_OP_PARAMS)
+            self.store = original_store
+            return retIr
         else:
             raise Exception('Not Implemented')
         temp = self.visit(ast_node.ret)
-        
+
         cfg = representations.create_cfg(temp)
         retIr = IrOpStmt(ast_node.op.op_name, cfg)
         self.store = original_store

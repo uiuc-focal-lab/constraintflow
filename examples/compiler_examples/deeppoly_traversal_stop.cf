@@ -1,0 +1,30 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func simplify_lower(Neuron n, Float c) = c >= 0.0 ? n[l] * c : c * n[u];
+func simplify_upper(Neuron n, Float c) = c >= 0.0 ? c * n[u] : c * n[l];
+func replace_lower(Neuron n, Float c) = c >= 0.0 ? c * n[L] : c * n[U];
+func replace_upper(Neuron n, Float c) = c >= 0.0 ? c * n[U] : c * n[L];
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n, Float c) = n[layer];
+func stop(Neuron n) = false;
+func stop_traverse(Neuron n, Float c) = false;
+// Captured bounds belong to the row being refined, not the visited vertex.
+func stop_row(Float l, Float u, Neuron n, Float c) = ((l >= 0.0) or (u <= 0.0)) and (l <= u);
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_upper){e >= n}).map(simplify_upper);
+func refine_lower(Neuron n) = (n[L].traverse(backward, priority2, stop_row(n[l], n[u]), replace_lower){n[L] <= n}).map(simplify_lower);
+func refine_upper(Neuron n) = (n[U].traverse(backward, priority2, stop_row(n[l], n[u]), replace_upper){n[U] >= n}).map(simplify_upper);
+func relu(Float x) = x > 0.0 ? x : 0.0;
+func relu_n(Neuron n, Float l, Float u) = l + u > 0.0 ? n : 0.0;
+func compute_upper(Neuron n, Float l, Float u) = l > 0.0 ? n : (u <= 0.0 ? 0.0 : (u / (u - l)) * n - (u * l) / (u - l));
+
+transformer deeppoly{
+    // Intermediate affine nodes propagate intervals. Refinement is demanded by
+    // ReLU below; the final specification always performs full traversal.
+    Affine -> curr[last_layer] == 1 ?
+        (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]) :
+        ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
+    Relu -> (relu(refine_lower(prev)), relu(refine_upper(prev)), relu_n(prev, refine_lower(prev), refine_upper(prev)), compute_upper(prev, refine_lower(prev), refine_upper(prev)));
+    Neuron_add -> ((prev_0 + prev_1).map(simplify_lower), (prev_0 + prev_1).map(simplify_upper), prev_0 + prev_1, prev_0 + prev_1);
+}
+flow(forward, priority, stop, deeppoly);

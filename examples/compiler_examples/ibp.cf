@@ -6,12 +6,17 @@ func simplify_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[u]) : (
 func priority(Neuron n) = n[layer];
 func stop(Neuron n) = true;
 
+//FEAT: tanh as 2 sigma(2x) - 1 (monotone, so its interval is the endpoints' images).
+func tanh_f(Float x) = 2.0 * sigma(2.0 * x) - 1.0;
+
 transformer ibp{
     Affine -> ((prev.dot(curr[weight]) + curr[bias]).map(simplify_lower), (prev.dot(curr[weight]) + curr[bias]).map(simplify_upper));
     
     Relu -> ((prev[l] >= 0 ? prev[l] : 0), (prev[u] >= 0 ? prev[u] : 0));
 
     Sigmoid -> (sigma(prev[l]), sigma(prev[u]));
+
+    Tanh -> (tanh_f(prev[l]), tanh_f(prev[u]));
 }
 
 flow(forward, priority, stop, ibp);

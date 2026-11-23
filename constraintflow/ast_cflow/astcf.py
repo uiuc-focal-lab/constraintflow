@@ -174,14 +174,6 @@ class EpsilonNode(ExprNode):
         self.node_name = "Epsilon"
         self.identifier = identifier
 
-class AlphaNode(ExprNode):
-
-    def __init__(self, identifier, init=None):
-        super().__init__()
-        self.node_name = "Alpha"
-        self.identifier = identifier
-        self.init = init
-
 class TernaryNode(ExprNode):
 
     def __init__(self, cond, texpr, fexpr):

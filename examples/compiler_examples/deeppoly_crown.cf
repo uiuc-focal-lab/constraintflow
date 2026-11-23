@@ -1,0 +1,66 @@
+def Shape as (Float l, Float u, PolyExp L, PolyExp U){[(curr[l]<=curr),(curr[u]>=curr),(curr[L]<=curr),(curr[U]>=curr)]};
+
+func simplify_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (n[l] * coeff) : (coeff * n[u]);
+func simplify_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[u]) : (coeff * n[l]);
+
+func replace_lower(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[L]) : (coeff * n[U]);
+func replace_upper(Neuron n, Float coeff) = (coeff >= 0.0) ? (coeff * n[U]) : (coeff * n[L]);
+
+func priority(Neuron n) = n[layer];
+func priority2(Neuron n, Float c) = n[layer];
+func stop(Neuron n) = false;
+func stop_traverse(Neuron n, Float c) = false;
+
+func backsubs_lower(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_lower){e <= n}).map(simplify_lower);
+func backsubs_upper(PolyExp e, Neuron n) = (e.traverse(backward, priority2, stop_traverse, replace_upper){e >= n}).map(simplify_upper);
+
+
+func f(Neuron n1, Neuron n2) = n1[l] >= n2[u];
+
+func abs(Float x) = x > 0.0 ? x : -x;
+
+func relu(Float x) = x > 0.0 ? x : 0.0;
+func relu_n(Neuron n) = n[l] + n[u] > 0.0 ? n : 0.0;
+// FIX FOR: an input fixed at 0 (l = u = 0) divided 0/0 in the chord below; u <= 0 is the always-off case.
+func compute_upper(Neuron n) = n[l] > 0.0 ? n : (n[u] <= 0.0 ? 0.0 : (((n[u]) / ((n[u]) - (n[l]))) * ((n))) - (((n[u]) * (n[l])) / ((n[u]) - (n[l]))));
+
+//FEAT: CROWN's S-shaped relaxation (auto_LiRPA BoundSShaped, not optimized): midpoint tangents, and when the input
+// crosses 0 the chord if valid, else the tangent at a table-backed point, else (smoothing) the midpoint tangent.
+func sigma_tangent(Float u) = u;
+func tanh_tangent(Float u) = u;
+func deriv(Float x) = sigma(x) * (1 - sigma(x));
+func sig_k(Float l, Float u) = (sigma(u) - sigma(l)) / (u - l);
+func sig_m(Float l, Float u) = (l + u) / 2.0;
+func sig_dl(Float u) = sigma_tangent(u);
+func sig_du(Float l) = 0.0 - sigma_tangent(0.0 - l);
+func sigmoid_l(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[u] <= 0.0 ? (sigma(sig_m(n[l], n[u])) + (deriv(sig_m(n[l], n[u])) * n) - (deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (n[l] >= 0.0 ? (sigma(n[l]) + (sig_k(n[l], n[u]) * n) - (sig_k(n[l], n[u]) * n[l])) : (sig_dl(n[u]) >= sig_m(n[l], n[u]) ? (sigma(sig_m(n[l], n[u])) + (deriv(sig_m(n[l], n[u])) * n) - (deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (sig_k(n[l], n[u]) < deriv(n[l]) ? (sigma(n[l]) + (sig_k(n[l], n[u]) * n) - (sig_k(n[l], n[u]) * n[l])) : (sigma(sig_dl(n[u])) + (deriv(sig_dl(n[u])) * n) - (deriv(sig_dl(n[u])) * sig_dl(n[u])))))));
+func sigmoid_u(Neuron n) = (n[l] >= n[u]) ? (sigma(n[l])) : (n[u] <= 0.0 ? (sigma(n[l]) + (sig_k(n[l], n[u]) * n) - (sig_k(n[l], n[u]) * n[l])) : (n[l] >= 0.0 ? (sigma(sig_m(n[l], n[u])) + (deriv(sig_m(n[l], n[u])) * n) - (deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (sig_du(n[l]) < sig_m(n[l], n[u]) ? (sigma(sig_m(n[l], n[u])) + (deriv(sig_m(n[l], n[u])) * n) - (deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (sig_k(n[l], n[u]) < deriv(n[u]) ? (sigma(n[l]) + (sig_k(n[l], n[u]) * n) - (sig_k(n[l], n[u]) * n[l])) : (sigma(sig_du(n[l])) + (deriv(sig_du(n[l])) * n) - (deriv(sig_du(n[l])) * sig_du(n[l])))))));
+func tanh_f(Float x) = 2.0 * sigma(2.0 * x) - 1.0;
+func tanh_deriv(Float x) = 4.0 * sigma(2.0 * x) * (1 - sigma(2.0 * x));
+func tanh_k(Float l, Float u) = (tanh_f(u) - tanh_f(l)) / (u - l);
+func tanh_dl(Float u) = tanh_tangent(u);
+func tanh_du(Float l) = 0.0 - tanh_tangent(0.0 - l);
+func tanh_l(Neuron n) = (n[l] >= n[u]) ? (tanh_f(n[l])) : (n[u] <= 0.0 ? (tanh_f(sig_m(n[l], n[u])) + (tanh_deriv(sig_m(n[l], n[u])) * n) - (tanh_deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (n[l] >= 0.0 ? (tanh_f(n[l]) + (tanh_k(n[l], n[u]) * n) - (tanh_k(n[l], n[u]) * n[l])) : (tanh_dl(n[u]) >= sig_m(n[l], n[u]) ? (tanh_f(sig_m(n[l], n[u])) + (tanh_deriv(sig_m(n[l], n[u])) * n) - (tanh_deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (tanh_k(n[l], n[u]) < tanh_deriv(n[l]) ? (tanh_f(n[l]) + (tanh_k(n[l], n[u]) * n) - (tanh_k(n[l], n[u]) * n[l])) : (tanh_f(tanh_dl(n[u])) + (tanh_deriv(tanh_dl(n[u])) * n) - (tanh_deriv(tanh_dl(n[u])) * tanh_dl(n[u])))))));
+func tanh_u(Neuron n) = (n[l] >= n[u]) ? (tanh_f(n[l])) : (n[u] <= 0.0 ? (tanh_f(n[l]) + (tanh_k(n[l], n[u]) * n) - (tanh_k(n[l], n[u]) * n[l])) : (n[l] >= 0.0 ? (tanh_f(sig_m(n[l], n[u])) + (tanh_deriv(sig_m(n[l], n[u])) * n) - (tanh_deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (tanh_du(n[l]) < sig_m(n[l], n[u]) ? (tanh_f(sig_m(n[l], n[u])) + (tanh_deriv(sig_m(n[l], n[u])) * n) - (tanh_deriv(sig_m(n[l], n[u])) * sig_m(n[l], n[u]))) : (tanh_k(n[l], n[u]) < tanh_deriv(n[u]) ? (tanh_f(n[l]) + (tanh_k(n[l], n[u]) * n) - (tanh_k(n[l], n[u]) * n[l])) : (tanh_f(tanh_du(n[l])) + (tanh_deriv(tanh_du(n[l])) * n) - (tanh_deriv(tanh_du(n[l])) * tanh_du(n[l])))))));
+
+
+
+
+
+
+
+
+transformer deeppoly{
+    Affine -> (backsubs_lower(prev.dot(curr[weight]) + curr[bias], curr), backsubs_upper(prev.dot(curr[weight]) + curr[bias], curr), prev.dot(curr[weight]) + curr[bias], prev.dot(curr[weight]) + curr[bias]);
+    
+    Relu -> (relu(prev[l]), relu(prev[u]), relu_n(prev), compute_upper(prev));
+
+    Sigmoid -> (sigma(prev[l]), sigma(prev[u]), sigmoid_l(prev), sigmoid_u(prev));
+
+    Tanh -> (tanh_f(prev[l]), tanh_f(prev[u]), tanh_l(prev), tanh_u(prev));
+
+    Neuron_add -> (backsubs_lower(prev_0 + prev_1, curr), backsubs_upper(prev_0 + prev_1, curr), prev_0 + prev_1, prev_0 + prev_1);
+
+}
+
+flow(forward, priority, stop, deeppoly);

@@ -1,8 +1,15 @@
 from constraintflow.compiler.ir import *
 from constraintflow.compiler.optimizations import uses
+from constraintflow.lib.globals import dummy_mode, reuse_mode, center_radius
 
 
 counter = -1
+
+# The extra IR types below (beyond the original IrBinaryOp/IrInnerProduct/IrMult(/IrRepeat))
+# are only split into their own temp-variable assignment so simulacrum (dummy_mode) and
+# reuse can key jit captures per-site. Normal compiles keep the original, smaller split set.
+def _jit_metadata_active():
+    return dummy_mode.get_flag() or reuse_mode.get_flag()
 
 def get_var(flag=False):
     global counter 
@@ -48,7 +55,7 @@ def rewrite_expr_1(expr):
         new_assignments += new_assignment
     expr.update_parent_child(new_children)
     if isinstance(expr, IrTernary):
-        if not is_div(expr) :
+        if not is_div(expr) and not getattr(expr, "invariant_stop", False):
             new_name = get_var(True)
             new_var = IrVar(new_name, expr.children[0].irMetadata)
             new_assignment = IrAssignment(new_var, IrConvertBoolToFloat(expr.children[0]))
@@ -106,6 +113,17 @@ def depercolate_repeat_and_add_dimension(expr):
     else:
         return expr
 
+def _bound_elem(expr):
+    # 'l'/'u' when expr is a neuron's Float bound access (through SSA vars and wrappers).
+    while True:
+        if isinstance(expr, IrVar) and expr.defs is not None:
+            expr = expr.defs.children[1]
+        elif isinstance(expr, (IrRepeat, IrAddDimension)):
+            expr = expr.children[0]
+        else:
+            break
+    return expr.elem if isinstance(expr, IrAccess) else None
+
 def rewrite_expr_ternary_to_clamp(expr):
     if isinstance(expr, int):
         return expr, []
@@ -160,6 +178,29 @@ def rewrite_expr_ternary_to_clamp(expr):
                         if in_lhs and in_rhs:
                             other_lhs = lhs.children[1-in_lhs_index]
                             other_rhs = rhs.children[1-in_rhs_index]
+                            if (center_radius.get_flag()
+                                    and {_bound_elem(other_lhs), _bound_elem(other_rhs)} == {'l', 'u'}):
+                                # Concretization against a neuron's Float bounds n[l], n[u]:
+                                # c*(X+Y)/2 + s*|c|*(X-Y)/2 with s = +1 for (c >= 0 ? c*X : c*Y)
+                                # and s = -1 for (c <= 0 ? c*X : c*Y); |c| = c+ - c- exactly.
+                                # Other ternaries (substitution steps over L/U polyhedra, whose
+                                # parts are often identical) keep the sign split, which the
+                                # sign-reduction and product-grid passes rely on.
+                                coeff = lhs.children[in_lhs_index]
+                                pos = depercolate_repeat_and_add_dimension(IrClamp(cond_lhs, 0, min_true=True))
+                                neg = depercolate_repeat_and_add_dimension(IrClamp(cond_lhs, 0, min_true=False))
+                                abs_coeff = IrBinaryOp(pos, neg, '-')
+                                # Order the pair as (upper, lower) when it is n[u]/n[l], so a lower
+                                # and an upper concretization share mid = (u+l)/2 and rad = (u-l)/2
+                                # (auto_LiRPA's arithmetic) and CSE computes each product once.
+                                hi, lo, sign = other_lhs, other_rhs, 1 if lhs_min else -1
+                                if _bound_elem(other_lhs) == 'l':
+                                    hi, lo, sign = other_rhs, other_lhs, -sign
+                                mid = IrMult(IrBinaryOp(hi, lo, '+'), IrConst(0.5, 'Float'), '*')
+                                rad = IrMult(IrBinaryOp(hi, lo, '-'), IrConst(0.5, 'Float'), '*')
+                                expr = IrBinaryOp(IrMult(coeff, mid, '*'), IrMult(abs_coeff, rad, '*'),
+                                                  '+' if sign > 0 else '-')
+                                return expr, new_assignments
                             new_lhs = IrMult(depercolate_repeat_and_add_dimension(IrClamp(cond_lhs, 0, min_true=lhs_min)), other_lhs, '*')
                             new_rhs = IrMult(depercolate_repeat_and_add_dimension(IrClamp(cond_lhs, 0, min_true=not(lhs_min))), other_rhs, '*')
                             expr = IrBinaryOp(new_lhs, new_rhs, '+')
@@ -732,14 +773,82 @@ def rewrite_associativity(expr):
     return expr, []
 
 
-def rewrite_block(block, rewrite_func):
+
+def count_split_targets(expr):
+    if isinstance(expr, int):
+        return 0
+    targets = (IrBinaryOp, IrInnerProduct, IrMult)
+    count = 1 if isinstance(expr, targets) else 0
+    for child in expr.children:
+        count += count_split_targets(child)
+    return count
+
+def hoist_split_targets(expr, inside_while, while_number):
+    if isinstance(expr, int):
+        return expr, []
+
+    new_children = []
+    new_assignments = []
+    for child in expr.children:
+        new_child, child_assignments = hoist_split_targets(child, inside_while, while_number)
+        new_children.append(new_child)
+        new_assignments += child_assignments
+    expr.update_parent_child(new_children)
+
+    targets = ()
+    if _jit_metadata_active():
+        targets = (IrBinaryOp, IrInnerProduct, IrMult)
+        targets += (IrRepeat, IrClamp, IrDot, IrTernary, IrUnaryOp, IrGetDefaultStop, IrGetPriorityLList, IrGetPolyexpNotStop, IrGetPolyexpStop, IrAddDimension, IrRemoveDimension, IrAccess,
+               IrExtractPolyCoeff, IrExtractSymCoeff, IrMapCoeff, IrReduce)
+        targets += (IrSparseTensor, IrDenseBlock, IrConstBlock, IrKernelBlock,
+                    IrDiagonalBlock, IrPatchesBlock, IrRepeatBlock, IrAddDimensionConst,
+                    IrConvertNeuronToPoly, IrConcatStitch, IrConcatStitchMat)
+    if isinstance(expr, targets):
+        # IrAccess keeps default while_number=-1 when not in a while body, matching
+        # simulacrum JIT filenames for get_metadata/get_elem recorded at Affine sites.
+        if _jit_metadata_active() and (not isinstance(expr, IrAccess) or inside_while):
+            expr.inside_while = inside_while
+            expr.while_number = while_number
+        new_name = get_var(True)
+        new_var = IrVar(new_name, expr.irMetadata)
+        new_assignment = IrAssignment(new_var, expr)
+        new_assignments.append(new_assignment)
+        return new_var, new_assignments
+
+    return expr, new_assignments
+
+ttb_counter = 0
+def assign_ttb_counter(expr):
+    global ttb_counter
+    if isinstance(expr, int):
+        return expr, []
+    new_children = []
+    for child in expr.children:
+        new_child, _ = assign_ttb_counter(child)
+        new_children.append(new_child)
+    expr.update_parent_child(new_children)
+    targets = ()
+    if _jit_metadata_active():
+        targets = (IrBinaryOp, IrInnerProduct, IrMult, IrRepeat)
+        targets += (IrClamp, IrDot, IrTernary, IrUnaryOp, IrGetDefaultStop, IrGetPriorityLList, IrGetPolyexpNotStop, IrGetPolyexpStop, IrAddDimension, IrRemoveDimension, IrGetAbsElemSparseDKey, IrAccess,
+               IrExtractPolyCoeff, IrExtractSymCoeff, IrMapCoeff, IrReduce, IrEpsilon)
+        targets += (IrSparseTensor, IrDenseBlock, IrConstBlock, IrKernelBlock,
+                    IrDiagonalBlock, IrPatchesBlock, IrRepeatBlock, IrAddDimensionConst,
+                    IrConvertNeuronToPoly, IrConcatStitch, IrConcatStitchMat)
+    if isinstance(expr, targets):
+        ttb_counter += 1
+        expr.ttb_counter = ttb_counter
+    return expr, []
+
+
+def rewrite_block(block, rewrite_func, args=[]):
     ir_list = block.children
     length = len(ir_list)
     index = 0
     for i in range(length):
         l = ir_list[index]
         if isinstance(l, IrAssignment):
-            new_expr, new_assignments = rewrite_func(l.children[1])
+            new_expr, new_assignments = rewrite_func(l.children[1], *args)
             new_children = [l.children[0], new_expr]
             l.update_parent_child(new_children)
             for j in range(len(new_assignments)):
@@ -749,7 +858,7 @@ def rewrite_block(block, rewrite_func):
             new_children = []
             new_assignments = []
             for child in l.children:
-                new_expr, new_assignments_inner = rewrite_func(child)
+                new_expr, new_assignments_inner = rewrite_func(child, *args)
                 new_children.append(new_expr)
                 new_assignments += new_assignments_inner
             l.update_parent_child(new_children)
@@ -789,8 +898,6 @@ def rewrite_cfg(cfg):
         block = cfg.ir[node]
         rewrite_block(block, rewrite_associativity)
     # uses.populate_uses_defs_cfg(cfg)
-    uses.populate_uses_defs_cfg(cfg)
-    for node in cfg.nodes:
         block = cfg.ir[node]
         rewrite_block(block, rewrite_percolate_reduce_inside_phi)
     for node in cfg.nodes:
@@ -806,10 +913,23 @@ def rewrite_cfg(cfg):
     for node in cfg.nodes:
         block = cfg.ir[node]
         rewrite_block(block, rewrite_expr_2)
+
+    uses.populate_uses_defs_cfg(cfg)
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        rewrite_block(block, hoist_split_targets, [block.inside_while, block.while_number])
+
+    uses.populate_uses_defs_cfg(cfg)
+    for node in cfg.nodes:
+        block = cfg.ir[node]
+        rewrite_block(block, assign_ttb_counter)
+    # assign_while_cfg(cfg)
     
 def rewrite(ir):
     for transformer in ir.tstore.keys():
         for i in range(len(ir.tstore[transformer])):
             cfg = ir.tstore[transformer][i].cfg
             rewrite_cfg(cfg)
+            # cfg.print()
+            # kkdug
     return ir
