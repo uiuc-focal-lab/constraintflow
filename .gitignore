@@ -1,17 +1,20 @@
 __pycache__/
-**/__pycache__/
-interpreter/common/__pycache__/*
-interpreter/specs/__pycache__/*
-verification/ast/*
-certifier/output/transformers.py
-certifier/output/main.py
-certifier/output/functions.py
-data/*
-nets/*
-output/*
-MNIST/*
-*.egg-info/
-__pycache__/
 *.pyc
-dist/
+*.egg-info/
 build/
+dist/
+.venv/
+.vscode/
+.DS_Store
+
+# Datasets (torchvision downloads them into the working directory) and networks
+MNIST
+cifar-10-batches-py
+cifar-10-python.tar.gz
+cifar-100-python
+cifar-100-python.tar.gz
+tinyimagenet
+nets
+
+# Generated programs and results
+output/

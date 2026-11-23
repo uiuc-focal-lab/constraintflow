@@ -4,7 +4,7 @@ from constraintflow.compiler.optimizations import uses
 
 def get_vars_expr(expr):
     vars = set()
-    if isinstance(expr, int):
+    if isinstance(expr, (int, float, list)):
         pass
     elif isinstance(expr, IrVar):
         vars.add(expr)
@@ -12,6 +12,12 @@ def get_vars_expr(expr):
         for child in expr.children:
             vars = vars.union(get_vars_expr(child))
     return vars
+
+def remove_inside_while_flag(node):
+    if isinstance(node, IrAst):
+        node.inside_while = False
+        for child in node.children:
+            remove_inside_while_flag(child)
 
 def licm_while_block(block, combined_ir_list, predecessors, cfg):
     ir_list = block.children
@@ -21,14 +27,15 @@ def licm_while_block(block, combined_ir_list, predecessors, cfg):
             vars = get_vars_expr(ir_list[i].children[1])
             can_be_removed = True
             for var in vars:
-                d = var.defs 
-                if d in combined_ir_list:
+                d = var.defs
+                if any(d is x for x in combined_ir_list):
                     can_be_removed = False
                     break
             if can_be_removed:
                 to_be_removed.append(i)
     for predecessor in predecessors:
         for i in to_be_removed:
+            remove_inside_while_flag(ir_list[i])
             cfg.ir[predecessor].children.append(ir_list[i])
     for i in range(len(to_be_removed)-1, -1, -1):
         del ir_list[to_be_removed[i]]

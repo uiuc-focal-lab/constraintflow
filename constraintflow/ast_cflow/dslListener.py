@@ -179,66 +179,12 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#lp.
-    def enterLp(self, ctx:dslParser.LpContext):
+    # Enter a parse tree produced by dslParser#cond_if.
+    def enterCond_if(self, ctx:dslParser.Cond_ifContext):
         pass
 
-    # Exit a parse tree produced by dslParser#lp.
-    def exitLp(self, ctx:dslParser.LpContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#argmaxOp.
-    def enterArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#argmaxOp.
-    def exitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#prev.
-    def enterPrev(self, ctx:dslParser.PrevContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#prev.
-    def exitPrev(self, ctx:dslParser.PrevContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#maxOp.
-    def enterMaxOp(self, ctx:dslParser.MaxOpContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#maxOp.
-    def exitMaxOp(self, ctx:dslParser.MaxOpContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#dot.
-    def enterDot(self, ctx:dslParser.DotContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#dot.
-    def exitDot(self, ctx:dslParser.DotContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#map_list.
-    def enterMap_list(self, ctx:dslParser.Map_listContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#map_list.
-    def exitMap_list(self, ctx:dslParser.Map_listContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#float.
-    def enterFloat(self, ctx:dslParser.FloatContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#float.
-    def exitFloat(self, ctx:dslParser.FloatContext):
+    # Exit a parse tree produced by dslParser#cond_if.
+    def exitCond_if(self, ctx:dslParser.Cond_ifContext):
         pass
 
 
@@ -251,21 +197,111 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#epsilon.
-    def enterEpsilon(self, ctx:dslParser.EpsilonContext):
+    # Enter a parse tree produced by dslParser#orOp.
+    def enterOrOp(self, ctx:dslParser.OrOpContext):
         pass
 
-    # Exit a parse tree produced by dslParser#epsilon.
-    def exitEpsilon(self, ctx:dslParser.EpsilonContext):
+    # Exit a parse tree produced by dslParser#orOp.
+    def exitOrOp(self, ctx:dslParser.OrOpContext):
         pass
 
 
-    # Enter a parse tree produced by dslParser#varExp.
-    def enterVarExp(self, ctx:dslParser.VarExpContext):
+    # Enter a parse tree produced by dslParser#orPass.
+    def enterOrPass(self, ctx:dslParser.OrPassContext):
         pass
 
-    # Exit a parse tree produced by dslParser#varExp.
-    def exitVarExp(self, ctx:dslParser.VarExpContext):
+    # Exit a parse tree produced by dslParser#orPass.
+    def exitOrPass(self, ctx:dslParser.OrPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#andPass.
+    def enterAndPass(self, ctx:dslParser.AndPassContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#andPass.
+    def exitAndPass(self, ctx:dslParser.AndPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#andOp.
+    def enterAndOp(self, ctx:dslParser.AndOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#andOp.
+    def exitAndOp(self, ctx:dslParser.AndOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#eqOp.
+    def enterEqOp(self, ctx:dslParser.EqOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#eqOp.
+    def exitEqOp(self, ctx:dslParser.EqOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#eqPass.
+    def enterEqPass(self, ctx:dslParser.EqPassContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#eqPass.
+    def exitEqPass(self, ctx:dslParser.EqPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#relOp.
+    def enterRelOp(self, ctx:dslParser.RelOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#relOp.
+    def exitRelOp(self, ctx:dslParser.RelOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#relPass.
+    def enterRelPass(self, ctx:dslParser.RelPassContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#relPass.
+    def exitRelPass(self, ctx:dslParser.RelPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#addOp.
+    def enterAddOp(self, ctx:dslParser.AddOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#addOp.
+    def exitAddOp(self, ctx:dslParser.AddOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#addPass.
+    def enterAddPass(self, ctx:dslParser.AddPassContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#addPass.
+    def exitAddPass(self, ctx:dslParser.AddPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#mulPass.
+    def enterMulPass(self, ctx:dslParser.MulPassContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#mulPass.
+    def exitMulPass(self, ctx:dslParser.MulPassContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#mulOp.
+    def enterMulOp(self, ctx:dslParser.MulOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#mulOp.
+    def exitMulOp(self, ctx:dslParser.MulOpContext):
         pass
 
 
@@ -287,66 +323,30 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#listOp.
-    def enterListOp(self, ctx:dslParser.ListOpContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#listOp.
-    def exitListOp(self, ctx:dslParser.ListOpContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#curr_list.
-    def enterCurr_list(self, ctx:dslParser.Curr_listContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#curr_list.
-    def exitCurr_list(self, ctx:dslParser.Curr_listContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#curr.
-    def enterCurr(self, ctx:dslParser.CurrContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#curr.
-    def exitCurr(self, ctx:dslParser.CurrContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#maxOpList.
-    def enterMaxOpList(self, ctx:dslParser.MaxOpListContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#maxOpList.
-    def exitMaxOpList(self, ctx:dslParser.MaxOpListContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#map.
-    def enterMap(self, ctx:dslParser.MapContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#map.
-    def exitMap(self, ctx:dslParser.MapContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#exprarray.
-    def enterExprarray(self, ctx:dslParser.ExprarrayContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#exprarray.
-    def exitExprarray(self, ctx:dslParser.ExprarrayContext):
-        pass
-
-
     # Enter a parse tree produced by dslParser#sigma.
     def enterSigma(self, ctx:dslParser.SigmaContext):
         pass
 
     # Exit a parse tree produced by dslParser#sigma.
     def exitSigma(self, ctx:dslParser.SigmaContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#unarySuffix.
+    def enterUnarySuffix(self, ctx:dslParser.UnarySuffixContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#unarySuffix.
+    def exitUnarySuffix(self, ctx:dslParser.UnarySuffixContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#traverse.
+    def enterTraverse(self, ctx:dslParser.TraverseContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#traverse.
+    def exitTraverse(self, ctx:dslParser.TraverseContext):
         pass
 
 
@@ -359,12 +359,30 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#false.
-    def enterFalse(self, ctx:dslParser.FalseContext):
+    # Enter a parse tree produced by dslParser#getElement.
+    def enterGetElement(self, ctx:dslParser.GetElementContext):
         pass
 
-    # Exit a parse tree produced by dslParser#false.
-    def exitFalse(self, ctx:dslParser.FalseContext):
+    # Exit a parse tree produced by dslParser#getElement.
+    def exitGetElement(self, ctx:dslParser.GetElementContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#dot.
+    def enterDot(self, ctx:dslParser.DotContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#dot.
+    def exitDot(self, ctx:dslParser.DotContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#map_list.
+    def enterMap_list(self, ctx:dslParser.Map_listContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#map_list.
+    def exitMap_list(self, ctx:dslParser.Map_listContext):
         pass
 
 
@@ -377,12 +395,39 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#curry.
-    def enterCurry(self, ctx:dslParser.CurryContext):
+    # Enter a parse tree produced by dslParser#suffixAtom.
+    def enterSuffixAtom(self, ctx:dslParser.SuffixAtomContext):
         pass
 
-    # Exit a parse tree produced by dslParser#curry.
-    def exitCurry(self, ctx:dslParser.CurryContext):
+    # Exit a parse tree produced by dslParser#suffixAtom.
+    def exitSuffixAtom(self, ctx:dslParser.SuffixAtomContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#map.
+    def enterMap(self, ctx:dslParser.MapContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#map.
+    def exitMap(self, ctx:dslParser.MapContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#false.
+    def enterFalse(self, ctx:dslParser.FalseContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#false.
+    def exitFalse(self, ctx:dslParser.FalseContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#true.
+    def enterTrue(self, ctx:dslParser.TrueContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#true.
+    def exitTrue(self, ctx:dslParser.TrueContext):
         pass
 
 
@@ -392,6 +437,51 @@ class dslListener(ParseTreeListener):
 
     # Exit a parse tree produced by dslParser#int.
     def exitInt(self, ctx:dslParser.IntContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#float.
+    def enterFloat(self, ctx:dslParser.FloatContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#float.
+    def exitFloat(self, ctx:dslParser.FloatContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#varExp.
+    def enterVarExp(self, ctx:dslParser.VarExpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#varExp.
+    def exitVarExp(self, ctx:dslParser.VarExpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#epsilon.
+    def enterEpsilon(self, ctx:dslParser.EpsilonContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#epsilon.
+    def exitEpsilon(self, ctx:dslParser.EpsilonContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#curr.
+    def enterCurr(self, ctx:dslParser.CurrContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#curr.
+    def exitCurr(self, ctx:dslParser.CurrContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#prev.
+    def enterPrev(self, ctx:dslParser.PrevContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#prev.
+    def exitPrev(self, ctx:dslParser.PrevContext):
         pass
 
 
@@ -413,57 +503,12 @@ class dslListener(ParseTreeListener):
         pass
 
 
-    # Enter a parse tree produced by dslParser#traverse.
-    def enterTraverse(self, ctx:dslParser.TraverseContext):
+    # Enter a parse tree produced by dslParser#curr_list.
+    def enterCurr_list(self, ctx:dslParser.Curr_listContext):
         pass
 
-    # Exit a parse tree produced by dslParser#traverse.
-    def exitTraverse(self, ctx:dslParser.TraverseContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#alphaparam.
-    def enterAlphaparam(self, ctx:dslParser.AlphaparamContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#alphaparam.
-    def exitAlphaparam(self, ctx:dslParser.AlphaparamContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#binopExp.
-    def enterBinopExp(self, ctx:dslParser.BinopExpContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#binopExp.
-    def exitBinopExp(self, ctx:dslParser.BinopExpContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#cond_if.
-    def enterCond_if(self, ctx:dslParser.Cond_ifContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#cond_if.
-    def exitCond_if(self, ctx:dslParser.Cond_ifContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#getElement.
-    def enterGetElement(self, ctx:dslParser.GetElementContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#getElement.
-    def exitGetElement(self, ctx:dslParser.GetElementContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#true.
-    def enterTrue(self, ctx:dslParser.TrueContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#true.
-    def exitTrue(self, ctx:dslParser.TrueContext):
+    # Exit a parse tree produced by dslParser#curr_list.
+    def exitCurr_list(self, ctx:dslParser.Curr_listContext):
         pass
 
 
@@ -476,12 +521,75 @@ class dslListener(ParseTreeListener):
         pass
 
 
+    # Enter a parse tree produced by dslParser#exprarray.
+    def enterExprarray(self, ctx:dslParser.ExprarrayContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#exprarray.
+    def exitExprarray(self, ctx:dslParser.ExprarrayContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#argmaxOp.
+    def enterArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#argmaxOp.
+    def exitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#maxOpList.
+    def enterMaxOpList(self, ctx:dslParser.MaxOpListContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#maxOpList.
+    def exitMaxOpList(self, ctx:dslParser.MaxOpListContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#maxOp.
+    def enterMaxOp(self, ctx:dslParser.MaxOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#maxOp.
+    def exitMaxOp(self, ctx:dslParser.MaxOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#listOp.
+    def enterListOp(self, ctx:dslParser.ListOpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#listOp.
+    def exitListOp(self, ctx:dslParser.ListOpContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#lp.
+    def enterLp(self, ctx:dslParser.LpContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#lp.
+    def exitLp(self, ctx:dslParser.LpContext):
+        pass
+
+
     # Enter a parse tree produced by dslParser#funcCall.
     def enterFuncCall(self, ctx:dslParser.FuncCallContext):
         pass
 
     # Exit a parse tree produced by dslParser#funcCall.
     def exitFuncCall(self, ctx:dslParser.FuncCallContext):
+        pass
+
+
+    # Enter a parse tree produced by dslParser#curry.
+    def enterCurry(self, ctx:dslParser.CurryContext):
+        pass
+
+    # Exit a parse tree produced by dslParser#curry.
+    def exitCurry(self, ctx:dslParser.CurryContext):
         pass
 
 
@@ -518,15 +626,6 @@ class dslListener(ParseTreeListener):
 
     # Exit a parse tree produced by dslParser#list_op.
     def exitList_op(self, ctx:dslParser.List_opContext):
-        pass
-
-
-    # Enter a parse tree produced by dslParser#binop.
-    def enterBinop(self, ctx:dslParser.BinopContext):
-        pass
-
-    # Exit a parse tree produced by dslParser#binop.
-    def exitBinop(self, ctx:dslParser.BinopContext):
         pass
 
 

@@ -7,8 +7,8 @@ name = "constraintflow"
 version = "0.1.0"
 description = "A DSL and tools for neural network certification"
 readme = "README.md"
-requires-python = ">=3.9"
-license = { text = "MIT" }  # adjust if different
+requires-python = ">=3.10"
+license = { text = "MIT" }
 authors = [
     { name = "Avaljot Singh" },
     { name = "Yasmin Sarita" },
@@ -19,25 +19,28 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+# The versions the paper's results were measured with.
 dependencies = [
+    "antlr4-python3-runtime==4.9.2",
     "graphviz==0.20.1",
     "matplotlib==3.10.5",
     "networkx==3.1",
     "numpy==2.2.6",
     "onnx==1.16.2",
-    "torch",
-    "torchvision",
-    "z3_solver==4.12.2.0",
-    "antlr4-python3-runtime==4.9.2",
-    "typer",
+    "torch==2.10.0",
+    "torchvision==0.25.0",
+    "typer==0.24.1",
+    "z3-solver==5.1.0.0",
 ]
 
 [tool.setuptools]
-packages = ["constraintflow"]
 include-package-data = true
 
+[tool.setuptools.packages.find]
+include = ["constraintflow*"]
+
 [tool.setuptools.package-data]
-constraintflow = ["**/*.txt", "**/*.yml", "**/*.json"]  # include assets if needed
+constraintflow = ["**/*.txt", "**/*.yml", "**/*.json"]
 
 [project.scripts]
 constraintflow = "constraintflow.cli:main"

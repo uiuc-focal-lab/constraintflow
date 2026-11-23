@@ -589,6 +589,8 @@ class SymbolicSemantics(astVisitor.ASTVisitor):
 			return self.get_binop(left, right, OR)
 		elif(node.op == "=="):
 			return self.get_binop(left, right, EQQ)
+		elif(node.op == "!="):
+			return self.get_binop(left, right, NEQ)
 		elif(node.op == "In"):
 			return self.get_binop(left, right, IN)
 

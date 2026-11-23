@@ -104,38 +104,8 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#lp.
-    def visitLp(self, ctx:dslParser.LpContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#argmaxOp.
-    def visitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#prev.
-    def visitPrev(self, ctx:dslParser.PrevContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#maxOp.
-    def visitMaxOp(self, ctx:dslParser.MaxOpContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#dot.
-    def visitDot(self, ctx:dslParser.DotContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#map_list.
-    def visitMap_list(self, ctx:dslParser.Map_listContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#float.
-    def visitFloat(self, ctx:dslParser.FloatContext):
+    # Visit a parse tree produced by dslParser#cond_if.
+    def visitCond_if(self, ctx:dslParser.Cond_ifContext):
         return self.visitChildren(ctx)
 
 
@@ -144,13 +114,63 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#epsilon.
-    def visitEpsilon(self, ctx:dslParser.EpsilonContext):
+    # Visit a parse tree produced by dslParser#orOp.
+    def visitOrOp(self, ctx:dslParser.OrOpContext):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#varExp.
-    def visitVarExp(self, ctx:dslParser.VarExpContext):
+    # Visit a parse tree produced by dslParser#orPass.
+    def visitOrPass(self, ctx:dslParser.OrPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#andPass.
+    def visitAndPass(self, ctx:dslParser.AndPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#andOp.
+    def visitAndOp(self, ctx:dslParser.AndOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#eqOp.
+    def visitEqOp(self, ctx:dslParser.EqOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#eqPass.
+    def visitEqPass(self, ctx:dslParser.EqPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#relOp.
+    def visitRelOp(self, ctx:dslParser.RelOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#relPass.
+    def visitRelPass(self, ctx:dslParser.RelPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#addOp.
+    def visitAddOp(self, ctx:dslParser.AddOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#addPass.
+    def visitAddPass(self, ctx:dslParser.AddPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#mulPass.
+    def visitMulPass(self, ctx:dslParser.MulPassContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#mulOp.
+    def visitMulOp(self, ctx:dslParser.MulOpContext):
         return self.visitChildren(ctx)
 
 
@@ -164,38 +184,18 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#listOp.
-    def visitListOp(self, ctx:dslParser.ListOpContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#curr_list.
-    def visitCurr_list(self, ctx:dslParser.Curr_listContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#curr.
-    def visitCurr(self, ctx:dslParser.CurrContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#maxOpList.
-    def visitMaxOpList(self, ctx:dslParser.MaxOpListContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#map.
-    def visitMap(self, ctx:dslParser.MapContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#exprarray.
-    def visitExprarray(self, ctx:dslParser.ExprarrayContext):
-        return self.visitChildren(ctx)
-
-
     # Visit a parse tree produced by dslParser#sigma.
     def visitSigma(self, ctx:dslParser.SigmaContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#unarySuffix.
+    def visitUnarySuffix(self, ctx:dslParser.UnarySuffixContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#traverse.
+    def visitTraverse(self, ctx:dslParser.TraverseContext):
         return self.visitChildren(ctx)
 
 
@@ -204,8 +204,18 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#false.
-    def visitFalse(self, ctx:dslParser.FalseContext):
+    # Visit a parse tree produced by dslParser#getElement.
+    def visitGetElement(self, ctx:dslParser.GetElementContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#dot.
+    def visitDot(self, ctx:dslParser.DotContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#map_list.
+    def visitMap_list(self, ctx:dslParser.Map_listContext):
         return self.visitChildren(ctx)
 
 
@@ -214,13 +224,53 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#curry.
-    def visitCurry(self, ctx:dslParser.CurryContext):
+    # Visit a parse tree produced by dslParser#suffixAtom.
+    def visitSuffixAtom(self, ctx:dslParser.SuffixAtomContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#map.
+    def visitMap(self, ctx:dslParser.MapContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#false.
+    def visitFalse(self, ctx:dslParser.FalseContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#true.
+    def visitTrue(self, ctx:dslParser.TrueContext):
         return self.visitChildren(ctx)
 
 
     # Visit a parse tree produced by dslParser#int.
     def visitInt(self, ctx:dslParser.IntContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#float.
+    def visitFloat(self, ctx:dslParser.FloatContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#varExp.
+    def visitVarExp(self, ctx:dslParser.VarExpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#epsilon.
+    def visitEpsilon(self, ctx:dslParser.EpsilonContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#curr.
+    def visitCurr(self, ctx:dslParser.CurrContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#prev.
+    def visitPrev(self, ctx:dslParser.PrevContext):
         return self.visitChildren(ctx)
 
 
@@ -234,33 +284,8 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
-    # Visit a parse tree produced by dslParser#traverse.
-    def visitTraverse(self, ctx:dslParser.TraverseContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#alphaparam.
-    def visitAlphaparam(self, ctx:dslParser.AlphaparamContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#binopExp.
-    def visitBinopExp(self, ctx:dslParser.BinopExpContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#cond_if.
-    def visitCond_if(self, ctx:dslParser.Cond_ifContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#getElement.
-    def visitGetElement(self, ctx:dslParser.GetElementContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#true.
-    def visitTrue(self, ctx:dslParser.TrueContext):
+    # Visit a parse tree produced by dslParser#curr_list.
+    def visitCurr_list(self, ctx:dslParser.Curr_listContext):
         return self.visitChildren(ctx)
 
 
@@ -269,8 +294,43 @@ class dslVisitor(ParseTreeVisitor):
         return self.visitChildren(ctx)
 
 
+    # Visit a parse tree produced by dslParser#exprarray.
+    def visitExprarray(self, ctx:dslParser.ExprarrayContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#argmaxOp.
+    def visitArgmaxOp(self, ctx:dslParser.ArgmaxOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#maxOpList.
+    def visitMaxOpList(self, ctx:dslParser.MaxOpListContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#maxOp.
+    def visitMaxOp(self, ctx:dslParser.MaxOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#listOp.
+    def visitListOp(self, ctx:dslParser.ListOpContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#lp.
+    def visitLp(self, ctx:dslParser.LpContext):
+        return self.visitChildren(ctx)
+
+
     # Visit a parse tree produced by dslParser#funcCall.
     def visitFuncCall(self, ctx:dslParser.FuncCallContext):
+        return self.visitChildren(ctx)
+
+
+    # Visit a parse tree produced by dslParser#curry.
+    def visitCurry(self, ctx:dslParser.CurryContext):
         return self.visitChildren(ctx)
 
 
@@ -291,11 +351,6 @@ class dslVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by dslParser#list_op.
     def visitList_op(self, ctx:dslParser.List_opContext):
-        return self.visitChildren(ctx)
-
-
-    # Visit a parse tree produced by dslParser#binop.
-    def visitBinop(self, ctx:dslParser.BinopContext):
         return self.visitChildren(ctx)
 
 
