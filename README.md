@@ -79,7 +79,7 @@ constraintflow compile example.cf [OPTIONS]
 
 #### `scepter`
 
-Specializes a certifier to one network, dataset and batch size, and compiles it for the GPU with PyTorch Inductor.
+Specializes a certifier to one network, dataset and batch size.
 
 ```bash
 constraintflow scepter example.cf --network <onnx> [OPTIONS]
