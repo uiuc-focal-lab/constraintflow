@@ -629,7 +629,10 @@ class ConvertToIr(astVisitor.ASTVisitor):
                 if exprIr.irMetadata[-1].isConst:
                     exprIr = IrAddDimensionConst(exprIr, [IrMetadataElement([IrAst.batch_size, IrAst.curr_size], exprIr.irMetadata[-1].type, [1,1], False)])
                 if self.shape[list(self.shape.keys())[i]] == 'PolyExp':
-                    exprIr = IrConvertConstToPoly(exprIr)
+                    if exprIr.irMetadata[-1].type == 'Neuron':
+                        exprIr = IrConvertNeuronToPoly(exprIr)
+                    else:
+                        exprIr = IrConvertConstToPoly(exprIr)
                 elif self.shape[list(self.shape.keys())[i]] == 'SymExp':
                     exprIr = IrConvertConstToSym(exprIr)
 

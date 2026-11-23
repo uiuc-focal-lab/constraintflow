@@ -140,6 +140,9 @@ class IRVisitor:
         elif isinstance(node, IR.IrWhile):
             return self.visitIrWhile(node)
         
+        elif isinstance(node, IR.IrParallelBlock):
+            return self.visitIrParallelBlock(node)
+
         elif isinstance(node, IR.IrBlock):
             return self.visitIrBlock(node)
         
@@ -401,3 +404,6 @@ class IRVisitor:
             print("This is an error. This shouldn't happen")
             print(type(node))
             assert False
+
+    def visitIrParallelBlock(self, node):
+        pass

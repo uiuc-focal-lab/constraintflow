@@ -892,6 +892,7 @@ class IrNewEps(IrExpression):
         self.update_parent_child([matIr, constIr])
 
     
+
 class IrPhi(IrExpression):
     def __init__(self, original_name, vars, irMetadata):
         super().__init__()
@@ -1999,6 +2000,20 @@ class IrWhileBlock(IrBlock):
 DEFAULT_OP_PARAMS = ['abs_elem', 'prev', 'curr', 'poly_size', 'curr_size',
                      'prev_size', 'input_size', 'batch_size']
 
+class IrParallelBlock(IrAst):
+    """Two independent while-loop zones executed in parallel threads."""
+    def __init__(self, zone1_init, while1, zone1_post,
+                 zone2_init, while2, zone2_post,
+                 escape1, escape2):
+        super().__init__()
+        self.zone1_init = zone1_init   # list of IrAssignment (W1-exclusive inits from Block A)
+        self.while1     = while1       # IrWhileBlock
+        self.zone1_post = zone1_post   # list of IrAssignment (l_new computation from Block B)
+        self.zone2_init = zone2_init   # list of IrAssignment (W2-exclusive inits from Block B)
+        self.while2     = while2       # IrWhileBlock
+        self.zone2_post = zone2_post   # list of IrAssignment (u_new computation from Block C)
+        self.escape1    = escape1      # list of str — var names thread1 produces for caller
+        self.escape2    = escape2      # list of str — var names thread2 produces for caller
 
 class IrOpStmt(IrAst):
     def __init__(self, op, cfg, layerwise_cfgs = None, params = None):

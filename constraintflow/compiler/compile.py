@@ -3,6 +3,7 @@ import time
 import time
 
 import antlr4 as antlr
+import os
 
 from constraintflow.ast_cflow import dslLexer
 from constraintflow.ast_cflow import dslParser
@@ -27,6 +28,7 @@ from constraintflow.compiler.optimizations import block_passes
 from constraintflow.compiler.optimizations import sign_convs, sign_reductions, box_concretize
 from constraintflow.compiler import single_bound, affine_subst_check
 from constraintflow.lib.globals import *
+from constraintflow.compiler.optimizations import parallelizeLoops
 
 
 optimizations_rewrite = [
@@ -55,6 +57,31 @@ optimizations_rewrite = [
     copyPropagation.copy_proagate,
     ]
 
+# Same pipeline without the domain-specific rewrite pass (used for ablation N-R / N-R-S).
+optimizations_no_rewrite = [
+    cse.cse,
+    copyPropagation.copy_proagate,
+    cse.cse,
+    copyPropagation.copy_proagate,
+    polyOpt.poly_opt,
+    cse.cse,
+    dce.dce,
+    cse.cse,
+    copyPropagation.copy_proagate,
+    dce.dce,
+    dce.dce,
+    dce.dce,
+    loopInvariantCodeMotion.licm,
+    cse.cse,
+    copyPropagation.copy_proagate,
+    cse.cse,
+    copyPropagation.copy_proagate,
+    cse.cse,
+    copyPropagation.copy_proagate,
+    cse.cse,
+    symexpCount.correct_symexp_size,
+    copyPropagation.copy_proagate,
+    ]
 
 def sroa_build():
     """True only on the reuse pass of a jit build (SROA on)."""
@@ -70,13 +97,13 @@ def _reset_compiler_state():
     tensor_to_block.counter = -1
 
 
-def compile(inputfile, output_path):
+def compile(inputfile, output_path, no_rewrite=False):
     _reset_compiler_state()
     lexer = dslLexer.dslLexer(antlr.FileStream(inputfile))
     tokens = antlr.CommonTokenStream(lexer)
     parser = dslParser.dslParser(tokens)
     tree = parser.prog()
-    
+
     ast = astBuilder.ASTBuilder().visit(tree)
     fuse, skip, reason = affine_subst_check.check(ast)
     fuse_affine_subst.set_flag() if fuse else fuse_affine_subst.reset_flag()
@@ -96,11 +123,14 @@ def compile(inputfile, output_path):
     builtin_ops.inject_builtin_ops(ir, converter)
     representations.ssa(ir)
 
-    optimizations = optimizations_rewrite
+    optimizations = optimizations_no_rewrite if no_rewrite else optimizations_rewrite
 
     for opt in optimizations:
         opt(ir)
     representations.remove_phi(ir)
+    #FEAT: upstream's two-thread while loops, opt-in with CF_PARALLEL=1, plain builds only (the jit passes record one trace order).
+    if os.environ.get('CF_PARALLEL') == '1' and not (reuse_mode.get_flag() or dummy_mode.get_flag()):
+        parallelizeLoops.parallelize_loops(ir)
 
     replay = reuse_mode.get_flag()
 

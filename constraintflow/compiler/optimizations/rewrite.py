@@ -553,6 +553,28 @@ def get_shape(irMetadata):
     return shape
 
 
+def strip_repeat(repeat_node, contracted_dim):
+    """Drop only the axis that the following matmul reconstructs, keeping every
+    other broadcast axis materialised.
+
+    rewrite_expr_5 turns `reduce(repeat(a) * repeat(b))` into
+    `inner_prod(squeeze(a), squeeze(b))`. That is sound only when the repeat
+    expanded exactly the one axis matmul regenerates as its output row dim.
+    With a nested map (a `.map` inside a traverse's replace function) the
+    operand carries a second broadcast axis -- curr_size -- that matmul cannot
+    invent, so discarding the whole IrRepeat loses it and the operand shapes
+    disagree at runtime. Keep those axes; drop only the contracted one.
+    """
+    base = repeat_node.children[0]
+    dims = list(repeat_node.children[1:])
+    if not (0 <= contracted_dim < len(dims)):
+        return base
+    dims[contracted_dim] = 1
+    if all(isinstance(d, int) and d == 1 for d in dims):
+        return base
+    return IrRepeat(base, repeat_dims=dims)
+
+
 def rewrite_percolate_reduce_inside_phi(expr):
     if isinstance(expr, int):
         return expr, []
@@ -620,12 +642,12 @@ def rewrite_expr_5(expr):
                 rhs_size = get_size(rhs.irMetadata)
                 
                 if (-1 in lhs_end_points) and (-3 in rhs_end_points):
-                    new_lhs = IrRemoveDimension(lhs.children[0], lhs_size-1)
-                    new_rhs = IrRemoveDimension(rhs.children[0], rhs_size-3)
+                    new_lhs = IrRemoveDimension(strip_repeat(lhs, lhs_size-1), lhs_size-1)
+                    new_rhs = IrRemoveDimension(strip_repeat(rhs, rhs_size-3), rhs_size-3)
                     expr = IrInnerProduct(new_lhs, new_rhs)
                 elif (-3 in lhs_end_points) and (-1 in rhs_end_points):
-                    new_lhs = IrRemoveDimension(rhs.children[0], lhs_size-3)
-                    new_rhs = IrRemoveDimension(lhs.children[0], rhs_size-1)
+                    new_lhs = IrRemoveDimension(strip_repeat(rhs, lhs_size-3), lhs_size-3)
+                    new_rhs = IrRemoveDimension(strip_repeat(lhs, rhs_size-1), rhs_size-1)
                     expr = IrInnerProduct(new_lhs, new_rhs)
 
     if isinstance(expr, IrReduce) and len(expr.children[0].irMetadata[-1].shape)==1:
@@ -644,12 +666,12 @@ def rewrite_expr_5(expr):
                 rhs_size = get_size(rhs.irMetadata)
                 
                 if (-1 in lhs_end_points):
-                    new_lhs = IrRemoveDimension(lhs.children[0], lhs_size-1)
+                    new_lhs = IrRemoveDimension(strip_repeat(lhs, lhs_size-1), lhs_size-1)
                     new_rhs = rhs
                     expr = IrInnerProduct(new_lhs, new_rhs)
                 elif (-2 in lhs_end_points):
                     new_lhs = rhs
-                    new_rhs = IrRemoveDimension(lhs.children[0], rhs_size-2)
+                    new_rhs = IrRemoveDimension(strip_repeat(lhs, rhs_size-2), rhs_size-2)
                     expr = IrInnerProduct(new_lhs, new_rhs)
             
             if isinstance(rhs, IrRepeat):
@@ -657,12 +679,12 @@ def rewrite_expr_5(expr):
                 rhs_size = get_size(rhs.irMetadata)
 
                 if (-1 in rhs_end_points):
-                    new_lhs = IrRemoveDimension(rhs.children[0], rhs_size-1)
+                    new_lhs = IrRemoveDimension(strip_repeat(rhs, rhs_size-1), rhs_size-1)
                     new_rhs = lhs
                     expr = IrInnerProduct(new_lhs, new_rhs)
                 elif (-2 in rhs_end_points):
                     new_lhs = lhs
-                    new_rhs = IrRemoveDimension(rhs.children[0], rhs_size-2)
+                    new_rhs = IrRemoveDimension(strip_repeat(rhs, rhs_size-2), rhs_size-2)
                     expr = IrInnerProduct(new_lhs, new_rhs)
     return expr, []
 
@@ -681,7 +703,15 @@ def rewrite_percolate_repeat_inside_binary(expr):
         if isinstance(expr.children[0], IrVar):
             child = child.defs.children[1]
         if isinstance(child, IrBinaryOp) and (child.op == '+' or child.op == '-'):
-            expr = IrBinaryOp(IrReduce(child.children[0]), IrReduce(child.children[1]), child.op)
+            # Recurse into the two new IrReduce nodes: an operand may itself be a
+            # sum (nested maps produce `reduce((a*x + b*y) + c)`), and without
+            # this only the outermost '+' gets peeled, so rewrite_expr_5 later
+            # sees an IrBinaryOp instead of an IrMult and the inner product is
+            # never formed.
+            lhs, lhs_assignments = rewrite_percolate_repeat_inside_binary(IrReduce(child.children[0]))
+            rhs, rhs_assignments = rewrite_percolate_repeat_inside_binary(IrReduce(child.children[1]))
+            expr = IrBinaryOp(lhs, rhs, child.op)
+            return expr, new_assignments + lhs_assignments + rhs_assignments
     return expr, []
     
 
