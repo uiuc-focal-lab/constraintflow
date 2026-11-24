@@ -6,7 +6,7 @@ A traversal bounds the N neurons of one layer. Its coefficient tensors carry tho
 independently and ends in a per-neuron sum. So the same statements run on rows [r0, r1) give rows
 [r0, r1) of every result: the bounds are unchanged, only the peak memory drops.
 
-The pass works on the emitted source (batch 1):
+The pass works on the emitted source (batch 1, or --batch-size B for a program specialized to batch B):
   1. fake-executes flow() for every variable's shape and every statement's allocation;
   2. from each statement over the budget, collects its traversal: statements whose 3-D+ results
      carry the same N rows on axis 1, connected through each other, plus the row-indexed statements
@@ -108,9 +108,10 @@ def _shape_of(value):
 class _Probe:
     """Fake execution of flow(): shapes of variables and sub-expressions, bytes per statement."""
 
-    def __init__(self, module_globals, params, inputs):
+    def __init__(self, module_globals, params, inputs, batch=1):
         from torch._subclasses.fake_tensor import FakeTensorMode
         from constraintflow.compiler.optimizations.flow_shapes import _Recorder
+        self.batch = batch
         self.mode = FakeTensorMode(allow_non_fake_inputs=True)
         self.recorder_cls = _Recorder
         self.env = dict(module_globals)
@@ -139,9 +140,10 @@ class _Probe:
             return _shape_of(eval(compile(ast.fix_missing_locations(ast.Expression(node)), '<expr>', 'eval'), self.env))
 
 
-def _per_row(shape, n_rows):
-    """[1, N] or [1, N, 1, ...]: one value per neuron."""
-    return shape is not None and len(shape) >= 2 and shape[:2] == (1, n_rows) and math.prod(shape[2:]) == 1
+def _per_row(shape, n_rows, batch=1):
+    """[1 or B, N] or [1 or B, N, 1, ...]: one value per neuron (and per input box)."""
+    return (shape is not None and len(shape) >= 2 and shape[0] in (1, batch) and shape[1] == n_rows
+            and math.prod(shape[2:]) == 1)
 
 
 def _row_axis_size(shape, ndim, n_rows):
@@ -152,12 +154,20 @@ def _row_axis_size(shape, ndim, n_rows):
     return 1 - offset >= 0 and shape[1 - offset] == n_rows
 
 
-def _rewrite_row_literals(node, n_rows):
-    """In reshape/view/expand shape lists, the leading row entry (prefix product 1) N -> _n."""
+def _rewrite_row_literals(node, n_rows, batch=1):
+    """In reshape/view/expand shape lists, the leading row entry (prefix product 1) N -> _n; with batch B also
+    [B, N, ...] -> [B, _n, ...] and rows folded into the batch axis [B * N, ...] -> [B * _n, ...]."""
     lst = node.args[0] if len(node.args) == 1 and isinstance(node.args[0], (ast.List, ast.Tuple)) else None
     elts = lst.elts if lst is not None else node.args
+    first = 0
+    #FEAT: --batch-size B: a leading batch entry, or the rows folded into it.
+    if batch > 1 and elts and isinstance(elts[0], ast.Constant) and isinstance(elts[0].value, int):
+        if elts[0].value == batch * n_rows:
+            elts[0] = ast.BinOp(ast.Constant(batch), ast.Mult(), ast.Name('_n', ast.Load()))
+            return True
+        first = int(elts[0].value == batch)
     prefix = 1
-    for k, e in enumerate(elts):
+    for k, e in list(enumerate(elts))[first:]:
         if not isinstance(e, ast.Constant) or not isinstance(e.value, int):
             return False
         if prefix == 1 and e.value == n_rows:
@@ -211,6 +221,7 @@ class _ChunkBody(ast.NodeTransformer):
         self.failed = None
         self.mixes_rows = False    # a product contracts the rows: the statement must run unchunked
         self.channel_vars = {}     # name -> positions: [1, C, 1 or P, ...] factors sliced by channels
+        self.batch_size = probe.batch
 
     def _is_row(self, node):
         return bool(_names(node) & (self.row_vars | self.channel_vars.keys()))
@@ -303,6 +314,13 @@ class _ChunkBody(ast.NodeTransformer):
             return None, 0, 0
         shape = shape or ()
         d = next((k for k, z in enumerate(shape) if z != 1), None)
+        #FEAT: --batch-size B: rows after a leading batch axis ([B, N, ...]) or folded into it ([B * N, ...]).
+        b = self.probe.batch
+        if b > 1 and d == 0:
+            if shape[0] == b * self.n_rows:
+                return 0, 1, len(shape)
+            if shape[0] == b:
+                d = next((k for k in range(1, len(shape)) if shape[k] != 1), None)
         if d is not None and shape[d] == self.n_rows:
             return d, 1, len(shape)
         #FEAT: rows split into channels x positions (DPE reshapes [1, N, K] to [1, C, P, K]).
@@ -323,7 +341,8 @@ class _ChunkBody(ast.NodeTransformer):
         if not all(isinstance(e, ast.Constant) and isinstance(e.value, int) for e in elts):
             return False
         sizes = [e.value for e in elts]
-        k = next((i for i, z in enumerate(sizes) if z != 1), None)
+        lead = int(self.probe.batch > 1 and sizes[:1] == [self.probe.batch])   # skip a leading batch entry
+        k = next((i for i, z in enumerate(sizes) if z != 1 and i >= lead), None)
         if k is None or k + 1 >= len(sizes) or sizes[k + 1] <= 1 or sizes[k] * sizes[k + 1] != self.n_rows:
             return False
         positions = sizes[k + 1]
@@ -340,7 +359,7 @@ class _ChunkBody(ast.NodeTransformer):
             self.failed = self.failed or 'patches_to_dense with non-constant geometry'
             return node
         positions = ox * oy
-        if batch != 1 or channels * positions != self.n_rows or self._row_axis(node.args[0])[0] is None \
+        if batch not in (1, self.probe.batch) or channels * positions != self.n_rows or self._row_axis(node.args[0])[0] is None \
                 or any(self._is_row(a) for a in node.args[1:]):
             self.failed = self.failed or f'patches_to_dense that does not have the {self.n_rows} rows as channels x positions'
             return node
@@ -473,7 +492,7 @@ class _ChunkBody(ast.NodeTransformer):
             return self._patches_rows(node)
         if isinstance(func, ast.Attribute) and func.attr in ('reshape', 'view', 'expand') and self._is_row(func.value):
             #FIX FOR: a reshape without N as its leading row entry (e.g. one merging rows) was kept as written.
-            if not (_rewrite_row_literals(node, self.n_rows) or func.attr != 'expand' and self._split_rows(node)) \
+            if not (_rewrite_row_literals(node, self.n_rows, self.probe.batch) or func.attr != 'expand' and self._split_rows(node)) \
                     or self.n_rows > 1 and self._row_axis(func.value)[0] is None:
                 self.failed = self.failed or f'{func.attr} that does not keep the {self.n_rows} rows as its leading axis'
             node.func.value = self.visit(func.value)
@@ -516,7 +535,7 @@ def _components(stmts, probe, budget):
     def rows(i):
         name = stmts[i].targets[0].id if isinstance(stmts[i], ast.Assign) else None
         shape = probe.shapes.get(name) if name else None
-        return shape[1] if shape is not None and len(shape) >= 3 and shape[0] == 1 else None
+        return shape[1] if shape is not None and len(shape) >= 3 and shape[0] in (1, probe.batch) else None
 
     done, comps = set(), []
     for seed in sorted(probe.stmt_bytes, key=probe.stmt_bytes.get, reverse=True):
@@ -539,12 +558,12 @@ def _components(stmts, probe, budget):
         loop = comp - outside
         # Row-indexed consumers of the coefficient tensors (the per-neuron sums) join the loop.
         for i in sorted(loop):
-            if _per_row(probe.shapes[stmts[i].targets[0].id], n_rows):
+            if _per_row(probe.shapes[stmts[i].targets[0].id], n_rows, probe.batch):
                 continue
             for j in users[i]:
                 if j in loop or not isinstance(stmts[j], ast.Assign):
                     continue
-                if _per_row(probe.shapes.get(stmts[j].targets[0].id), n_rows):
+                if _per_row(probe.shapes.get(stmts[j].targets[0].id), n_rows, probe.batch):
                     loop.add(j)
         comps.append((n_rows, loop, outside))
     return comps, defs, uses, users
@@ -579,11 +598,12 @@ class _TwoStageSums(ast.NodeTransformer):
                 shape = self.probe.shape(f.value)
             except Exception:
                 shape = None
-            g = _sum_groups(shape[2]) if (shape is not None and len(shape) == 3 and shape[:2] == (1, self.n_rows)
+            g = _sum_groups(shape[2]) if (shape is not None and len(shape) == 3 and shape[0] in (1, self.probe.batch)
+                                         and shape[1] == self.n_rows
                                          and shape[2] >= TWO_STAGE_MIN) else None
             if g is not None:
                 inner = self.visit(f.value)
-                dims = ast.List([ast.Constant(v) for v in (1, self.n_rows, g, shape[2] // g)], ast.Load())
+                dims = ast.List([ast.Constant(v) for v in (shape[0], self.n_rows, g, shape[2] // g)], ast.Load())
                 return _two_stage(inner, dims)
         return self.generic_visit(node)
 
@@ -700,7 +720,7 @@ def _chunk_body(stmts, probe, n_rows, loop, outside, users, two_stage=False, sel
                        and stmts[i].targets[0].id in _names(stmts[-1])})
     for name in exported:
         shape = probe.shapes[name]
-        if not _per_row(shape, n_rows):
+        if not _per_row(shape, n_rows, probe.batch):
             raise ValueError(f'{name} {shape} is used after the loop but is not a per-neuron result')
     pre = [ast.parse(f'{i}, {sc} = {e}').body[0] for i, sc, e in selection_maps]
     return pre + [ast.Assign([ast.Name(n, ast.Store())], e) for n, e in hoisted], body, exported, periods, whole_periods
@@ -847,13 +867,13 @@ def _loop_carried(loop):
     return keep
 
 
-def rewrite(source, module_globals, inputs, budget, report=print, compile_bodies=False):
+def rewrite(source, module_globals, inputs, budget, report=print, compile_bodies=False, batch=1):
     tree = ast.parse(source)
     fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == 'flow')
     fn.decorator_list = []
     params = [a.arg for a in fn.args.args]
     stmts = fn.body
-    probe = _Probe(module_globals, params, inputs)
+    probe = _Probe(module_globals, params, inputs, batch)
     probe.run(stmts)
     comps, defs, uses, users = _components(stmts, probe, budget)
     #FEAT: flow() parameters holding channel-selection conv weights (compiled bodies only).
@@ -947,6 +967,7 @@ def main():
     p.add_argument('--dataset', required=True)
     p.add_argument('--input-shape', help='e.g. 3x224x224; default: the ONNX input')
     p.add_argument('--budget-gb', type=float, default=20)
+    p.add_argument('--batch-size', type=int, default=1, help="the batch size the program was specialized to")
     p.add_argument('--compile-bodies', action='store_true',
                    help='torch.compile (Inductor) each loop body; chunk sizes divide the rows so shapes stay fixed')
     args = p.parse_args()
@@ -955,6 +976,10 @@ def main():
     device_mode.set_mode('gpu')
     src_path = os.path.join(args.program, 'transformers.py')
     orig_path = os.path.join(args.program, 'transformers_unchunked.py')
+    #FIX FOR: a flow() split into flow_seg_* regions (scepter's default --flow-segment-mb 8192) was left unchunked without a word.
+    with open(orig_path if os.path.exists(orig_path) else src_path) as f:
+        if 'def flow_seg_' in f.read():
+            sys.exit('row_chunks needs flow() in one piece: build with scepter --no-inductor --flow-segment-mb 0')
     if not os.path.exists(orig_path):
         os.replace(src_path, orig_path)
     with open(orig_path) as f:
@@ -971,16 +996,18 @@ def main():
              else tuple(d.dim_value for d in data_input.type.tensor_type.shape.dim)[1:])
     inits = [i for i in graph.initializer if i.data_type == onnx.TensorProto.FLOAT]
     params = {i.name: torch.from_numpy(onnx.numpy_helper.to_array(i).copy()).cuda() for i in inits}
-    x = torch.zeros(1, *shape, device='cuda')
-    y = torch.zeros(1, dtype=torch.long, device='cuda')
+    batch = args.batch_size
+    x = torch.zeros(batch, *shape, device='cuda')
+    y = torch.zeros(batch, dtype=torch.long, device='cuda')
     #FIX FOR: VNN-LIB datasets parse a spec into X, which must be cli.py's [batch, 2 (lo, hi), ...] placeholder box.
     from constraintflow.lib.spec import vnnlib_path
-    X = torch.zeros(1, 2, *shape, device='cuda') if vnnlib_path(args.dataset) else x
-    network, abs_elem = main_mod.build(args.network, 1, 0.0, X, y, args.dataset, False, False, False,
+    X = torch.zeros(batch, 2, *shape, device='cuda') if vnnlib_path(args.dataset) else x
+    network, abs_elem = main_mod.build(args.network, batch, 0.0, X, y, args.dataset, False, False, False,
                                        initializers=params, input_box=(x, x))
-    inputs = main_mod.explode_inputs(abs_elem, 1)
+    inputs = main_mod.explode_inputs(abs_elem, batch)
     transformers = sys.modules['transformers']
-    out = rewrite(source, vars(transformers), inputs, args.budget_gb * 2**30, compile_bodies=args.compile_bodies)
+    out = rewrite(source, vars(transformers), inputs, args.budget_gb * 2**30, compile_bodies=args.compile_bodies,
+                  batch=batch)
     with open(src_path, 'w') as f:
         f.write(out if out is not None else source)
 

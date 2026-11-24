@@ -1,6 +1,6 @@
 # ConstraintFlow
 
-**ConstraintFlow** is a domain-specific language (DSL) and toolchain for specifying, verifying, and compiling neural network certifiers. It bridges the gap between high-level formal specifications and efficient tensor-based runtimes, enabling precise and verifiable DNN analysis.
+**ConstraintFlow** is a domain-specific language (DSL) and toolchain for specifying, verifying, compiling, and specializing neural network certifiers. It bridges the gap between high-level formal specifications and efficient tensor-based runtimes, enabling precise and verifiable DNN analysis.
 
 ---
 
@@ -11,6 +11,7 @@ ConstraintFlow allows you to:
 * **Specify** certifiers declaratively using `.cf` files.
 * **Verify** certifiers automatically for soundness.
 * **Compile** high-level specifications into optimized tensor-based code.
+* **Specialize** a certifier to one network and batch size, compiling it into fast tensor code.
 * **Execute** compiled certifiers on neural network models.
 
 ---
@@ -90,21 +91,18 @@ constraintflow scepter example.cf --network <onnx> [OPTIONS]
 | Flag                                     | Description                                                                                                  | Default   |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------- |
 | `--network`                              | Path to the ONNX network (required)                                                                          |           |
-| `--network-format`                       | Format of the network file                                                                                   | `onnx`    |
 | `--dataset`                              | `mnist`, `cifar`, `cifar100`, `tinyimagenet`, `vnnlib:<benchmark folder>`, or `box-<input shape>-<outputs>-<spec rows>` | `mnist`   |
 | `--batch-size`                           | Batch size the program is specialized to                                                                     | 1         |
 | `--eps`                                  | Epsilon                                                                                                      | 0         |
 | `--device`                               | `cpu` or `gpu` (CUDA)                                                                  | `cpu`     |
 | `--output-path`                          | Directory for the specialized code                                                                           | `output/` |
-| `--inductor` / `--no-inductor`           | Compile the program with Inductor, or emit eager PyTorch code; `run` must be given the same choice           | on        |
-| `--traversal-stop-chunk`                 | Rows per compiled kernel for traversals that stop early per neuron; a comma list compiles one kernel per size | `128`     |
+| `--inductor` / `--no-inductor`           | Compile the program with Inductor, or emit eager PyTorch code                                                | on        |
 | `--flow-segment-mb`                      | Split the program into regions of about this many MB that Inductor compiles separately; 0 keeps one region   | 8192      |
-| `--memory-budget-mb`                     | Above this estimated peak memory, reorder the program and recompute large values; -1 = 70% of the GPU, 0 = off | -1        |
-| `--cudagraphs`                           | Replay one CUDA graph per run (needs `--inductor`)                                                           | False     |
+| `--row-chunks-gb`                      | Fit each back-substitution into this many GB by running it over chunks of neuron rows (large networks); 0 = off | 0 |
 | `--dtype`                                | `float32` or `float64`; `run` must be given the same                                                         | `float32` |
 | `--tf32`                                 | Use PyTorch's default TF32 convolutions (faster, less precise); `run` should be given the same              | False     |
 
-Run a `scepter` build with `run` and the same `--network`, `--dataset`, `--batch-size` and `--output-path`.
+More options: `constraintflow scepter --help`. Run a `scepter` build with `run` and the same `--network`, `--dataset`, `--batch-size` and `--output-path`.
 
 > **Note:** with `--inductor` (the default), PyTorch compiles the program during the first run. Pass at least one
 > warmup to `run` (`--warmup 1`, the default) so that compilation happens before the timed runs.
@@ -120,7 +118,6 @@ constraintflow run example.cf [OPTIONS]
 | Flag                           | Description                                 | Default           |
 | ------------------------------ | ------------------------------------------- | ----------------- |
 | `--network`                    | Path to the ONNX network (required)         |                   |
-| `--network-format`             | Format of the network file                  | `onnx`            |
 | `--dataset`                    | `mnist`, `cifar`, `cifar100`, `tinyimagenet`, `vnnlib:<benchmark folder>`, or `box-<input shape>-<outputs>-<spec rows>` | `mnist` |
 | `--batch-size`                 | Batch size                                  | 1                 |
 | `--eps`                        | Epsilon                                     | 0.01              |
@@ -128,19 +125,26 @@ constraintflow run example.cf [OPTIONS]
 | `--output-path`                | Path where compiled program is stored       | `output/`         |
 | `--compile`                    | Compile the program before running          | False             |
 | `--device`                     | `cpu` or `gpu` (CUDA) | `cpu`             |
-| `--inductor` / `--no-inductor` | Run with Inductor; must match the `scepter` build (a `compile` build runs with `--no-inductor`) | on |
+| `--inductor` / `--no-inductor` | Pass `--no-inductor` for a `compile` build (it turns the library's checks and counters back on); a `scepter` build runs either way | on |
 | `--warmup`                     | Untimed warmup runs before the timed runs (the first one compiles) | 1  |
-| `--repeat`                     | Number of timed runs on the first batch     | 1                 |
-| `--num-images`                 | Certify this many test images, one timed run per batch (needs `--results-file`) | 0 |
+| `--num-images`                 | Certify this many test images, one timed run per batch (needs `--results-file`); a warmup over 2500 s or a batch over 1000 s stops the run | 0 |
 | `--results-file`               | With `--num-images`: one JSON line per warmup and per batch (time, memory, bounds) |  |
-| `--save-bounds` / `--no-save-bounds` | Save each timed run's bounds to `--bounds-file`; with more than one run they are saved instead of printed | on |
-| `--bounds-file`                | Where `--save-bounds` writes                | `<output-path>/bounds.jsonl` |
-| `--batch-timeout`              | With `--num-images`: stop if one batch takes longer than this many seconds (0 = no limit) | 0 |
-| `--warmup-timeout`             | With `--num-images`: stop if one warmup takes longer than this many seconds (0 = no limit) | 0 |
-| `--profile-comm`               | With `--num-images`: record CPU–GPU synchronizations and copies per batch | False |
-| `--dtype`                      | `float32` or `float64`; must match the build | `float32`        |
+| `--save-bounds` / `--no-save-bounds` | Save each timed run's bounds to `<output-path>/bounds.jsonl`; with more than one run they are saved instead of printed | on |
 | `--tf32`                       | Use PyTorch's default TF32 convolutions; should match the build | False |
 
+More options (timeouts, fp64, profiling): `constraintflow run --help`.
+
+#### Large networks: row chunking
+
+Row chunking helps certifiers that back-substitute (e.g. DeepPoly, CROWN), whose coefficient matrices grow with the
+size of each layer. On networks whose back-substitution does not fit in GPU memory (e.g. ResNet50, VGG16), `scepter --row-chunks-gb <GB>`
+runs each back-substitution over that budget as a loop over chunks of neuron rows. This pass keeps the same bounds while dropping peak
+memory. `run` the build as usual:
+
+```bash
+constraintflow scepter example.cf --network net.onnx --dataset cifar --eps 4e-05 --batch-size 1 --device gpu --row-chunks-gb 40 --output-path out/
+constraintflow run example.cf --network net.onnx --dataset cifar --eps 4e-05 --batch-size 1 --device gpu --output-path out/
+```
 
 ---
 
