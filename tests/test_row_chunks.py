@@ -74,15 +74,16 @@ class RealizedPadTest(unittest.TestCase):
 
 
 class RowChunksTest(unittest.TestCase):
-    def run_case(self, stmt):
+    def run_case(self, stmt, batch=1):
+        # x carries the input boxes ([batch, N, K]); w is weight-side ([1, N, K]), broadcast over the batch.
         torch.manual_seed(3)
-        inputs = [torch.randn(1, N, K, dtype=torch.float64), torch.randn(1, N, K, dtype=torch.float64)]
+        inputs = [torch.randn(batch, N, K, dtype=torch.float64), torch.randn(1, N, K, dtype=torch.float64)]
         source = program(stmt)
-        out = rewrite(source, {'torch': torch}, inputs, budget=4096, report=lambda *_: None)
+        out = rewrite(source, {'torch': torch}, inputs, budget=4096, report=lambda *_: None, batch=batch)
         return source, out, inputs
 
-    def check_same(self, stmt):
-        source, out, inputs = self.run_case(stmt)
+    def check_same(self, stmt, batch=1):
+        source, out, inputs = self.run_case(stmt, batch)
         self.assertIsNotNone(out)
         self.assertIn('for _r0 in range', out)
         expected, actual = {'torch': torch}, {'torch': torch}
@@ -96,6 +97,17 @@ class RowChunksTest(unittest.TestCase):
 
     def test_row_local(self):
         self.check_same('torch.clamp(v, min=0.0).unsqueeze(3).squeeze(3) - w')
+
+    def test_batch_row_local(self):
+        self.check_same('torch.clamp(v, min=0.0).unsqueeze(3).squeeze(3) - w', batch=3)
+
+    def test_batch_rows_folded_into_batch_axis(self):
+        # [2, N, K] -> [2N, K] (rows folded into the batch axis, as for conv_transpose2d) -> [2, N, K]
+        self.check_same('v.reshape([128, 32]).neg().reshape([2, 64, 32]) * w', batch=2)
+
+    def test_batch_split_rows_channels_positions(self):
+        self.check_same('(v.reshape([2, 16, 4, 32]) * torch.arange(4.0, dtype=torch.float64).view([1, 1, 4, 1])).reshape([2, 64, 32])',
+                        batch=2)
 
     def test_pad_after_rows(self):
         self.check_same('torch.nn.functional.pad(v.view([1, 64, 4, 8]), [1, 1, 1, 1]).reshape([1, 64, 60])')

@@ -247,13 +247,15 @@ def simulacrum_compile(
     device: str = typer.Option("cpu", help="Device mode: cpu, gpu (CUDA), or gpumac (Apple MPS)"),
     output_path: str = typer.Option("output/", help="Output path for generated code"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
-    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Compile flow() with torch.compile (Inductor). --no-inductor emits an eager flow(), as the row_chunks rewrite needs. `run` must be given the same choice."),
+    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Compile flow() with torch.compile (Inductor), or emit an eager flow() with --no-inductor."),
     #FEAT: block sizes and batch rule for rows selected by row-invariant traversal stops.
     traversal_stop_chunk: str = typer.Option("128", "--traversal-stop-chunk", help="Rows per compiled kernel for traversal-stop selection; a comma list (e.g. 8,16,32,64,128,256,512) compiles one kernel per size and uses the smallest that fits."),
     traversal_stop_per_example: bool = typer.Option(False, "--traversal-stop-per-example", help="Keep each example's own stop decision, as the program states. Default: a row refined for any example takes the refined values for every example (auto_LiRPA's sparse rule)."),
     flow_segment_mb: float = typer.Option(8192.0, "--flow-segment-mb", help="Split the flow into regions with approximately this many MB of named allocations; Inductor compiles each region separately. This is a compilation-region budget, not a bound on total GPU memory. 0 keeps one region (needed by the row_chunks rewrite)."),
     cudagraphs: bool = typer.Option(False, "--cudagraphs/--no-cudagraphs", help="Compile flow() with mode='reduce-overhead' so a run replays one CUDA graph instead of launching each kernel. Cuts per-run launch overhead on small networks. Replays allocate from a private pool set up during warmup, so `run`'s per-run peak (max_memory_allocated) no longer counts flow intermediates. Requires --inductor."),
     center_radius: bool = typer.Option(True, "--center-radius/--no-center-radius", help="Concretize sign-selected bounds (c >= 0 ? c*u : c*l, and the final input-box concretization) as c*mid + |c|*rad, as auto_LiRPA does, and fold conv biases into the center conv. --no-center-radius restores original constraintflow's sign split c+*u + c-*l, which loses interval width in fp32 on narrow boxes."),
+    #FEAT: row-chunked back-substitution for networks that do not fit in GPU memory (compiler/optimizations/row_chunks.py).
+    row_chunks_gb: float = typer.Option(0.0, "--row-chunks-gb", help="Fit each back-substitution into this many GB of GPU memory by running it as a loop over chunks of neuron rows (bounds unchanged; for large networks such as ResNet50 or VGG16). Builds flow() eager and in one piece, and with --inductor compiles only the loop bodies. 0 = off."),
     memory_budget_mb: float = typer.Option(-1.0, "--memory-budget-mb", help="When the flow's estimated peak tensor memory exceeds this many MB, reorder it group by group and recompute large values instead of keeping them live (mem_plan). -1 (default) uses 70% of the CUDA device's memory; 0 disables."),
     #FEAT: --dtype on jit, so typer accepts it (applied from argv above).
     dtype: str = typer.Option("float32", "--dtype", help="float32, or float64 to compute every float tensor in fp64 (a precision oracle for bound mismatches; compile and run must agree). Read from argv before the imports; listed here so typer accepts it."),
@@ -275,6 +277,11 @@ def simulacrum_compile(
         raise typer.BadParameter('--cudagraphs requires --inductor')
     if flow_segment_mb < 0:
         raise typer.BadParameter('--flow-segment-mb must be nonnegative')
+    compile_bodies = inductor
+    if row_chunks_gb:
+        if cudagraphs or device != "gpu":
+            raise typer.BadParameter('--row-chunks-gb needs --device gpu and no --cudagraphs')
+        inductor, flow_segment_mb = False, 0.0   # the rewrite takes an eager flow() in one piece
     try:
         os.makedirs(output_path, exist_ok=True)
     except OSError as e:
@@ -366,6 +373,16 @@ def simulacrum_compile(
             globals.traversal_stop_config = (128, True)
             globals.jit_store_clear()
 
+    if row_chunks_gb:
+        import subprocess
+        cmd = [sys.executable, "-m", "constraintflow.compiler.optimizations.row_chunks", output_path, "--network", network_file,
+               "--dataset", dataset, "--budget-gb", f"{row_chunks_gb:g}", "--batch-size", str(batch_size)] + (["--compile-bodies"] if compile_bodies else [])
+        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        env = dict(os.environ, PYTHONPATH=os.pathsep.join(filter(None, [root, os.environ.get("PYTHONPATH")])))
+        if subprocess.run(cmd, env=env).returncode != 0:
+            typer.echo("Error: the row_chunks rewrite failed.")
+            raise typer.Exit(code=1)
+
     typer.echo("Specialization Complete! ✅")
     typer.echo(f"Specialized code written to: {os.path.abspath(output_path)}")
     if is_cuda:
@@ -391,7 +408,7 @@ def run(
     output_path: str = typer.Option("output/", help="Path where compiled program is stored"),
     compile: bool = typer.Option(False, help="Run compilation before execution"),
     dense: bool = typer.Option(False, help="Use dense blocks by default"),
-    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Run with PyTorch Inductor; must match how the program was built (scepter --inductor/--no-inductor; the generic `compile` build runs with --no-inductor unless built with --compile-flow)."),
+    inductor: bool = typer.Option(True, "--inductor/--no-inductor", help="Does not compile anything itself (the build decides). --no-inductor turns the sparse library's checks and counters back on, which a generic `compile` build needs; a scepter build runs either way."),
     warmup: int = typer.Option(1, help="Number of warmup runs on different data before the timed runs (the first one compiles)"),
     repeat: int = typer.Option(1, "--repeat", help="Number of timed runs, each reported separately. Independent of --warmup: the warmup runs (if any) still happen once, before the first timed run."),
     num_images: int = typer.Option(0, "--num-images", help="Verify this many test images, batch-size at a time, one timed run per batch (batch i = images [i*batch_size, (i+1)*batch_size)); warmup j uses the images right after them. Requires --results-file; replaces --repeat. 0 (default): the --repeat protocol, every timed run on the first batch."),
@@ -402,9 +419,9 @@ def run(
     #FEAT: --profile-comm records CPU-GPU communication per timed batch (lib/comm_profile.py).
     profile_comm: bool = typer.Option(False, "--profile-comm", help="With --num-images: profile each timed batch with torch.profiler and add syncs, alloc_syncs, gpu_idle_pct and sync_calls to its results line; its time goes to profiled_time_s instead of time_s. Warmups are not profiled."),
     #FEAT: per-batch time limit.
-    batch_timeout: float = typer.Option(0.0, "--batch-timeout", min=0, help="With --num-images: end the process if one timed batch runs longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). Warmups: --warmup-timeout. 0: no limit."),
+    batch_timeout: float = typer.Option(1000.0, "--batch-timeout", min=0, help="With --num-images: end the process if one timed batch runs longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). Warmups: --warmup-timeout. 0: no limit."),
     #FEAT: per-warmup time limit.
-    warmup_timeout: float = typer.Option(0.0, "--warmup-timeout", min=0, help="With --num-images: end the process if one warmup run takes longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). 0: no limit."),
+    warmup_timeout: float = typer.Option(2500.0, "--warmup-timeout", min=0, help="With --num-images: end the process if one warmup run takes longer than this many seconds (faulthandler prints 'Timeout' and every thread's stack). 0: no limit."),
     save_bounds: bool = typer.Option(True, "--save-bounds/--no-save-bounds", help="Write each timed run's bounds to --bounds-file (one JSON line per run). With more than one run the bounds are saved instead of printed; --no-save-bounds prints them."),
     bounds_file: str = typer.Option(None, "--bounds-file", help="Where --save-bounds writes (default: <output-path>/bounds.jsonl)."),
 ):
