@@ -157,6 +157,7 @@ If you use ConstraintFlow in your research, please cite the following papers:
     <a href="https://arxiv.org/abs/2501.01234"><img src="https://img.shields.io/badge/Paper-arXiv-blue"></a>
     <a href="https://dl.acm.org/doi/10.1145/OOPSLA2025"><img src="https://img.shields.io/badge/Paper-OOPSLA2025-blue"></a>
     <a href="https://example.com/dsl-paper"><img src="https://img.shields.io/badge/Paper-SAS2024-blue"></a>
+    <a href="https://arxiv.org/abs/2611.33259"><img src="https://img.shields.io/badge/Paper-arXiv%202026-blue"></a>
 </p>
 
 ```bibtex
