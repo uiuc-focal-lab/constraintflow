@@ -181,6 +181,16 @@ If you use ConstraintFlow in your research, please cite the following papers:
   journal = {arXiv},
   year = {2025},
 }
+
+@misc{scepter,
+  title = {Fast and Scalable Abstract Interpretation for Deep Neural Networks},
+  author = {Avaljot Singh and Dushyant Bharadwaj and Yasmin Chandini Sarita and Heng Zhong and Charith Mendis and Gagandeep Singh},
+  year = {2026},
+  eprint = {2611.33259},
+  archivePrefix = {arXiv},
+  primaryClass = {cs.LG},
+  url = {https://arxiv.org/abs/2611.33259},
+}
 ```
 
 ---
