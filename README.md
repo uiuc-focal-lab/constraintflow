@@ -20,18 +20,10 @@ ConstraintFlow allows you to:
 
 ### Installation
 
-Pip installation ([Pypi](https://pypi.org/project/constraintflow/0.1.1/))
-
-```bash
-pip install constraintflow==0.1.1
-```
-
-Or install from source
-
 Clone the repository and install in editable mode:
 
 ```bash
-git clone https://github.com/your-username/constraintflow.git
+git clone https://github.com/uiuc-focal-lab/constraintflow.git
 cd constraintflow
 pip install -e .
 ```
@@ -44,7 +36,16 @@ Create a directory for neural networks:
 mkdir nets/
 ```
 
-Download pretrained DNNs from [ERAN](https://github.com/eth-sri/eran) and place them inside `nets/`.
+Put the ONNX networks in `nets/`:
+
+| Networks | Source |
+| -------- | ------ |
+| MNIST, CIFAR-10 | [ERAN](https://github.com/eth-sri/eran) |
+| CIFAR-100, TinyImageNet ResNets | [VNN-COMP](https://github.com/Lucas110550/CIFAR100_TinyImageNet_ResNet), with the [TinyImageNet](http://cs231n.stanford.edu/tiny-imagenet-200.zip) dataset |
+| CIFAR-10 ResNet50 | [ONNX export](https://drive.google.com/file/d/13CtXfo88oANMolEk0Q3HHp-hP76xUFPW/view?usp=sharing) of [MadryLab robustness](https://github.com/MadryLab/robustness) `cifar_linf_8` |
+| VGG16 | [ONNX models](https://github.com/onnx/models/tree/main/validated/vision/classification/vgg), with properties from [VNN-COMP](https://github.com/stanleybak/vggnet16_benchmark2022) (`--dataset vnnlib:<folder>`) |
+
+MNIST and CIFAR datasets download on first use. ResNet50 and VGG16 with back-substitution certifiers need [row chunking](#large-networks-row-chunking).
 
 
 ---
